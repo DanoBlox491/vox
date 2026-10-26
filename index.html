@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vox | Ultra-Light Chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --bg-dark: #1e1f22;
+            --bg-mid: #2b2d31;
+            --bg-light: #313338;
+            --text: #dbdee1;
+            --muted: #949ba4;
+            --brand: #5865F2;
+            --green: #23a559;
+            --red: #da373c;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+
+        /* --- SERVER SIDEBAR --- */
+        .server-sidebar { width: 72px; background: var(--bg-dark); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; border-right: 1px solid #1a1b1e; overflow-y: auto; }
+        .server-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-mid); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; cursor: pointer; transition: 0.2s; color: white; flex-shrink: 0; }
+        .server-icon:hover { border-radius: 16px; background: var(--brand); }
+        .server-icon.active { border-radius: 16px; background: var(--brand); }
+        .add-server { color: var(--green); font-size: 24px; }
+        .add-server:hover { background: var(--green); color: white; }
+
+        /* --- CHANNEL SIDEBAR --- */
+        .channel-sidebar { width: 240px; background: var(--bg-mid); display: flex; flex-direction: column; }
+        .server-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); cursor: pointer; }
+        .channel-list { padding: 16px 8px; flex: 1; overflow-y: auto; }
+        .channel-category { font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--muted); padding: 0 8px; margin-bottom: 4px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .add-channel-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+        .add-channel-btn:hover { color: white; }
+        .channel-item { padding: 8px; border-radius: 4px; color: var(--muted); font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+        .channel-item:hover { background: #35373c; color: var(--text); }
+        .channel-item.active { background: #404249; color: white; }
+        
+        .voice-channel { color: var(--muted); }
+        .voice-channel:hover { color: var(--green); }
+
+        .user-panel { height: 52px; background: #232428; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; }
+        .user-info { display: flex; align-items: center; gap: 8px; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
+        .user-name { font-size: 13px; font-weight: 600; }
+
+        /* --- MAIN CHAT --- */
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-light); }
+        .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #26272b; font-weight: 800; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        .message { display: flex; gap: 16px; }
+        .msg-avatar { width: 40px; height: 40px; border-radius: 50%; background: #4e5058; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .msg-content { display: flex; flex-direction: column; max-width: 80%; }
+        .msg-header { display: flex; align-items: baseline; gap: 8px; }
+        .msg-author { font-weight: 600; color: white; font-size: 15px; }
+        .msg-time { font-size: 11px; color: var(--muted); }
+        .msg-text { font-size: 15px; line-height: 1.4; color: var(--text); margin-top: 2px; word-wrap: break-word; }
+        .msg-text a { color: #00a8fc; text-decoration: none; }
+        .msg-text a:hover { text-decoration: underline; }
+
+        /* VIDEO/AUDIO PLAYERS */
+        .vox-video-container { max-width: 450px; border-radius: 8px; overflow: hidden; margin-top: 8px; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .vox-video-container video { width: 100%; display: block; }
+        .vox-audio-card { display: flex; align-items: center; gap: 12px; background: #2b2d31; padding: 12px; border-radius: 8px; margin-top: 8px; width: 350px; max-width: 100%; border: 1px solid #1e1f22; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .vox-audio-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--brand); color: white; border: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .vox-audio-btn:hover { background: #4752c4; transform: scale(1.05); }
+        .vox-audio-progress { flex: 1; height: 6px; background: #1e1f22; border-radius: 3px; cursor: pointer; position: relative; overflow: hidden; }
+        .vox-audio-fill { height: 100%; width: 0%; background: var(--brand); border-radius: 3px; transition: width 0.1s linear; }
+        .vox-audio-time { font-size: 12px; color: var(--muted); font-weight: 600; font-family: monospace; }
+
+        .chat-input-area { padding: 0 16px 24px 16px; }
+        .chat-input-wrapper { background: #383a40; border-radius: 8px; display: flex; align-items: center; padding: 0 16px; }
+        .chat-input { flex: 1; background: transparent; border: none; color: white; padding: 12px 0; font-size: 15px; outline: none; }
+        .chat-input::placeholder { color: var(--muted); }
+        .action-btn { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 8px; transition: 0.2s; }
+        .action-btn:hover { color: white; }
+        .uploading-text { font-size: 12px; color: var(--green); display: none; margin-left: 10px; font-weight: bold; }
+
+        /* --- MODALS --- */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-light); padding: 24px; border-radius: 8px; width: 400px; border-top: 4px solid var(--brand); }
+        .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 16px; color: white; }
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+        .input-group input, .input-group select { width: 100%; padding: 10px; background: #1e1f22; border: 1px solid #111; border-radius: 4px; color: white; outline: none; }
+        .btn { width: 100%; padding: 12px; background: var(--brand); color: white; border: none; border-radius: 4px; font-weight: 800; cursor: pointer; transition: 0.2s; margin-bottom: 8px;}
+        .btn:hover { background: #4752c4; }
+
+        /* VIDEO CALL OVERLAY */
+        #video-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 300; flex-direction: column; align-items: center; justify-content: center; }
+        #video-overlay.active { display: flex; }
+        .video-grid { display: flex; gap: 20px; width: 90%; max-width: 1200px; justify-content: center; flex-wrap: wrap; }
+        .video-box { flex: 1; min-width: 300px; max-width: 500px; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; border: 2px solid var(--brand); position: relative; }
+        .video-box video { width: 100%; height: 100%; object-fit: cover; }
+        .video-label { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; }
+        .end-call-btn { background: var(--red); color: white; padding: 15px 40px; border-radius: 8px; border: none; font-size: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; transition: 0.2s; }
+        .end-call-btn:hover { background: #b02a2e; transform: scale(1.05); }
+
+        /* AUTH SCREEN */
+        #auth-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-dark); display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; }
+        .auth-box { background: var(--bg-light); padding: 32px; border-radius: 8px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .auth-box h1 { font-size: 24px; font-weight: 800; color: white; text-align: center; margin-bottom: 8px; }
+        .auth-box p { color: var(--muted); text-align: center; font-size: 15px; margin-bottom: 24px; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h1>Welcome to Vox</h1>
+            <p>The ultra-light chat platform.</p>
+            <div class="input-group">
+                <label>Display Name</label>
+                <input type="text" id="auth-name" placeholder="e.g. Dano">
+            </div>
+            <button class="btn" onclick="loginUser()">Enter Chat</button>
+        </div>
+    </div>
+
+    <div id="app" style="display: none; width: 100%; height: 100%;">
+        
+        <div class="server-sidebar" id="server-sidebar">
+            <div class="server-icon add-server" onclick="openModal('create-server-modal')">+</div>
+        </div>
+
+        <div class="channel-sidebar">
+            <div class="server-header">
+                <span id="server-name">Select a Server</span>
+                <span style="font-size: 18px;">⌄</span>
+            </div>
+            <div class="channel-list" id="channel-list">
+                <!-- Channels load here -->
+            </div>
+            <div class="user-panel">
+                <div class="user-info">
+                    <div class="avatar" id="user-avatar-display">D</div>
+                    <div class="user-name" id="user-name-display">User</div>
+                </div>
+                <button class="action-btn" title="Settings">⚙️</button>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="chat-header">
+                <span style="color: var(--muted); font-size: 20px; margin-right: 8px;" id="channel-icon">#</span> 
+                <span id="active-channel-name">select-a-channel</span>
+                <div style="margin-left: auto;">
+                    <button class="btn" style="width: auto; padding: 6px 12px; font-size: 12px; background: var(--green);" onclick="startCall()">📹 Start Video Call</button>
+                </div>
+            </div>
+            <div class="messages-container" id="messages-container">
+                <p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a server and channel to start chatting.</p>
+            </div>
+            <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                    <input type="file" id="file-input" style="display: none;" accept="image/*,video/*,audio/*" onchange="uploadFile()">
+                    <button class="action-btn" title="Upload File" onclick="document.getElementById('file-input').click()">+</button>
+                    <span id="upload-status" class="uploading-text">Uploading...</span>
+                    <input type="text" id="chat-input" class="chat-input" placeholder="Message...">
+                    <button class="action-btn" onclick="sendMessage()" title="Send">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIDEO CALL OVERLAY -->
+    <div id="video-overlay">
+        <div class="video-grid">
+            <div class="video-box">
+                <video id="local-video" autoplay muted playsinline></video>
+                <div class="video-label">You</div>
+            </div>
+            <div class="video-box" id="remote-video-box" style="display: none;">
+                <video id="remote-video" autoplay playsinline></video>
+                <div class="video-label">Friend</div>
+            </div>
+        </div>
+        <button class="end-call-btn" onclick="endCall()">End Call</button>
+    </div>
+
+    <!-- CREATE SERVER MODAL -->
+    <div class="modal" id="create-server-modal">
+        <div class="modal-content">
+            <div class="modal-title">Create a Server</div>
+            <div class="input-group">
+                <label>Server Name</label>
+                <input type="text" id="new-server-name" placeholder="Dano's Domain">
+            </div>
+            <button class="btn" onclick="createServer()">Create Server</button>
+            <button class="btn" onclick="closeModal('create-server-modal')" style="background: #4e5058;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- CREATE CHANNEL MODAL -->
+    <div class="modal" id="create-channel-modal">
+        <div class="modal-content">
+            <div class="modal-title">Create a Channel</div>
+            <div class="input-group">
+                <label>Channel Name</label>
+                <input type="text" id="new-channel-name" placeholder="e.g. general">
+            </div>
+            <div class="input-group">
+                <label>Channel Type</label>
+                <select id="new-channel-type">
+                    <option value="text">Text Channel</option>
+                    <option value="voice">Voice Channel</option>
+                </select>
+            </div>
+            <button class="btn" onclick="createChannel()">Create Channel</button>
+            <button class="btn" onclick="closeModal('create-channel-modal')" style="background: #4e5058;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- OWNER PANEL (BOTS) -->
+    <div class="modal" id="owner-panel-modal">
+        <div class="modal-content">
+            <div class="modal-title">👑 Owner Panel (Bots)</div>
+            <div class="input-group">
+                <label>Third-Party Bot Webhook URL</label>
+                <input type="text" id="webhook-url" placeholder="https://discord.com/api/webhooks/...">
+            </div>
+            <button class="btn" onclick="saveWebhook()">Save Webhook</button>
+            <button class="btn" onclick="closeModal('owner-panel-modal')" style="background: #4e5058;">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyCYhHn7VEETiFPkMh9OtYO825-ejUQBNUg", authDomain: "auracard-7b97f.firebaseapp.com", projectId: "auracard-7b97f", storageBucket: "auracard-7b97f.firebasestorage.app", messagingSenderId: "266276728636", appId: "1:266276728636:web:2c36f2e588d6d8dcab3839" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let currentServerId = null;
+        let currentChannel = null;
+        let currentChannelType = "text";
+        let unsubscribeMessages = null;
+        let unsubscribeServers = null;
+        let peerConnection = null;
+        let localStream = null;
+
+        const servers = {
+            iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
+        };
+
+        function loginUser() {
+            const name = document.getElementById('auth-name').value.trim();
+            if (!name) return alert("Enter a name!");
+            currentUser = { name: name, uid: "user_" + Date.now() };
+            
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            document.getElementById('user-name-display').innerText = name;
+            document.getElementById('user-avatar-display').innerText = name.charAt(0).toUpperCase();
+            
+            listenToServers();
+        }
+
+        // --- SERVER & CHANNEL LOGIC ---
+        function listenToServers() {
+            const sidebar = document.getElementById('server-sidebar');
+            if (unsubscribeServers) unsubscribeServers();
+            unsubscribeServers = db.collection('vox_servers').onSnapshot(snapshot => {
+                sidebar.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const isActive = currentServerId === doc.id ? 'active' : '';
+                    sidebar.innerHTML += `<div class="server-icon ${isActive}" onclick="selectServer('${doc.id}', '${data.name}', '${data.webhookUrl || ''}')" title="${data.name}">${data.name.charAt(0).toUpperCase()}</div>`;
+                });
+                sidebar.innerHTML += `<div class="server-icon add-server" onclick="openModal('create-server-modal')">+</div>`;
+            });
+        }
+
+        async function createServer() {
+            const name = document.getElementById('new-server-name').value.trim();
+            if (!name) return;
+            const docRef = await db.collection('vox_servers').add({ name: name, owner: currentUser.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await db.collection('vox_channels').add({ serverId: docRef.id, name: "general", type: "text", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            closeModal('create-server-modal');
+            selectServer(docRef.id, name, "");
+        }
+
+        function selectServer(id, name, webhook) {
+            currentServerId = id;
+            document.getElementById('server-name').innerText = name;
+            document.getElementById('webhook-url').value = webhook;
+            listenToServers();
+            loadChannels();
+        }
+
+        async function loadChannels() {
+            const channelList = document.getElementById('channel-list');
+            channelList.innerHTML = `<p style="color: var(--muted); text-align: center; font-size: 12px;">Loading...</p>`;
+            
+            const snapshot = await db.collection('vox_channels').where('serverId', '==', currentServerId).orderBy('createdAt', 'asc').get();
+            channelList.innerHTML = `
+                <div class="channel-category">Text Channels <button class="add-channel-btn" onclick="openModal('create-channel-modal')">+</button></div>
+                <div id="text-channels"></div>
+                <div class="channel-category">Voice / Bots <button class="add-channel-btn" onclick="openModal('owner-panel-modal')">👑</button></div>
+                <div id="voice-channels"></div>
+            `;
+            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.type === 'voice') {
+                    document.getElementById('voice-channels').innerHTML += `<div class="channel-item voice-channel" onclick="startCall()">🔊 ${data.name}</div>`;
+                } else {
+                    document.getElementById('text-channels').innerHTML += `<div class="channel-item ${currentChannel === data.name ? 'active' : ''}" onclick="selectChannel('${data.name}', 'text', this)"># ${data.name}</div>`;
+                }
+            });
+        }
+
+        async function createChannel() {
+            const name = document.getElementById('new-channel-name').value.trim().replace(/\s+/g, '-').toLowerCase();
+            const type = document.getElementById('new-channel-type').value;
+            if (!name) return;
+            await db.collection('vox_channels').add({ serverId: currentServerId, name: name, type: type, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            closeModal('create-channel-modal');
+            loadChannels();
+        }
+
+        function selectChannel(channelName, type, element) {
+            currentChannel = channelName;
+            currentChannelType = type;
+            document.getElementById('active-channel-name').innerText = channelName;
+            document.getElementById('channel-icon').innerText = type === 'voice' ? '🔊' : '#';
+            
+            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            if (unsubscribeMessages) unsubscribeMessages();
+            if (type === 'text') listenToMessages();
+            else document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center;">Join the voice channel to start talking.</p>`;
+        }
+
+        // --- BOTS (WEBHOOKS) ---
+        async function saveWebhook() {
+            const url = document.getElementById('webhook-url').value.trim();
+            await db.collection('vox_servers').doc(currentServerId).update({ webhookUrl: url });
+            alert("Webhook saved! Messages will now forward to this bot.");
+            closeModal('owner-panel-modal');
+        }
+
+        // --- TEXT CHAT LOGIC ---
+        function listenToMessages() {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = `<p style="color: var(--muted); text-align: center;">Loading...</p>`;
+            
+            unsubscribeMessages = db.collection('vox_messages').where('serverId', '==', currentServerId).where('channel', '==', currentChannel).orderBy('timestamp', 'asc').limit(50).onSnapshot(snapshot => {
+                container.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const time = data.timestamp ? data.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
+                    let mediaHTML = "";
+                    if (data.mediaUrl) {
+                        if (data.mediaType && data.mediaType.startsWith('video/')) mediaHTML = `<div class="vox-video-container"><video src="${data.mediaUrl}" controls></video></div>`;
+                        else if (data.mediaType && data.mediaType.startsWith('audio/')) {
+                            const audioId = 'audio_' + Math.random().toString(36).substr(2, 9);
+                            mediaHTML = `<div class="vox-audio-card"><button class="vox-audio-btn" onclick="toggleAudio('${audioId}')">▶️</button><div class="vox-audio-progress" onclick="seekAudio(event, '${audioId}')"><div class="vox-audio-fill" id="fill_${audioId}"></div></div><span class="vox-audio-time" id="time_${audioId}">0:00</span><audio id="${audioId}" src="${data.mediaUrl}" ontimeupdate="updateAudio('${audioId}')" onended="resetAudio('${audioId}')"></audio></div>`;
+                        } else mediaHTML = `<img src="${data.mediaUrl}" style="max-width:400px;border-radius:8px;margin-top:8px;" onclick="window.open('${data.mediaUrl}', '_blank')">`;
+                    }
+                    container.innerHTML += `<div class="message"><div class="msg-avatar">${data.sender.charAt(0).toUpperCase()}</div><div class="msg-content"><div class="msg-header"><span class="msg-author">${data.sender}</span><span class="msg-time">${time}</span></div>${data.text ? `<div class="msg-text">${formatText(data.text)}</div>` : ''}${mediaHTML}</div></div>`;
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        function formatText(text) {
+            let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return safeText.replace(/(https?:\/\/[^\s]+)/g, function(url) { return `<a href="${url}" target="_blank">${url}</a>`; });
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !currentServerId || !currentChannel) return;
+            input.value = ""; 
+            
+            // Send to DB
+            await db.collection('vox_messages').add({ serverId: currentServerId, channel: currentChannel, sender: currentUser.name, text: text, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+
+            // Forward to Bot Webhook if it exists
+            const serverDoc = await db.collection('vox_servers').doc(currentServerId).get();
+            const webhookUrl = serverDoc.data().webhookUrl;
+            if (webhookUrl && webhookUrl.startsWith('http')) {
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: `**[${currentUser.name}]**: ${text}` })
+                }).catch(e => console.log("Bot error:", e));
+            }
+        }
+
+        // --- WEBRTC (VOICE / VIDEO CALLING) ---
+        async function startCall() {
+            document.getElementById('video-overlay').classList.add('active');
+            document.getElementById('remote-video-box').style.display = 'none';
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('local-video').srcObject = localStream;
+
+                createPeerConnection();
+                
+                // Create Offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Save offer to Firestore (Signaling)
+                await db.collection('vox_calls').doc(currentServerId + '_' + currentChannel).set({
+                    offer: { type: offer.type, sdp: offer.sdp }
+                });
+
+                // Listen for Answer
+                db.collection('vox_calls').doc(currentServerId + '_' + currentChannel).onSnapshot(async (snapshot) => {
+                    const data = snapshot.data();
+                    if (data && data.answer && !peerConnection.currentRemoteDescription) {
+                        document.getElementById('remote-video-box').style.display = 'block';
+                        const answer = new RTCSessionDescription(data.answer);
+                        await peerConnection.setRemoteDescription(answer);
+                    }
+                });
+
+            } catch (err) {
+                alert("Could not access camera/mic: " + err.message);
+                endCall();
+            }
+        }
+
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(servers);
+
+            // Add local tracks to connection
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // Listen for remote tracks
+            peerConnection.ontrack = event => {
+                document.getElementById('remote-video').srcObject = event.streams[0];
+            };
+
+            // Handle ICE Candidates
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    db.collection('vox_calls').doc(currentServerId + '_' + currentChannel).collection('candidates').add(event.candidate.toJSON());
+                }
+            };
+        }
+
+        function endCall() {
+            document.getElementById('video-overlay').classList.remove('active');
+            if (peerConnection) peerConnection.close();
+            if (localStream) localStream.getTracks().forEach(track => track.stop());
+            peerConnection = null;
+            localStream = null;
+        }
+
+        // --- MEDIA UPLOAD & AUDIO CONTROLS ---
+        async function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file || !currentServerId || !currentChannel) return;
+            const status = document.getElementById('upload-status');
+            status.style.display = 'inline-block';
+            const formData = new FormData();
+            formData.append('reqtype', 'fileupload');
+            formData.append('fileToUpload', file);
+            try {
+                const response = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData });
+                const fileUrl = await response.text();
+                await db.collection('vox_messages').add({ serverId: currentServerId, channel: currentChannel, sender: currentUser.name, text: "", mediaUrl: fileUrl, mediaType: file.type, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            } catch (error) { alert("Upload failed"); } finally { status.style.display = 'none'; fileInput.value = ""; }
+        }
+
+        document.getElementById('chat-input').addEventListener('keypress', function (e) { if (e.key === 'Enter') sendMessage(); });
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function toggleAudio(id) { const audio = document.getElementById(id); const btn = audio.parentElement.querySelector('.vox-audio-btn'); if (audio.paused) { audio.play(); btn.innerText = "⏸"; } else { audio.pause(); btn.innerText = "▶️"; } }
+        function updateAudio(id) { const audio = document.getElementById(id); const fill = document.getElementById('fill_' + id); const timeEl = document.getElementById('time_' + id); if (audio.duration) { fill.style.width = (audio.currentTime / audio.duration) * 100 + '%'; let mins = Math.floor(audio.currentTime / 60); let secs = Math.floor(audio.currentTime % 60); if (secs < 10) secs = '0' + secs; timeEl.innerText = `${mins}:${secs}`; } }
+        function seekAudio(e, id) { const audio = document.getElementById(id); const rect = e.currentTarget.getBoundingClientRect(); if (audio.duration) { audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration; } }
+        function resetAudio(id) { const audio = document.getElementById(id); audio.currentTime = 0; audio.parentElement.querySelector('.vox-audio-btn').innerText = "▶️"; document.getElementById('fill_' + id).style.width = '0%'; document.getElementById('time_' + id).innerText = '0:00'; }
+
+    </script>
+</body>
+</html>
