@@ -87,9 +87,11 @@
         .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-light); min-width: 0; }
         .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #26272b; font-weight: 800; box-shadow: 0 1px 2px rgba(0,0,0,0.1); gap: 8px; }
         
-        /* Share Button */
+        /* Chat Header Buttons */
         #share-group-btn { margin-left: auto; background: var(--brand); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: none; transition: 0.2s; }
         #share-group-btn:hover { background: #4752c4; }
+        #delete-chat-btn { margin-left: 8px; background: var(--red); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: none; transition: 0.2s; }
+        #delete-chat-btn:hover { background: #b02a2e; }
 
         .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
         .message { display: flex; gap: 16px; }
@@ -215,8 +217,8 @@
             <div class="chat-header">
                 <span style="color: var(--muted); font-size: 20px;" id="channel-icon">#</span>
                 <span id="active-channel-name">select-a-chat</span>
-                <!-- Share Button (Only shows for groups) -->
                 <button id="share-group-btn" onclick="shareGroupLink()">🔗 Share Group</button>
+                <button id="delete-chat-btn" onclick="deleteCurrentChat()">🗑️ Delete</button>
             </div>
             <div class="messages-container" id="messages-container">
                 <p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a group or channel to start chatting.</p>
@@ -230,6 +232,15 @@
                     <button class="action-btn" onclick="sendMessage()" title="Send">➤</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- CREATE MENU MODAL (The New Universal + Menu) -->
+    <div class="modal" id="create-menu-modal">
+        <div class="modal-content">
+            <div class="modal-title">What are we building? <button class="close-modal-btn" onclick="closeModal('create-menu-modal')">✖</button></div>
+            <button class="btn" onclick="openCreateServerModal()" style="background: var(--brand); margin-bottom: 16px; padding: 18px; font-size: 16px;">🏠 Create a Server (Discord Style)</button>
+            <button class="btn" onclick="openCreateGroupModal()" style="background: var(--green); padding: 18px; font-size: 16px;">💬 Create a Group (WhatsApp Style)</button>
         </div>
     </div>
 
@@ -286,7 +297,7 @@
         </div>
     </div>
 
-    <!-- OTHER MODALS -->
+    <!-- CREATE SERVER MODAL -->
     <div class="modal" id="create-server-modal">
         <div class="modal-content">
             <div class="modal-title">Create a Server <button class="close-modal-btn" onclick="closeModal('create-server-modal')">✖</button></div>
@@ -294,6 +305,8 @@
             <button class="btn" onclick="createServer()">Create Server</button>
         </div>
     </div>
+
+    <!-- OTHER MODALS -->
     <div class="modal" id="create-channel-modal">
         <div class="modal-content">
             <div class="modal-title">Create a Channel <button class="close-modal-btn" onclick="closeModal('create-channel-modal')">✖</button></div>
@@ -343,7 +356,9 @@
         let currentUser = null;
         let currentUserProfile = null;
         let currentServerId = null;
+        let currentServerOwnerId = null;
         let currentGroupId = null; 
+        let currentGroupCreatorId = null;
         let currentChannel = null;
         let currentChannelType = "text";
         let currentView = "group"; 
@@ -408,7 +423,7 @@
                 listenToProfile();
                 listenToServers();
                 loadGroupsView(); 
-                checkForJoinLink(); // 👈 Check if there is an invite link in the URL!
+                checkForJoinLink(); 
             } else {
                 currentUser = null; currentUserProfile = null;
                 document.getElementById('landing-screen').style.display = 'flex';
@@ -418,6 +433,71 @@
                 if (unsubscribeGroups) { unsubscribeGroups(); unsubscribeGroups = null; }
             }
         });
+
+        /* ============================================================
+           UNIVERSAL CREATE MENU
+           ============================================================ */
+        function openCreateMenu() { openModal('create-menu-modal'); }
+        
+        function openCreateServerModal() {
+            closeModal('create-menu-modal');
+            document.getElementById('new-server-name').value = "";
+            openModal('create-server-modal');
+        }
+
+        async function openCreateGroupModal() {
+            closeModal('create-menu-modal');
+            document.getElementById('new-group-name').value = "";
+            const checklist = document.getElementById('friends-checklist');
+            checklist.innerHTML = "<p style='color: var(--muted); font-size:12px;'>Loading friends...</p>";
+            openModal('create-group-modal');
+
+            const friendIds = currentUserProfile.friends || [];
+            if (friendIds.length === 0) {
+                checklist.innerHTML = "<p style='color: var(--red); font-size:12px;'>You haven't added any friends yet! Go to your Profile -> Add Friend.</p>";
+                return;
+            }
+
+            checklist.innerHTML = "";
+            for (const uid of friendIds) {
+                const doc = await db.collection('vox_users').doc(uid).get();
+                if (doc.exists) {
+                    const fData = doc.data();
+                    const label = document.createElement('label');
+                    label.className = 'friend-checkbox-item';
+                    label.innerHTML = `
+                        <input type="checkbox" value="${uid}" class="friend-checkbox">
+                        <span style="font-weight: 600; color: white;">${fData.displayName}</span>
+                    `;
+                    checklist.appendChild(label);
+                }
+            }
+        }
+
+        /* ============================================================
+           DELETE CHAT LOGIC
+           ============================================================ */
+        async function deleteCurrentChat() {
+            if (currentView === 'server' && currentServerId) {
+                if (currentUser.uid !== currentServerOwnerId) return alert("Only the server owner can delete it! 👑");
+                if (!confirm("Are you sure you want to delete this server? All channels and messages will be lost.")) return;
+                
+                await db.collection('vox_servers').doc(currentServerId).delete();
+                const channels = await db.collection('vox_channels').where('serverId', '==', currentServerId).get();
+                channels.forEach(async (doc) => await doc.ref.delete());
+                
+                currentServerId = null;
+                loadGroupsView(); // Kick back to home
+            } 
+            else if (currentView === 'group' && currentGroupId) {
+                if (currentUser.uid !== currentGroupCreatorId) return alert("Only the group creator can delete it! 👑");
+                if (!confirm("Are you sure you want to delete this group?")) return;
+                
+                await db.collection('vox_groups').doc(currentGroupId).delete();
+                currentGroupId = null;
+                loadGroupsView();
+            }
+        }
 
         /* ============================================================
            SHARE & JOIN VIA LINK LOGIC
@@ -440,24 +520,19 @@
                     
                     if (groupDoc.exists) {
                         const groupData = groupDoc.data();
-                        // Add user to group if not already in it
                         if (!groupData.members.includes(currentUser.uid)) {
                             await groupRef.update({
                                 members: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
                             });
                             alert(`You joined the group: ${groupData.name}! 🎉`);
                         }
-                        // Clean the URL so it looks normal
                         window.history.replaceState({}, document.title, window.location.pathname);
-                        // Open the group
                         loadGroupsView();
-                        setTimeout(() => selectGroup(joinId, groupData.name), 500); 
+                        setTimeout(() => selectGroup(joinId, groupData.name, null, groupData.createdBy), 500); 
                     } else {
                         alert("This group invite link is invalid or the group was deleted.");
                     }
-                } catch (e) {
-                    console.error("Error joining group:", e);
-                }
+                } catch (e) { console.error("Error joining group:", e); }
             }
         }
 
@@ -556,6 +631,7 @@
             document.getElementById('channel-icon').innerText = "👥";
             document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a group or create a new one.</p>`;
             document.getElementById('share-group-btn').style.display = 'none';
+            document.getElementById('delete-chat-btn').style.display = 'none';
             
             document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
             document.getElementById('home-btn').classList.add('active');
@@ -565,7 +641,7 @@
 
             const channelList = document.getElementById('channel-list');
             channelList.innerHTML = `
-                <div class="channel-category">My Groups <button class="add-channel-btn" onclick="openGroupModal()">+</button></div>
+                <div class="channel-category">My Groups</div>
                 <div id="group-list"><p style="color: var(--muted); font-size: 12px; padding: 8px;">Loading...</p></div>
             `;
 
@@ -581,44 +657,20 @@
                     const item = document.createElement('div');
                     item.className = 'channel-item' + (currentGroupId === doc.id ? ' active' : '');
                     item.innerHTML = `👥 ${data.name}`;
-                    item.onclick = () => selectGroup(doc.id, data.name, item);
+                    item.onclick = () => selectGroup(doc.id, data.name, item, data.createdBy);
                     groupList.appendChild(item);
                 });
             });
-        }
-
-        async function openGroupModal() {
-            document.getElementById('new-group-name').value = "";
-            const checklist = document.getElementById('friends-checklist');
-            checklist.innerHTML = "<p style='color: var(--muted); font-size:12px;'>Loading friends...</p>";
-
-            const friendIds = currentUserProfile.friends || [];
-            if (friendIds.length === 0) {
-                checklist.innerHTML = "<p style='color: var(--red); font-size:12px;'>You haven't added any friends yet! Go to your Profile -> Add Friend.</p>";
-                return;
-            }
-
-            checklist.innerHTML = "";
-            for (const uid of friendIds) {
-                const doc = await db.collection('vox_users').doc(uid).get();
-                if (doc.exists) {
-                    const fData = doc.data();
-                    const label = document.createElement('label');
-                    label.className = 'friend-checkbox-item';
-                    label.innerHTML = `
-                        <input type="checkbox" value="${uid}" class="friend-checkbox">
-                        <span style="font-weight: 600; color: white;">${fData.displayName}</span>
-                    `;
-                    checklist.appendChild(label);
-                }
-            }
-            openModal('create-group-modal');
         }
 
         async function createGroup() {
             const name = document.getElementById('new-group-name').value.trim();
             if (!name) return alert("Name your group!");
             
+            // Duplicate check
+            const existing = await db.collection('vox_groups').where('name', '==', name).where('members', 'array-contains', currentUser.uid).get();
+            if (!existing.empty) return alert("You already have a group with this name! 💀");
+
             const checkboxes = document.querySelectorAll('.friend-checkbox:checked');
             if (checkboxes.length === 0) return alert("Select at least one friend!");
 
@@ -632,18 +684,26 @@
                     createdBy: currentUser.uid,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                
+                // Auto-close menu, switch view, and select the new group
                 closeModal('create-group-modal');
-                selectGroup(docRef.id, name);
+                loadGroupsView();
+                setTimeout(() => selectGroup(docRef.id, name, null, currentUser.uid), 500);
+                
             } catch (err) { alert("Failed to create group: " + err.message); }
         }
 
-        function selectGroup(id, name, element) {
+        function selectGroup(id, name, element, creatorId) {
             currentGroupId = id;
+            currentGroupCreatorId = creatorId;
             currentChannel = null; 
             document.getElementById('active-channel-name').innerText = name;
             document.getElementById('channel-icon').innerText = "👥";
-            document.getElementById('share-group-btn').style.display = 'block'; // Show share button!
             
+            // Show share if group, show delete if creator
+            document.getElementById('share-group-btn').style.display = 'block';
+            document.getElementById('delete-chat-btn').style.display = (currentUser.uid === creatorId) ? 'block' : 'none';
+
             document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
             if (element) element.classList.add('active');
             else {
@@ -674,31 +734,36 @@
                     icon.className = 'server-icon' + (currentServerId === doc.id && currentView === 'server' ? ' active' : '');
                     icon.textContent = (data.name || '?').charAt(0).toUpperCase();
                     icon.title = data.name || 'Server';
-                    icon.onclick = () => selectServer(doc.id, data.name || 'Server', data.webhookUrl || "");
+                    icon.onclick = () => selectServer(doc.id, data.name || 'Server', data.webhookUrl || "", data.owner);
                     sidebar.appendChild(icon);
                 });
                 const addBtn = document.createElement('div');
                 addBtn.className = 'server-icon add-server';
                 addBtn.textContent = '+';
-                addBtn.title = 'Create Server';
-                addBtn.onclick = () => openModal('create-server-modal');
+                addBtn.title = 'Create New';
+                addBtn.onclick = () => openCreateMenu(); // Open universal menu
                 sidebar.appendChild(addBtn);
             });
         }
 
         async function createServer() {
             const name = document.getElementById('new-server-name').value.trim();
-            if (!name) return;
+            if (!name) return alert("Enter a server name!");
+            
+            // Duplicate check
+            const existing = await db.collection('vox_servers').where('name', '==', name).get();
+            if (!existing.empty) return alert("A server with this name already exists! 💀");
+
             const docRef = await db.collection('vox_servers').add({ name: name, owner: currentUser.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             await db.collection('vox_channels').add({ serverId: docRef.id, name: "general", type: "text", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             closeModal('create-server-modal');
-            document.getElementById('new-server-name').value = "";
-            selectServer(docRef.id, name, "");
+            selectServer(docRef.id, name, "", currentUser.uid);
         }
 
-        function selectServer(id, name, webhook) {
+        function selectServer(id, name, webhook, ownerId) {
             currentView = "server";
             currentServerId = id;
+            currentServerOwnerId = ownerId;
             currentGroupId = null;
             document.getElementById('server-name').innerText = name;
             document.getElementById('webhook-url').value = webhook || "";
@@ -706,7 +771,10 @@
             document.getElementById('active-channel-name').innerText = "select-a-channel";
             document.getElementById('channel-icon').innerText = "#";
             document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a channel to start chatting.</p>`;
-            document.getElementById('share-group-btn').style.display = 'none'; // Hide share button
+            
+            // Show delete if owner
+            document.getElementById('share-group-btn').style.display = 'none'; 
+            document.getElementById('delete-chat-btn').style.display = (currentUser.uid === ownerId) ? 'block' : 'none';
             
             listenToServers();
             loadChannels();
