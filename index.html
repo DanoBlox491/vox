@@ -1,609 +1,1227 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vox</title>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<style>
-:root{--bg:#0b0d14;--p1:#12151f;--p2:#191d2b;--p3:#232839;--blue:#00b2ff;--pink:#ff2e93;--txt:#e8ecf5;--mut:#8a93ad}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Rubik,sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden}
-button{font-family:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;font-weight:700;color:#fff;background:var(--p3)}
-button:hover{filter:brightness(1.2)}
-button.pri{background:var(--blue);color:#001a2b;box-shadow:0 0 18px #00b2ff66}
-button.pink{background:var(--pink);box-shadow:0 0 18px #ff2e9355}
-button.danger{background:#d6334a}
-input,textarea{font-family:inherit;width:100%;padding:11px 13px;border-radius:10px;border:2px solid var(--p3);background:var(--p1);color:var(--txt);outline:0;margin-bottom:10px}
-input:focus,textarea:focus{border-color:var(--blue)}
-.hidden{display:none!important}
-/* landing */
-#landing{display:grid;grid-template-columns:1fr 1fr;height:100vh}
-.side{display:flex;flex-direction:column;justify-content:center;padding:6vw;position:relative}
-.side.l{background:radial-gradient(circle at 20% 20%,#00b2ff33,transparent 55%),var(--p1)}
-.side.r{background:radial-gradient(circle at 80% 80%,#ff2e9333,transparent 55%),var(--bg);border-left:2px solid var(--p3)}
-.logo{font-size:56px;font-weight:900;letter-spacing:-2px;color:var(--blue);text-shadow:0 0 28px #00b2ffaa;position:absolute;top:28px;left:6vw}
-.side h2{font-size:34px;margin-bottom:6px}
-.side p.sub{color:var(--mut);margin-bottom:22px}
-.side button{width:100%;margin-bottom:10px}
-.err{color:#ff6b81;min-height:20px;font-size:14px}
-/* app */
-#app{display:grid;grid-template-columns:72px 240px 1fr;height:100vh}
-#rail{background:var(--bg);display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0;overflow-y:auto}
-.ico{width:48px;height:48px;border-radius:24px;background:var(--p3);display:grid;place-items:center;font-weight:900;cursor:pointer;transition:.15s;overflow:hidden;flex-shrink:0}
-.ico:hover,.ico.on{border-radius:14px;background:var(--blue);color:#001a2b;box-shadow:0 0 14px #00b2ff88}
-.ico.grp{background:#2b3a2f}.ico.grp.on{background:#3ddc84;color:#032}
-#side2{background:var(--p1);display:flex;flex-direction:column;min-height:0}
-#side2 header{padding:14px;font-weight:900;border-bottom:2px solid var(--p2);display:flex;justify-content:space-between;align-items:center;gap:6px}
-#list{flex:1;overflow-y:auto;padding:8px}
-.item{padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--mut);display:flex;align-items:center;gap:8px;justify-content:space-between}
-.item:hover{background:var(--p2);color:var(--txt)}.item.on{background:var(--p3);color:#fff}
-.avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--p3);flex-shrink:0}
-#me{padding:10px;background:var(--p2);display:flex;align-items:center;gap:8px;cursor:pointer}
-#me b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--p2)}
-#top{padding:14px 18px;font-weight:900;border-bottom:2px solid var(--p3);display:flex;justify-content:space-between;align-items:center;gap:8px}
-#msgs{flex:1;overflow-y:auto;padding:16px 18px}
-.msg{display:flex;gap:10px;margin-bottom:14px}
-.msg .n{font-weight:700}.msg .t{color:var(--mut);font-size:12px;margin-left:6px}
-.msg img.m,.msg video{max-width:320px;max-height:260px;border-radius:10px;margin-top:6px;display:block}
-.msg a{color:var(--blue)}
-#composer{padding:14px 18px;display:flex;gap:8px;position:relative;align-items:center}
-#composer input{margin:0}
-#plus{width:44px;font-size:20px;background:var(--p3)}
-#menu{position:absolute;bottom:68px;left:18px;background:var(--p1);border:2px solid var(--p3);border-radius:12px;padding:6px;box-shadow:0 8px 30px #000a;z-index:5}
-#menu div{padding:10px 14px;border-radius:8px;cursor:pointer;white-space:nowrap}
-#menu div:hover{background:var(--p3)}
-.msg{position:relative}
-.msg .body{min-width:0;flex:1;word-break:break-word}
-.msg .acts{position:absolute;right:0;top:-8px;display:none;gap:2px;background:var(--p1);border:2px solid var(--p3);border-radius:8px;padding:2px}
-.msg:hover .acts{display:flex}
-.acts button{padding:3px 8px;font-size:13px;background:transparent}
-@media(hover:none){.msg .acts{display:flex;position:static;margin-top:4px;width:max-content}}
-.prev{display:block;max-width:380px;margin-top:8px;background:var(--p1);border-left:4px solid var(--blue);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--txt)}
-.prev img{width:100%;display:block;max-height:210px;object-fit:cover}
-.prev div{padding:8px 10px}.prev b{display:block;margin-bottom:2px}.prev span{color:var(--mut);font-size:13px;display:block}.prev small{color:var(--blue);font-size:12px}
-.empty{color:var(--mut);text-align:center;margin-top:20vh}
-/* modal */
-#modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:20}
-#modal .box{background:var(--p1);border:2px solid var(--p3);border-radius:16px;padding:22px;width:min(420px,92vw);max-height:90vh;overflow-y:auto}
-#modal h3{margin-bottom:12px}
-.row{display:flex;gap:8px}.row>*{flex:1}
-#callbox{position:fixed;inset:0;background:#000d;z-index:30;display:grid;place-items:center}
-#callbox .vids{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-#callbox video{width:min(420px,44vw);background:#000;border-radius:12px}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--p3);padding:10px 18px;border-radius:10px;z-index:40}
-@media(max-width:760px){#landing{grid-template-columns:1fr;overflow-y:auto}#landing .logo{position:static}#app{grid-template-columns:60px 1fr}#side2{display:none}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vox Chat | Chat with your buddies smoothly</title>
+    <meta name="description" content="Vox is an ultra-lightweight chat app. Create servers, send media, and start WebRTC video calls with your friends smoothly.">
+    <meta name="theme-color" content="#5865F2">
+    <meta property="og:title" content="Vox Chat">
+    <meta property="og:description" content="Start chatting with your buddies smoothly. Built by Dano.">
+    <meta property="og:type" content="website">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- 🚀 COMPAT SDK v10.8.0 -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #1e1f22;
+            --bg-mid: #2b2d31;
+            --bg-light: #313338;
+            --text: #dbdee1;
+            --muted: #949ba4;
+            --brand: #5865F2;
+            --green: #23a559;
+            --red: #da373c;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+
+        /* --- LANDING PAGE --- */
+        #landing-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #0a0a0f; background-image: radial-gradient(circle at 15% 50%, rgba(88, 101, 242, 0.15) 0%, transparent 50%), radial-gradient(circle at 85% 30%, rgba(218, 55, 60, 0.15) 0%, transparent 50%), linear-gradient(135deg, #121212 0%, #1a1a24 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; overflow-y: auto; padding: 20px; }
+        .landing-header { text-align: center; margin-bottom: 30px; }
+        .landing-header h1 { font-size: 56px; font-weight: 800; color: white; letter-spacing: -2px; text-shadow: 0 0 20px rgba(88, 101, 242, 0.6); margin-bottom: 8px; }
+        .landing-header p { color: #b0b3c6; font-size: 18px; font-weight: 600; }
+        .auth-split-container { display: flex; width: 100%; max-width: 800px; background: rgba(30, 31, 34, 0.6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05) inset; overflow: hidden; }
+        .auth-panel { flex: 1; padding: 40px 30px; display: flex; flex-direction: column; justify-content: center; }
+        .auth-panel.login-panel { background: rgba(0,0,0,0.2); border-right: 1px solid rgba(255,255,255,0.05); }
+        .auth-panel.signup-panel { background: rgba(88, 101, 242, 0.05); }
+        .panel-title { font-size: 24px; font-weight: 800; margin-bottom: 24px; color: white; }
+        .auth-input-group { margin-bottom: 16px; }
+        .auth-input-group label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+        .auth-input-group input { width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: white; outline: none; font-size: 15px; transition: 0.2s; }
+        .auth-input-group input:focus { border-color: var(--brand); background: rgba(0,0,0,0.6); }
+        .auth-btn { width: 100%; padding: 14px; background: var(--brand); color: white; border: none; border-radius: 6px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .auth-btn:hover { background: #4752c4; transform: translateY(-1px); box-shadow: 0 5px 15px rgba(88, 101, 242, 0.4); }
+        .btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; background: white; color: #333; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; transition: 0.2s; margin-bottom: 20px; }
+        .btn-google:hover { background: #f0f0f0; transform: scale(1.02); }
+        .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: var(--muted); font-size: 12px; font-weight: bold; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .divider::before { margin-right: 10px; } .divider::after { margin-left: 10px; }
+        @media (max-width: 768px) { .auth-split-container { flex-direction: column; max-width: 400px; } .auth-panel.login-panel { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); } .landing-header h1 { font-size: 40px; } }
+
+        /* --- APP UI --- */
+        #app { display: none; width: 100%; height: 100%; }
+        .server-sidebar { width: 72px; background: var(--bg-dark); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; border-right: 1px solid #1a1b1e; overflow-y: auto; }
+        .server-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-mid); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; cursor: pointer; transition: 0.2s; color: white; flex-shrink: 0; overflow: hidden; }
+        .server-icon:hover { border-radius: 16px; background: var(--brand); }
+        .server-icon.active { border-radius: 16px; background: var(--brand); }
+        .add-server { color: var(--green); font-size: 24px; }
+        .add-server:hover { background: var(--green); color: white; }
+        .home-btn { color: white; background: var(--brand); border-radius: 16px; }
+        .home-btn:hover { background: #4752c4; }
+
+        .channel-sidebar { width: 240px; background: var(--bg-mid); display: flex; flex-direction: column; }
+        .server-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .channel-list { padding: 16px 8px; flex: 1; overflow-y: auto; }
+        .channel-category { font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--muted); padding: 0 8px; margin-bottom: 4px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .add-channel-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+        .add-channel-btn:hover { color: white; }
+        .channel-item { padding: 8px; border-radius: 4px; color: var(--muted); font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+        .channel-item:hover { background: #35373c; color: var(--text); }
+        .channel-item.active { background: #404249; color: white; }
+        .voice-channel:hover { color: var(--green); }
+
+        .user-panel { height: 52px; background: #232428; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; }
+        .user-panel:hover { background: #2b2d31; }
+        .user-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; flex-shrink: 0; object-fit: cover; }
+        .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .logout-btn { background: transparent; border: 1px solid #da373c; color: #da373c; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: auto; }
+        .logout-btn:hover { background: #da373c; color: white; }
+
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-light); min-width: 0; }
+        .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #26272b; font-weight: 800; box-shadow: 0 1px 2px rgba(0,0,0,0.1); gap: 8px; }
+        
+        #share-group-btn { margin-left: auto; background: var(--brand); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: none; transition: 0.2s; }
+        #share-group-btn:hover { background: #4752c4; }
+        #delete-chat-btn { margin-left: 8px; background: var(--red); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: none; transition: 0.2s; }
+        #delete-chat-btn:hover { background: #b02a2e; }
+
+        .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        .message { display: flex; gap: 16px; }
+        .msg-avatar { width: 40px; height: 40px; border-radius: 50%; background: #4e5058; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; object-fit: cover; }
+        .msg-content { display: flex; flex-direction: column; max-width: 80%; min-width: 0; }
+        .msg-header { display: flex; align-items: baseline; gap: 8px; }
+        .msg-author { font-weight: 600; color: white; font-size: 15px; }
+        .msg-time { font-size: 11px; color: var(--muted); }
+        .msg-text { font-size: 15px; line-height: 1.4; color: var(--text); margin-top: 2px; word-wrap: break-word; overflow-wrap: anywhere; }
+        .msg-text a { color: #00a8fc; text-decoration: none; }
+        .msg-text a:hover { text-decoration: underline; }
+
+        /* --- UPLOAD SPINNER --- */
+        .spinner { border: 3px solid rgba(255,255,255,0.1); width: 20px; height: 20px; border-radius: 50%; border-left-color: var(--brand); animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- MEDIA VIEWER (Fullscreen) --- */
+        #media-viewer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 999; flex-direction: column; align-items: center; justify-content: center; }
+        #media-viewer.active { display: flex; }
+        .viewer-content { max-width: 90vw; max-height: 85vh; display: flex; align-items: center; justify-content: center; }
+        .viewer-content img, .viewer-content video { max-width: 100%; max-height: 85vh; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
+        .viewer-close { position: absolute; top: 20px; right: 30px; background: rgba(255,255,255,0.1); color: white; border: none; font-size: 24px; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .viewer-close:hover { background: var(--red); transform: scale(1.1); }
+        .viewer-download { position: absolute; top: 20px; right: 90px; background: var(--brand); color: white; text-decoration: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .viewer-download:hover { background: #4752c4; transform: scale(1.05); }
+
+        .vox-video-container { max-width: 450px; border-radius: 8px; overflow: hidden; margin-top: 8px; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: relative; cursor: pointer; }
+        .vox-video-container video { width: 100%; display: block; }
+        .vox-video-container .expand-btn { position: absolute; bottom: 40px; right: 10px; background: rgba(0,0,0,0.6); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; z-index: 5; font-size: 12px; }
+        .vox-video-container .expand-btn:hover { background: var(--brand); }
+        
+        .vox-audio-card { display: flex; align-items: center; gap: 12px; background: #2b2d31; padding: 12px; border-radius: 8px; margin-top: 8px; width: 350px; max-width: 100%; border: 1px solid #1e1f22; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .vox-audio-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--brand); color: white; border: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
+        .vox-audio-btn:hover { background: #4752c4; transform: scale(1.05); }
+        .vox-audio-progress { flex: 1; height: 6px; background: #1e1f22; border-radius: 3px; cursor: pointer; position: relative; overflow: hidden; }
+        .vox-audio-fill { height: 100%; width: 0%; background: var(--brand); border-radius: 3px; transition: width 0.1s linear; }
+        .vox-audio-time { font-size: 12px; color: var(--muted); font-weight: 600; font-family: monospace; flex-shrink: 0; }
+
+        .chat-input-area { padding: 0 16px 24px 16px; position: relative; }
+        .chat-input-wrapper { background: #383a40; border-radius: 8px; display: flex; align-items: center; padding: 0 16px; position: relative; }
+        
+        .upload-menu { position: absolute; bottom: 55px; left: 0; background: var(--bg-mid); border: 1px solid #111; border-radius: 8px; padding: 8px; display: none; flex-direction: column; gap: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 10; width: 180px; }
+        .upload-menu button { background: transparent; border: none; color: white; padding: 10px 12px; text-align: left; cursor: pointer; border-radius: 4px; font-size: 14px; font-weight: 600; transition: 0.2s; }
+        .upload-menu button:hover { background: var(--brand); }
+
+        .chat-input { flex: 1; background: transparent; border: none; color: white; padding: 12px 0; font-size: 15px; outline: none; }
+        .chat-input::placeholder { color: var(--muted); }
+        .action-btn { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 8px; transition: 0.2s; }
+        .action-btn:hover { color: white; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; padding: 16px; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-light); padding: 24px; border-radius: 8px; width: 400px; max-width: 100%; border-top: 4px solid var(--brand); max-height: 90vh; overflow-y: auto; }
+        .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 16px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .close-modal-btn { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+        .close-modal-btn:hover { color: white; }
+        
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+        .input-group input, .input-group textarea { width: 100%; padding: 10px; background: #1e1f22; border: 1px solid #111; border-radius: 4px; color: white; outline: none; font-family: inherit; }
+        .input-group textarea { resize: vertical; min-height: 60px; }
+        .btn { width: 100%; padding: 12px; background: var(--brand); color: white; border: none; border-radius: 4px; font-weight: 800; cursor: pointer; transition: 0.2s; margin-bottom: 8px; }
+        .btn:hover { background: #4752c4; }
+        .btn-green { background: var(--green); }
+        .btn-green:hover { background: #1e8f4b; }
+
+        .profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; object-fit: cover; border: 3px solid #1e1f22; }
+        .vox-id-box { background: #1e1f22; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; color: var(--muted); }
+
+        .friend-checkbox-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: #1e1f22; border-radius: 4px; margin-bottom: 8px; cursor: pointer; }
+        .friend-checkbox-item:hover { background: #2b2d31; }
+        .friend-checkbox-item input { width: 18px; height: 18px; cursor: pointer; }
+
+        #video-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 300; flex-direction: column; align-items: center; justify-content: center; }
+        #video-overlay.active { display: flex; }
+        .video-grid { display: flex; gap: 20px; width: 90%; max-width: 1200px; justify-content: center; flex-wrap: wrap; }
+        .video-box { flex: 1; min-width: 280px; max-width: 500px; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; border: 2px solid var(--brand); position: relative; }
+        .video-box video { width: 100%; height: 100%; object-fit: cover; }
+        .video-label { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; }
+        .end-call-btn { background: var(--red); color: white; padding: 15px 40px; border-radius: 8px; border: none; font-size: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; transition: 0.2s; }
+        .end-call-btn:hover { background: #b02a2e; transform: scale(1.05); }
+    </style>
 </head>
 <body>
 
-<div id="landing">
-  <div class="side l">
-    <div class="logo">VOX</div>
-    <h2>Welcome back 👑</h2><p class="sub">Log in and jump into your servers.</p>
-    <input id="lEmail" type="email" placeholder="Email">
-    <input id="lPass" type="password" placeholder="Password">
-    <button class="pri" onclick="login()">Log in</button>
-    <button onclick="google()">Continue with Google</button>
-    <div class="err" id="lErr"></div>
-  </div>
-  <div class="side r">
-    <h2>New here? 🚀</h2><p class="sub">Make an account and get your own Vox ID.</p>
-    <input id="sName" placeholder="Display name">
-    <input id="sEmail" type="email" placeholder="Email">
-    <input id="sPass" type="password" placeholder="Password (6+ characters)">
-    <button class="pink" onclick="signup()">Create account</button>
-    <div class="err" id="sErr"></div>
-  </div>
-</div>
-
-<div id="app" class="hidden">
-  <div id="rail"></div>
-  <div id="side2">
-    <header><span id="sideTitle">Home</span><span id="sideBtns"></span></header>
-    <div id="list"></div>
-    <div id="me" onclick="openProfile()"><img class="avatar" id="meAv"><b id="meName"></b><span>⚙️</span></div>
-  </div>
-  <div id="main">
-    <div id="top"><span id="topTitle">Pick something on the left</span><span id="topBtns"></span></div>
-    <div id="msgs"><div class="empty">No chat open yet. Pick a server, group or friend. 🔥</div></div>
-    <div id="composer" class="hidden">
-      <button id="plus" onclick="toggleMenu(event)">+</button>
-      <div id="menu" class="hidden">
-        <div onclick="pick('image/*,video/*')">📷 Photo/Video</div>
-        <div onclick="pick('audio/*')">🎵 Music/Audio</div>
-        <div onclick="pick('*/*')">📁 Document/File</div>
-      </div>
-      <input id="text" placeholder="Type a message" onkeydown="if(event.key==='Enter')send()">
-      <button class="pri" onclick="send()">Send</button>
-      <input type="file" id="file" class="hidden" onchange="upload(this)">
+    <div id="landing-screen">
+        <div class="landing-header">
+            <h1>Vox</h1>
+            <p>Start chatting with your buddies smoothly</p>
+        </div>
+        <div class="auth-split-container">
+            <div class="auth-panel login-panel">
+                <div class="panel-title">Log In</div>
+                <button class="btn-google" onclick="loginWithGoogle()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt=""> Continue with Google
+                </button>
+                <div class="divider">OR</div>
+                <div class="auth-input-group"><label>Email</label><input type="email" id="login-email" placeholder="you@gmail.com"></div>
+                <div class="auth-input-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
+                <button class="auth-btn" onclick="handleEmailLogin()">Log In</button>
+            </div>
+            <div class="auth-panel signup-panel">
+                <div class="panel-title">Create Account</div>
+                <div class="auth-input-group"><label>Username</label><input type="text" id="signup-name" placeholder="e.g. Dano" maxlength="30"></div>
+                <div class="auth-input-group"><label>Email</label><input type="email" id="signup-email" placeholder="you@gmail.com"></div>
+                <div class="auth-input-group"><label>Password</label><input type="password" id="signup-password" placeholder="6+ characters"></div>
+                <div class="auth-input-group"><label>Confirm Password</label><input type="password" id="signup-confirm-password" placeholder="Re-type password"></div>
+                <button class="auth-btn" onclick="handleEmailSignup()">Sign Up</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
-<div id="callbox" class="hidden">
-  <div><div class="vids"><video id="localV" autoplay muted playsinline></video><video id="remoteV" autoplay playsinline></video></div>
-  <p style="text-align:center;margin-top:14px"><button class="danger" onclick="hangup()">End call</button></p></div>
-</div>
+    <div id="app">
+        <div class="server-sidebar" id="server-sidebar">
+            <div class="server-icon home-btn active" id="home-btn" onclick="loadGroupsView()" title="Groups">💬</div>
+            <div style="width: 32px; height: 2px; background: #35373c; border-radius: 1px; margin: 4px 0;"></div>
+        </div>
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
-  authDomain: "vox-chat-979fd.firebaseapp.com",
-  projectId: "vox-chat-979fd",
-  storageBucket: "vox-chat-979fd.firebasestorage.app",
-  messagingSenderId: "49260313546",
-  appId: "1:49260313546:web:63a50e8b0f30c8989bed33",
-  measurementId: "G-M7CZN9NER3"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth(), db = firebase.firestore();
-const $ = id => document.getElementById(id);
-const FIVE_DAYS = 5 * 24 * 60 * 60 * 1000;
-const DEFAULT_AV = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' fill='%23232839'/><circle cx='32' cy='24' r='12' fill='%2300b2ff'/><rect x='12' y='40' width='40' height='20' rx='10' fill='%2300b2ff'/></svg>";
+        <div class="channel-sidebar">
+            <div class="server-header">
+                <span id="server-name">Groups</span>
+                <span style="font-size: 18px;">⌄</span>
+            </div>
+            <div class="channel-list" id="channel-list"></div>
+            
+            <div class="user-panel" onclick="openProfileModal()">
+                <div class="user-info">
+                    <img class="avatar" id="user-avatar-display" src="" style="display:none;">
+                    <div class="avatar" id="user-avatar-fallback">D</div>
+                    <div class="user-name" id="user-name-display">User</div>
+                </div>
+                <button class="logout-btn" onclick="event.stopPropagation(); logout()">Logout</button>
+            </div>
+        </div>
 
-let me = null, profile = {}, servers = [], groups = [], view = {type: 'home'}, channels = [], channel = null;
-let unsubs = {}, userCache = {}, uploadAccept = '*/*', msgCache = {}, previewCache = {};
+        <div class="chat-area">
+            <div class="chat-header">
+                <span style="color: var(--muted); font-size: 20px;" id="channel-icon">#</span>
+                <span id="active-channel-name">select-a-chat</span>
+                <button id="share-group-btn" onclick="shareGroupLink()">🔗 Share Group</button>
+                <button id="delete-chat-btn" onclick="deleteCurrentChat()">🗑️ Delete</button>
+            </div>
+            <div class="messages-container" id="messages-container">
+                <p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a group or channel to start chatting.</p>
+            </div>
+            <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                    <div class="upload-menu" id="upload-menu">
+                        <button onclick="triggerUpload('image/*,video/*')">📷 Photo / Video</button>
+                        <button onclick="triggerUpload('audio/*')">🎵 Music / Audio</button>
+                        <button onclick="triggerUpload('*/*')">📁 Document / File</button>
+                    </div>
+                    <input type="file" id="file-input" style="display: none;" onchange="uploadFile()">
+                    <button class="action-btn" title="Upload File" onclick="toggleUploadMenu(event)">+</button>
+                    <input type="text" id="chat-input" class="chat-input" placeholder="Message...">
+                    <button class="action-btn" onclick="sendMessage()" title="Send">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
-function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function stop(k) { if (unsubs[k]) { unsubs[k](); unsubs[k] = null; } }
+    <!-- MEDIA VIEWER OVERLAY -->
+    <div id="media-viewer">
+        <button class="viewer-close" onclick="closeMediaViewer()">✕</button>
+        <a id="viewer-download-link" class="viewer-download" href="#" target="_blank" download>⬇ Download</a>
+        <div class="viewer-content" id="viewer-content">
+            <!-- Image or Video goes here -->
+        </div>
+    </div>
 
-/* ---------- activity / 5-day timeout ---------- */
-['click', 'keydown'].forEach(e => document.addEventListener(e, () => { if (me) localStorage.setItem('vox_last_active', Date.now()); }));
+    <div class="modal" id="create-menu-modal">
+        <div class="modal-content">
+            <div class="modal-title">What are we building? <button class="close-modal-btn" onclick="closeModal('create-menu-modal')">✖</button></div>
+            <button class="btn" onclick="openCreateServerModal()" style="background: var(--brand); margin-bottom: 16px; padding: 18px; font-size: 16px;">🏠 Create a Server (Discord Style)</button>
+            <button class="btn" onclick="openCreateGroupModal()" style="background: var(--green); padding: 18px; font-size: 16px;">💬 Create a Group (WhatsApp Style)</button>
+        </div>
+    </div>
 
-/* ---------- auth ---------- */
-async function login() {
-  try { await auth.signInWithEmailAndPassword($('lEmail').value.trim(), $('lPass').value); }
-  catch (e) { $('lErr').textContent = e.message; }
-}
-async function signup() {
-  try {
-    const c = await auth.createUserWithEmailAndPassword($('sEmail').value.trim(), $('sPass').value);
-    await db.collection('vox_users').doc(c.user.uid).set({
-      displayName: $('sName').value.trim() || 'New Voxer', photoURL: '', bio: '', socials: {yt: '', discord: ''}, friends: []
-    });
-  } catch (e) { $('sErr').textContent = e.message; }
-}
-let googleBusy = false;
-async function google() {
-  if (googleBusy) return; // stops a second popup from cancelling the first
-  googleBusy = true; $('lErr').textContent = '';
-  try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-  catch (e) {
-    if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') return;
-    $('lErr').textContent = e.message;
-  }
-  finally { googleBusy = false; }
-}
-function logout() { auth.signOut(); closeModal(); }
-function dbErr(e) { console.error(e); toast('Database error: ' + (e.code || e.message) + ' - check your Firestore rules!'); }
+    <div class="modal" id="profile-modal">
+        <div class="modal-content">
+            <div class="modal-title">My Profile <button class="close-modal-btn" onclick="closeModal('profile-modal')">✖</button></div>
+            <div class="profile-header">
+                <div style="position: relative;">
+                    <img class="profile-avatar-large" id="profile-avatar-img" src="" style="display:none;">
+                    <div class="profile-avatar-large" id="profile-avatar-fallback">D</div>
+                    <input type="file" id="profile-pic-input" style="display: none;" accept="image/*" onchange="uploadProfilePic()">
+                    <button class="btn" style="width: auto; padding: 4px 8px; font-size: 10px; margin-top: 8px;" onclick="document.getElementById('profile-pic-input').click()">Change Pic</button>
+                </div>
+                <div style="flex: 1;">
+                    <div class="input-group"><label>Display Name</label><input type="text" id="profile-display-name" maxlength="30"></div>
+                </div>
+            </div>
+            <div class="vox-id-box">
+                <span>Vox ID: <strong id="profile-uid-display"></strong></span>
+                <button class="action-btn" style="font-size: 14px; padding: 0;" onclick="copyVoxId()" title="Copy ID">📋</button>
+            </div>
+            <div class="input-group"><label>Bio</label><textarea id="profile-bio" placeholder="Tell people about yourself..." maxlength="150"></textarea></div>
+            <div class="input-group"><label>YouTube Link (Optional)</label><input type="text" id="profile-social-yt" placeholder="https://youtube.com/@..."></div>
+            <div class="input-group"><label>Discord Username (Optional)</label><input type="text" id="profile-social-discord" placeholder="username#1234"></div>
+            <button class="btn btn-green" onclick="saveProfile()">Save Profile</button>
+            <button class="btn" style="background: #4e5058;" onclick="openModal('add-friend-modal')">Add a Friend</button>
+        </div>
+    </div>
 
-auth.onAuthStateChanged(async user => {
-  if (!user) { me = null; Object.keys(unsubs).forEach(stop); $('app').classList.add('hidden'); $('landing').classList.remove('hidden'); return; }
-  const last = +localStorage.getItem('vox_last_active') || Date.now();
-  if (Date.now() - last > FIVE_DAYS) { localStorage.removeItem('vox_last_active'); auth.signOut(); return; }
-  localStorage.setItem('vox_last_active', Date.now());
-  me = user;
-  $('lErr').textContent = ''; $('sErr').textContent = '';
-  const ref = db.collection('vox_users').doc(user.uid);
-  $('landing').classList.add('hidden'); $('app').classList.remove('hidden'); // show the app first
-  $('meName').textContent = user.displayName || 'You'; $('meAv').src = user.photoURL || DEFAULT_AV;
-  try {
-    const snap = await ref.get();
-    if (!snap.exists) await ref.set({displayName: user.displayName || 'New Voxer', photoURL: user.photoURL || '', bio: '', socials: {yt: '', discord: ''}, friends: []});
-  } catch (e) { dbErr(e); }
-  stop('me');
-  unsubs.me = ref.onSnapshot(s => { profile = s.data() || {}; userCache[user.uid] = profile; renderMe(); if (view.type === 'home') renderSide(); }, dbErr);
-  stop('servers');
-  unsubs.servers = db.collection('vox_servers').onSnapshot(s => {
-    servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail();
-  }, dbErr);
-  stop('groups');
-  unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => {
-    groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail();
-  }, dbErr);
-  handleJoin();
-  listenCalls();
-});
+    <div class="modal" id="add-friend-modal">
+        <div class="modal-content">
+            <div class="modal-title">Add a Friend <button class="close-modal-btn" onclick="closeModal('add-friend-modal')">✖</button></div>
+            <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">Ask your friend to open their Profile, copy their Vox ID, and paste it here.</p>
+            <div class="input-group"><label>Friend's Vox ID</label><input type="text" id="friend-uid-input" placeholder="Paste ID here..."></div>
+            <button class="btn" onclick="addFriend()">Add Friend</button>
+            <button class="btn" style="background: #4e5058;" onclick="closeModal('add-friend-modal')">Back</button>
+        </div>
+    </div>
 
-async function handleJoin() {
-  const id = new URLSearchParams(location.search).get('join');
-  if (!id) return;
-  try {
-    await db.collection('vox_groups').doc(id).update({members: firebase.firestore.FieldValue.arrayUnion(me.uid)});
-    toast('You joined the group! 🎉'); openView('group', id);
-  } catch (e) { toast('That invite link did not work.'); }
-  history.replaceState({}, '', location.pathname);
-}
+    <div class="modal" id="create-group-modal">
+        <div class="modal-content">
+            <div class="modal-title">Create a Group <button class="close-modal-btn" onclick="closeModal('create-group-modal')">✖</button></div>
+            <div class="input-group"><label>Group Name</label><input type="text" id="new-group-name" placeholder="The Boys 😎" maxlength="30"></div>
+            <div class="input-group">
+                <label>Select Friends</label>
+                <div id="friends-checklist" style="max-height: 150px; overflow-y: auto;"></div>
+            </div>
+            <button class="btn btn-green" onclick="createGroup()">Create Group</button>
+        </div>
+    </div>
 
-/* ---------- rendering ---------- */
-function renderMe() { $('meName').textContent = profile.displayName || 'You'; $('meAv').src = profile.photoURL || DEFAULT_AV; }
+    <div class="modal" id="create-server-modal">
+        <div class="modal-content">
+            <div class="modal-title">Create a Server <button class="close-modal-btn" onclick="closeModal('create-server-modal')">✖</button></div>
+            <div class="input-group"><label>Server Name</label><input type="text" id="new-server-name" placeholder="Dano's Domain" maxlength="40"></div>
+            <button class="btn" onclick="createServer()">Create Server</button>
+        </div>
+    </div>
 
-function renderRail() {
-  const r = $('rail');
-  let h = `<div class="ico ${view.type === 'home' ? 'on' : ''}" title="Home" onclick="openView('home')">🏠</div>`;
-  servers.forEach(s => h += `<div class="ico ${view.type === 'server' && view.id === s.id ? 'on' : ''}" title="${esc(s.name)}" onclick="openView('server','${s.id}')">${esc((s.name || '?')[0].toUpperCase())}</div>`);
-  groups.forEach(g => h += `<div class="ico grp ${view.type === 'group' && view.id === g.id ? 'on' : ''}" title="${esc(g.name)}" onclick="openView('group','${g.id}')">${esc((g.name || '?')[0].toUpperCase())}</div>`);
-  h += `<div class="ico" title="Create server" onclick="createServerModal()">＋</div><div class="ico grp" title="Create group" onclick="createGroupModal()">👥</div>`;
-  r.innerHTML = h;
-}
+    <div class="modal" id="create-channel-modal">
+        <div class="modal-content">
+            <div class="modal-title">Create a Channel <button class="close-modal-btn" onclick="closeModal('create-channel-modal')">✖</button></div>
+            <div class="input-group"><label>Channel Name</label><input type="text" id="new-channel-name" placeholder="e.g. general" maxlength="30"></div>
+            <div class="input-group"><label>Channel Type</label><select id="new-channel-type"><option value="text">Text Channel</option><option value="voice">Voice Channel</option></select></div>
+            <button class="btn" onclick="createChannel()">Create Channel</button>
+        </div>
+    </div>
+    <div class="modal" id="owner-panel-modal">
+        <div class="modal-content">
+            <div class="modal-title">👑 Owner Panel (Bots) <button class="close-modal-btn" onclick="closeModal('owner-panel-modal')">✖</button></div>
+            <div class="input-group"><label>Third-Party Bot Webhook URL</label><input type="text" id="webhook-url" placeholder="https://discord.com/api/webhooks/..."></div>
+            <button class="btn" onclick="saveWebhook()">Save Webhook</button>
+        </div>
+    </div>
 
-async function openView(type, id) {
-  view = {type, id}; channel = null; channels = [];
-  stop('chan'); stop('msgs');
-  $('composer').classList.add('hidden');
-  $('msgs').innerHTML = '<div class="empty">No chat open yet. 🔥</div>';
-  $('topTitle').textContent = type === 'home' ? 'Friends' : '';
-  $('topBtns').innerHTML = '';
-  if (type === 'server') {
-    // BUG FIX 2: always auto-select the first text channel once channels load
-    unsubs.chan = db.collection('vox_channels').where('serverId', '==', id).onSnapshot(s => {
-      channels = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-      if (view.type === 'server' && view.id === id && (!channel || !channels.find(c => c.id === channel.id))) {
-        const first = channels.find(c => c.type === 'text');
-        if (first) { selectChannel(first.id); return; }
-      }
-      renderSide();
-    });
-  } else if (type === 'group') {
-    const g = groups.find(x => x.id === id);
-    $('topTitle').textContent = '👥 ' + (g ? g.name : 'Group');
-    $('topBtns').innerHTML = `<button onclick="shareInvite('${id}')">🔗 Invite link</button>` + (g && g.createdBy === me.uid ? ` <button class="danger" onclick="deleteGroup('${id}')">🗑️ Delete</button>` : '');
-    $('composer').classList.remove('hidden');
-    listenMessages();
-  }
-  renderRail(); renderSide();
-}
+    <div id="video-overlay">
+        <div class="video-grid">
+            <div class="video-box"><video id="local-video" autoplay muted playsinline></video><div class="video-label">You</div></div>
+            <div class="video-box" id="remote-video-box" style="display: none;"><video id="remote-video" autoplay playsinline></video><div class="video-label">Friend</div></div>
+        </div>
+        <button class="end-call-btn" onclick="endCall()">End Call</button>
+    </div>
 
-function selectChannel(cid) {
-  const c = channels.find(x => x.id === cid); if (!c) return;
-  if (c.type === 'voice') {
-    channel = c; stop('msgs');
-    $('topTitle').textContent = '🔊 ' + c.name; $('composer').classList.add('hidden');
-    $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join video call</button></div>`;
-    renderSide(); return;
-  }
-  channel = c;
-  $('topTitle').textContent = '# ' + c.name;
-  $('composer').classList.remove('hidden');
-  listenMessages(); renderSide();
-}
+    <script>
+        /* ============================================================
+           FIREBASE & CLOUDINARY CONFIG
+           ============================================================ */
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
+            authDomain: "vox-chat-979fd.firebaseapp.com",
+            projectId: "vox-chat-979fd",
+            storageBucket: "vox-chat-979fd.firebasestorage.app",
+            messagingSenderId: "49260313546",
+            appId: "1:49260313546:web:63a50e8b0f30c8989bed33",
+            measurementId: "G-M7CZN9NER3"
+        };
 
-function renderSide() {
-  const l = $('list'), t = $('sideTitle'), b = $('sideBtns');
-  if (view.type === 'home') {
-    t.textContent = 'Friends'; b.innerHTML = `<button class="pri" onclick="addFriendModal()">＋ Add</button>`;
-    const f = profile.friends || [];
-    l.innerHTML = f.length ? f.map(u => `<div class="item"><span id="fr_${u}" style="display:flex;gap:8px;align-items:center"><img class="avatar" src="${DEFAULT_AV}"><span>…</span></span><button onclick="startCall('${u}')">📹</button></div>`).join('')
-      : '<div class="empty" style="margin-top:30px">No friends yet. Share your Vox ID from ⚙️ settings!</div>';
-    f.forEach(async u => {
-      if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {displayName: 'Unknown'}; }
-      const el = $('fr_' + u); if (el) el.innerHTML = `<img class="avatar" src="${userCache[u].photoURL || DEFAULT_AV}"><span>${esc(userCache[u].displayName)}</span>`;
-    });
-  } else if (view.type === 'server') {
-    const s = servers.find(x => x.id === view.id); if (!s) return;
-    t.textContent = s.name;
-    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Bot webhook" onclick="setWebhook('${s.id}')">🤖</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
-    l.innerHTML = channels.map(c => `<div class="item ${channel && channel.id === c.id ? 'on' : ''}" onclick="selectChannel('${c.id}')"><span>${c.type === 'voice' ? '🔊' : '#'} ${esc(c.name)}</span></div>`).join('');
-  } else if (view.type === 'group') {
-    const g = groups.find(x => x.id === view.id); if (!g) return;
-    t.textContent = g.name; b.innerHTML = '';
-    l.innerHTML = (g.members || []).map(u => `<div class="item"><span>👤 ${esc((userCache[u] || {}).displayName || u.slice(0, 6))}</span></div>`).join('');
-    (g.members || []).forEach(async u => { if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {}; renderSide(); } });
-  }
-}
+        const CLOUDINARY = {
+            cloudName: 'x9rwrmqe',
+            uploadPreset: 'vox_uploads'
+        };
 
-/* ---------- messages ---------- */
-function listenMessages() {
-  stop('msgs');
-  let q = db.collection('vox_messages');
-  if (view.type === 'server') q = q.where('serverId', '==', view.id);
-  else if (view.type === 'group') q = q.where('groupId', '==', view.id);
-  else return;
-  const chId = channel ? channel.id : null;
-  unsubs.msgs = q.onSnapshot(s => {
-    let m = s.docs.map(d => ({id: d.id, ...d.data()}));
-    if (view.type === 'server') m = m.filter(x => x.channel === chId);
-    m.sort((a, b) => (a.timestamp?.seconds || 9e9) - (b.timestamp?.seconds || 9e9));
-    const box = $('msgs');
-    box.innerHTML = m.length ? m.map(renderMsg).join('') : '<div class="empty">Nothing here yet. Say hi! 👋</div>';
-    box.scrollTop = box.scrollHeight;
-    m.forEach(x => msgCache[x.id] = x); loadPreviews();
-  });
-}
-function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`); }
-function renderMsg(x) {
-  let media = '';
-  if (x.mediaUrl) {
-    const u = esc(x.mediaUrl);
-    if ((x.mediaType || '').startsWith('image')) media = `<img class="m" src="${u}">`;
-    else if ((x.mediaType || '').startsWith('video')) media = `<video src="${u}" controls></video>`;
-    else if ((x.mediaType || '').startsWith('audio')) media = `<audio src="${u}" controls></audio>`;
-    else media = `<div><a href="${u}" target="_blank" rel="noopener">📁 Download file</a></div>`;
-  }
-  const link = (x.text || '').match(/https?:\/\/[^\s<]+/);
-  const lp = link ? `<div class="lp" data-url="${esc(link[0])}"></div>` : '';
-  const mine = x.senderUid ? x.senderUid === me.uid : (x.sender === profile.displayName || x.sender === me.displayName);
-  const acts = `<div class="acts"><button title="Copy" onclick="copyMsg('${x.id}')">📋 Copy</button>${mine ? `<button title="Delete" onclick="delMsg('${x.id}')">🗑️ Delete</button>` : ''}</div>`;
-  const time = x.timestamp ? new Date(x.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
-  return `<div class="msg"><img class="avatar" src="${esc(x.senderPhoto) || DEFAULT_AV}"><div class="body"><span class="n">${esc(x.sender)}</span><span class="t">${time}</span><div>${linkify(x.text)}</div>${lp}${media}</div>${acts}</div>`;
-}
-function copyMsg(id) {
-  const x = msgCache[id]; if (!x) return;
-  const t = x.text || x.mediaUrl || '';
-  navigator.clipboard.writeText(t).then(() => toast('Copied! 📋'), () => prompt('Copy this:', t));
-}
-async function delMsg(id) {
-  if (!confirm('Delete this message?')) return;
-  try { await db.collection('vox_messages').doc(id).delete(); toast('Message deleted 🗑️'); }
-  catch (e) { toast('Could not delete: ' + (e.code || e.message)); }
-}
-async function getPreview(url) {
-  if (previewCache[url] !== undefined) return previewCache[url];
-  let info = null;
-  try {
-    const r = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url));
-    const j = await r.json();
-    if (j.status === 'success') { const d = j.data; info = {title: d.title || '', desc: d.description || '', img: (d.image && d.image.url) || (d.logo && d.logo.url) || '', site: d.publisher || ''}; }
-  } catch (e) {}
-  const yt = url.match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);
-  if (yt) {
-    info = info || {title: 'YouTube video', desc: '', img: '', site: 'YouTube'};
-    info.img = `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
-  }
-  previewCache[url] = info; return info;
-}
-function loadPreviews() {
-  document.querySelectorAll('.lp:not([data-done])').forEach(async el => {
-    el.dataset.done = 1;
-    const info = await getPreview(el.dataset.url);
-    if (!info || !(info.title || info.img)) return;
-    el.innerHTML = `<a class="prev" href="${esc(el.dataset.url)}" target="_blank" rel="noopener">${info.img ? `<img src="${esc(info.img)}" alt="">` : ''}<div><small>${esc(info.site)}</small><b>${esc(info.title)}</b><span>${esc((info.desc || '').slice(0, 160))}</span></div></a>`;
-    const box = $('msgs'); if (el.closest('.msg') === box.lastElementChild) box.scrollTop = box.scrollHeight;
-  });
-}
-async function postMessage(extra) {
-  const base = {senderUid: me.uid, sender: profile.displayName || 'Voxer', senderPhoto: profile.photoURL || '', text: '', mediaUrl: '', mediaType: '', timestamp: firebase.firestore.FieldValue.serverTimestamp()};
-  if (view.type === 'server') { if (!channel) return toast('Pick a text channel first!'); base.serverId = view.id; base.channel = channel.id; }
-  else if (view.type === 'group') base.groupId = view.id;
-  else return;
-  await db.collection('vox_messages').add({...base, ...extra});
-  if (view.type === 'server' && extra.text) {
-    const s = servers.find(x => x.id === view.id);
-    if (s && s.webhookUrl) fetch(s.webhookUrl, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({content: `${base.sender}: ${extra.text}`})}).catch(() => {});
-  }
-}
-async function send() {
-  const v = $('text').value.trim(); if (!v) return;
-  $('text').value = '';
-  try { await postMessage({text: v}); } catch (e) { toast('Could not send: ' + e.message); }
-}
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
 
-/* ---------- BUG FIX 3: upload menu ---------- */
-function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); }
-document.addEventListener('click', () => $('menu').classList.add('hidden'));
-function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
-// Your Cloudinary details (uploads for photos, videos, audio, files)
-const CLOUDINARY = {cloudName: 'x9rwrmqe', uploadPreset: 'vox_uploads'};
-async function cloudUpload(file) {
-  const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', CLOUDINARY.uploadPreset);
-  let r;
-  try { r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/auto/upload`, {method: 'POST', body: fd}); }
-  catch (e) { throw new Error('could not reach Cloudinary'); }
-  const j = await r.json();
-  if (!j.secure_url) throw new Error((j.error && j.error.message) || 'upload failed');
-  return j.secure_url;
-}
-async function catbox(file) {
-  if (CLOUDINARY.cloudName && CLOUDINARY.uploadPreset) return cloudUpload(file);
-  const fd = new FormData(); fd.append('reqtype', 'fileupload'); fd.append('fileToUpload', file);
-  let r;
-  try { r = await fetch('https://catbox.moe/user/api.php', {method: 'POST', body: fd}); }
-  catch (e) { throw new Error('could not reach Catbox (it may be down or blocked by the browser)'); }
-  const u = (await r.text()).trim(); if (!u.startsWith('http')) throw new Error(u || 'Catbox sent no link'); return u;
-}
-async function upload(inp) {
-  const f = inp.files[0]; inp.value = ''; if (!f) return;
-  sendFile(f);
-}
-// Paste a screenshot (Ctrl+V) anywhere in an open chat to upload it
-document.addEventListener('paste', e => {
-  if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return;
-  const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
-  if (!it) return;
-  const f = it.getAsFile(); if (!f) return;
-  e.preventDefault(); sendFile(f);
-});
-async function sendFile(f) {
-  toast('Uploading… ⏳');
-  try {
-    const url = await catbox(f);
-    const type = f.type.startsWith('image') ? 'image' : f.type.startsWith('video') ? 'video' : f.type.startsWith('audio') ? 'audio' : 'file';
-    await postMessage({mediaUrl: url, mediaType: type, text: type === 'file' ? f.name : ''});
-  } catch (e) { toast('Upload failed: ' + e.message); }
-}
+        /* ============================================================
+           STATE
+           ============================================================ */
+        let currentUser = null;
+        let currentUserProfile = null;
+        let currentServerId = null;
+        let currentServerOwnerId = null;
+        let currentGroupId = null; 
+        let currentGroupCreatorId = null;
+        let currentChannel = null;
+        let currentChannelType = "text";
+        let currentView = "group"; 
+        let unsubscribeMessages = null;
+        let unsubscribeServers = null;
+        let unsubscribeGroups = null;
+        let unsubscribeUserProfile = null;
 
-/* ---------- modals ---------- */
-function modal(html) { $('modalBox').innerHTML = html; $('modal').classList.remove('hidden'); }
-function closeModal() { $('modal').classList.add('hidden'); }
-$('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+        let peerConnection = null;
+        let localStream = null;
+        let callRoomId = null;
+        let isCallee = false;
+        let unsubscribeCall = null;
+        let unsubscribeCallerCandidates = null;
+        let unsubscribeCalleeCandidates = null;
 
-function openProfile() {
-  const s = profile.socials || {};
-  modal(`<h3>Your profile</h3>
-  <p style="text-align:center"><img class="avatar" id="pAv" style="width:80px;height:80px" src="${profile.photoURL || DEFAULT_AV}"></p>
-  <input type="file" id="pFile" accept="image/*" onchange="uploadAvatar(this)" style="border:0;padding:6px 0">
-  <input id="pName" placeholder="Display name" value="${esc(profile.displayName)}">
-  <textarea id="pBio" rows="2" placeholder="Bio">${esc(profile.bio)}</textarea>
-  <input id="pYt" placeholder="YouTube link" value="${esc(s.yt)}">
-  <input id="pDc" placeholder="Discord username" value="${esc(s.discord)}">
-  <p style="color:var(--mut);font-size:13px;margin-bottom:6px">Your Vox ID (share it so friends can add you):</p>
-  <input readonly value="${me.uid}" onclick="this.select();navigator.clipboard&&navigator.clipboard.writeText(this.value);toast('Vox ID copied!')">
-  <div class="row"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="logout()">Log out</button></div>`);
-}
-let newPhoto = null;
-async function uploadAvatar(i) {
-  const f = i.files[0]; if (!f) return; toast('Uploading… ⏳');
-  try { newPhoto = await catbox(f); $('pAv').src = newPhoto; toast('Photo ready, hit Save! 📸'); } catch (e) { toast('Upload failed'); }
-}
-async function saveProfile() {
-  const d = {displayName: $('pName').value.trim() || 'Voxer', bio: $('pBio').value, socials: {yt: $('pYt').value, discord: $('pDc').value}};
-  if (newPhoto) d.photoURL = newPhoto;
-  await db.collection('vox_users').doc(me.uid).update(d); newPhoto = null; closeModal(); toast('Saved ✅');
-}
+        const iceServers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 
-function addFriendModal() {
-  modal(`<h3>Add a friend</h3><input id="fId" placeholder="Paste their Vox ID"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addFriend()">Add</button></div>`);
-}
-async function addFriend() {
-  const id = $('fId').value.trim();
-  if (!id || id === me.uid) return toast('That is not a valid friend ID.');
-  const s = await db.collection('vox_users').doc(id).get();
-  if (!s.exists) return toast('No user found with that ID.');
-  await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(id)});
-  closeModal(); toast('Friend added! 🎉');
-}
+        const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+        function updateLastActiveTime() { localStorage.setItem('vox_last_active', Date.now().toString()); }
+        document.addEventListener('click', updateLastActiveTime);
+        document.addEventListener('keydown', updateLastActiveTime);
 
-/* ---------- servers ---------- */
-function createServerModal() {
-  modal(`<h3>Create a server</h3><input id="svName" placeholder="Server name"><input id="svHook" placeholder="Webhook URL (optional, for bots)"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`);
-}
-async function createServer() {
-  const name = $('svName').value.trim(); if (!name) return toast('Give your server a name!');
-  const ref = await db.collection('vox_servers').add({name, owner: me.uid, webhookUrl: $('svHook').value.trim(), createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  await db.collection('vox_channels').add({serverId: ref.id, name: 'general', type: 'text', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal(); openView('server', ref.id); // channels listener auto-selects #general
-}
-function addChannelModal() {
-  modal(`<h3>New channel</h3><input id="chName" placeholder="channel-name"><div class="row"><button id="tText" class="pri" onclick="this.dataset.s=1;this.nextElementSibling.dataset.s=0;this.classList.add('pri');this.nextElementSibling.classList.remove('pri')" data-s="1"># Text</button><button onclick="this.dataset.s=1;this.previousElementSibling.dataset.s=0;this.classList.add('pri');this.previousElementSibling.classList.remove('pri')" data-s="0">🔊 Voice</button></div><div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addChannel()">Create</button></div>`);
-}
-async function addChannel() {
-  const name = $('chName').value.trim().toLowerCase().replace(/\s+/g, '-'); if (!name) return;
-  const type = $('tText').dataset.s === '1' ? 'text' : 'voice';
-  await db.collection('vox_channels').add({serverId: view.id, name, type, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal();
-}
+        /* ============================================================
+           AUTHENTICATION
+           ============================================================ */
+        async function loginWithGoogle() {
+            try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); } 
+            catch (error) { if (error.code === "auth/popup-blocked") await auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()); else alert("Google Login Error: " + error.message); }
+        }
+        async function handleEmailLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            if (!email || !pass) return alert("Fill in email and password!");
+            try { await auth.signInWithEmailAndPassword(email, pass); } catch (error) { alert("Login Error: " + error.message); }
+        }
+        async function handleEmailSignup() {
+            const name = document.getElementById('signup-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const pass = document.getElementById('signup-password').value;
+            const confirmPass = document.getElementById('signup-confirm-password').value;
+            if (!name || !email || !pass || !confirmPass) return alert("Fill in all fields!");
+            if (pass !== confirmPass) return alert("Passwords do not match! 💀");
+            if (pass.length < 6) return alert("Password must be at least 6 characters.");
+            try { const cred = await auth.createUserWithEmailAndPassword(email, pass); await cred.user.updateProfile({ displayName: name }); await cred.user.reload(); } 
+            catch (error) { alert("Signup Error: " + error.message); }
+        }
+        function logout() { localStorage.removeItem('vox_last_active'); auth.signOut(); }
 
-async function setWebhook(id) {
-  const s = servers.find(x => x.id === id);
-  const url = prompt('Bot webhook URL (leave empty to turn off):', (s && s.webhookUrl) || '');
-  if (url === null) return;
-  try { await db.collection('vox_servers').doc(id).update({webhookUrl: url.trim()}); toast('Webhook saved 🤖'); } catch (e) { dbErr(e); }
-}
-// BUG FIX 1: delete server + all channels + all messages
-async function deleteServer(id) {
-  if (!confirm('Delete this server, all its channels and all its messages? This cannot be undone.')) return;
-  try {
-    toast('Deleting… 🗑️');
-    const refs = [];
-    (await db.collection('vox_messages').where('serverId', '==', id).get()).forEach(d => refs.push(d.ref));
-    (await db.collection('vox_channels').where('serverId', '==', id).get()).forEach(d => refs.push(d.ref));
-    refs.push(db.collection('vox_servers').doc(id));
-    for (let i = 0; i < refs.length; i += 400) {
-      const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit();
-    }
-    openView('home'); toast('Server deleted ✅');
-  } catch (e) { toast('Delete failed: ' + e.message); }
-}
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                const lastActive = localStorage.getItem('vox_last_active');
+                if (lastActive && (Date.now() - parseInt(lastActive, 10) > FIVE_DAYS_MS)) {
+                    localStorage.removeItem('vox_last_active'); auth.signOut(); alert("Logged out due to 5 days inactivity. 👋"); return;
+                }
+                updateLastActiveTime();
+                currentUser = { name: user.displayName || "User", uid: user.uid };
+                document.getElementById('landing-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'flex';
+                
+                listenToProfile();
+                listenToServers();
+                loadGroupsView(); 
+                checkForJoinLink(); 
+            } else {
+                currentUser = null; currentUserProfile = null;
+                document.getElementById('landing-screen').style.display = 'flex';
+                document.getElementById('app').style.display = 'none';
+                if (unsubscribeServers) { unsubscribeServers(); unsubscribeServers = null; }
+                if (unsubscribeUserProfile) { unsubscribeUserProfile(); unsubscribeUserProfile = null; }
+                if (unsubscribeGroups) { unsubscribeGroups(); unsubscribeGroups = null; }
+            }
+        });
 
-/* ---------- groups ---------- */
-async function deleteGroup(id) {
-  if (!confirm('Delete this group and all its messages? This cannot be undone.')) return;
-  try {
-    const refs = [];
-    (await db.collection('vox_messages').where('groupId', '==', id).get()).forEach(d => refs.push(d.ref));
-    refs.push(db.collection('vox_groups').doc(id));
-    for (let i = 0; i < refs.length; i += 400) { const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); }
-    openView('home'); toast('Group deleted ✅');
-  } catch (e) { toast('Delete failed: ' + (e.code || e.message)); }
-}
-async function createGroupModal() {
-  const f = profile.friends || [];
-  if (!f.length) return toast('Add some friends first!');
-  for (const u of f) if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {}; }
-  modal(`<h3>Create a group</h3><input id="gName" placeholder="Group name">${f.map(u => `<label class="item"><span>${esc((userCache[u] || {}).displayName || u)}</span><input type="checkbox" class="gm" value="${u}" style="width:auto;margin:0"></label>`).join('')}<div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createGroup()">Create</button></div>`);
-}
-async function createGroup() {
-  const name = $('gName').value.trim(); if (!name) return toast('Name your group!');
-  const members = [me.uid, ...[...document.querySelectorAll('.gm:checked')].map(c => c.value)];
-  const ref = await db.collection('vox_groups').add({name, members, createdBy: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal(); openView('group', ref.id);
-}
-function shareInvite(id) {
-  const url = location.origin + location.pathname + '?join=' + id;
-  navigator.clipboard.writeText(url).then(() => toast('Invite link copied! 🔗'), () => prompt('Copy this link:', url));
-}
+        /* ============================================================
+           MEDIA VIEWER LOGIC
+           ============================================================ */
+        function openMediaViewer(url, type) {
+            const viewer = document.getElementById('media-viewer');
+            const content = document.getElementById('viewer-content');
+            const dlBtn = document.getElementById('viewer-download-link');
+            
+            content.innerHTML = ""; // Clear old
+            dlBtn.href = url;
+            
+            if (type.startsWith('video/')) {
+                content.innerHTML = `<video src="${url}" controls autoplay></video>`;
+            } else {
+                content.innerHTML = `<img src="${url}" alt="media">`;
+            }
+            viewer.classList.add('active');
+        }
 
-/* ---------- WebRTC video calls (Firestore signaling) ---------- */
-const rtcCfg = {iceServers: [{urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302']}]};
-let pc = null, localStream = null, callRef = null, callUnsubs = [];
+        function closeMediaViewer() {
+            document.getElementById('media-viewer').classList.remove('active');
+            document.getElementById('viewer-content').innerHTML = "";
+        }
 
-async function setupPC(ref, role) {
-  localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-  $('localV').srcObject = localStream;
-  pc = new RTCPeerConnection(rtcCfg);
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.ontrack = e => { $('remoteV').srcObject = e.streams[0]; };
-  const mine = role === 'caller' ? 'callerCandidates' : 'calleeCandidates';
-  const theirs = role === 'caller' ? 'calleeCandidates' : 'callerCandidates';
-  pc.onicecandidate = e => { if (e.candidate) ref.collection(mine).add(e.candidate.toJSON()); };
-  callUnsubs.push(ref.collection(theirs).onSnapshot(s => s.docChanges().forEach(c => { if (c.type === 'added' && pc) pc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {}); })));
-  $('callbox').classList.remove('hidden');
-}
-async function startCall(uid, roomRef) {
-  try {
-    callRef = roomRef || db.collection('vox_calls').doc();
-    await setupPC(callRef, 'caller');
-    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-    await callRef.set({callerUid: me.uid, calleeUid: uid || null, offer: {type: offer.type, sdp: offer.sdp}});
-    callUnsubs.push(callRef.onSnapshot(s => {
-      const d = s.data(); if (d && d.answer && pc && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(d.answer));
-      if (!s.exists) hangup(true);
-    }));
-  } catch (e) { toast('Call failed: ' + e.message); hangup(true); }
-}
-async function joinVoice() {
-  if (!channel || pc) return;
-  const ref = db.collection('vox_calls').doc(view.id + '_' + channel.id);
-  try {
-    const snap = await ref.get(); const d = snap.data();
-    if (snap.exists && d.offer && !d.answer && d.callerUid !== me.uid) await answerCall(ref, d);
-    else await startCall(null, ref);
-  } catch (e) { dbErr(e); }
-}
-function listenCalls() {
-  stop('calls');
-  unsubs.calls = db.collection('vox_calls').where('calleeUid', '==', me.uid).onSnapshot(s => s.docChanges().forEach(c => {
-    const d = c.doc.data();
-    if (c.type === 'added' && d.offer && !d.answer && !pc) {
-      const who = (userCache[d.callerUid] || {}).displayName || 'A friend';
-      if (confirm(`📹 ${who} is calling you! Answer?`)) answerCall(c.doc.ref, d); else c.doc.ref.delete();
-    }
-  }));
-}
-async function answerCall(ref, d) {
-  try {
-    callRef = ref; await setupPC(ref, 'callee');
-    await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
-    const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
-    await ref.update({answer: {type: ans.type, sdp: ans.sdp}});
-    callUnsubs.push(ref.onSnapshot(s => { if (!s.exists) hangup(true); }));
-  } catch (e) { toast('Call failed: ' + e.message); hangup(true); }
-}
-async function hangup(remote) {
-  callUnsubs.forEach(u => u()); callUnsubs = [];
-  if (pc) { pc.close(); pc = null; }
-  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  $('callbox').classList.add('hidden'); $('localV').srcObject = null; $('remoteV').srcObject = null;
-  if (callRef && !remote) { const r = callRef; callRef = null; try { await r.delete(); } catch (e) {} }
-  callRef = null;
-}
-</script>
+        // Close viewer with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeMediaViewer();
+        });
+
+        /* ============================================================
+           UPLOAD MENU
+           ============================================================ */
+        function toggleUploadMenu(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('upload-menu');
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function triggerUpload(acceptStr) {
+            const input = document.getElementById('file-input');
+            input.accept = acceptStr;
+            input.click();
+            document.getElementById('upload-menu').style.display = 'none';
+        }
+
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('upload-menu');
+            if (menu && !e.target.closest('.chat-input-wrapper')) {
+                menu.style.display = 'none';
+            }
+        });
+
+        /* ============================================================
+           UNIVERSAL CREATE MENU
+           ============================================================ */
+        function openCreateMenu() { openModal('create-menu-modal'); }
+        
+        function openCreateServerModal() {
+            closeModal('create-menu-modal');
+            document.getElementById('new-server-name').value = "";
+            openModal('create-server-modal');
+        }
+
+        async function openCreateGroupModal() {
+            closeModal('create-menu-modal');
+            document.getElementById('new-group-name').value = "";
+            const checklist = document.getElementById('friends-checklist');
+            checklist.innerHTML = "<p style='color: var(--muted); font-size:12px;'>Loading friends...</p>";
+            openModal('create-group-modal');
+
+            const friendIds = currentUserProfile.friends || [];
+            if (friendIds.length === 0) {
+                checklist.innerHTML = "<p style='color: var(--red); font-size:12px;'>You haven't added any friends yet! Go to your Profile -> Add Friend.</p>";
+                return;
+            }
+
+            checklist.innerHTML = "";
+            for (const uid of friendIds) {
+                const doc = await db.collection('vox_users').doc(uid).get();
+                if (doc.exists) {
+                    const fData = doc.data();
+                    const label = document.createElement('label');
+                    label.className = 'friend-checkbox-item';
+                    label.innerHTML = `
+                        <input type="checkbox" value="${uid}" class="friend-checkbox">
+                        <span style="font-weight: 600; color: white;">${fData.displayName}</span>
+                    `;
+                    checklist.appendChild(label);
+                }
+            }
+        }
+
+        /* ============================================================
+           DELETE CHAT LOGIC
+           ============================================================ */
+        async function deleteCurrentChat() {
+            if (currentView === 'server' && currentServerId) {
+                if (currentUser.uid !== currentServerOwnerId) return alert("Only the server owner can delete it! 👑");
+                if (!confirm("Are you sure you want to delete this server? All channels and messages will be lost.")) return;
+                
+                try {
+                    const channels = await db.collection('vox_channels').where('serverId', '==', currentServerId).get();
+                    for (const doc of channels.docs) { await doc.ref.delete(); }
+                    const msgs = await db.collection('vox_messages').where('serverId', '==', currentServerId).get();
+                    for (const doc of msgs.docs) { await doc.ref.delete(); }
+                    await db.collection('vox_servers').doc(currentServerId).delete();
+                    
+                    currentServerId = null;
+                    currentChannel = null;
+                    loadGroupsView();
+                } catch (e) { alert("Error deleting: " + e.message); }
+            } 
+            else if (currentView === 'group' && currentGroupId) {
+                if (currentUser.uid !== currentGroupCreatorId) return alert("Only the group creator can delete it! 👑");
+                if (!confirm("Are you sure you want to delete this group?")) return;
+                
+                try {
+                    const msgs = await db.collection('vox_messages').where('groupId', '==', currentGroupId).get();
+                    for (const doc of msgs.docs) { await doc.ref.delete(); }
+                    await db.collection('vox_groups').doc(currentGroupId).delete();
+                    
+                    currentGroupId = null;
+                    loadGroupsView();
+                } catch (e) { alert("Error deleting: " + e.message); }
+            }
+        }
+
+        /* ============================================================
+           SHARE & JOIN VIA LINK
+           ============================================================ */
+        function shareGroupLink() {
+            if (!currentGroupId) return;
+            const link = window.location.origin + window.location.pathname + '?join=' + currentGroupId;
+            navigator.clipboard.writeText(link);
+            alert("🎉 Invite link copied to clipboard!\n\nSend this to your friends:\n" + link);
+        }
+
+        async function checkForJoinLink() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const joinId = urlParams.get('join');
+            
+            if (joinId) {
+                try {
+                    const groupRef = db.collection('vox_groups').doc(joinId);
+                    const groupDoc = await groupRef.get();
+                    
+                    if (groupDoc.exists) {
+                        const groupData = groupDoc.data();
+                        if (!groupData.members.includes(currentUser.uid)) {
+                            await groupRef.update({
+                                members: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+                            });
+                            alert(`You joined the group: ${groupData.name}! 🎉`);
+                        }
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        loadGroupsView();
+                        setTimeout(() => selectGroup(joinId, groupData.name, null, groupData.createdBy), 500); 
+                    } else {
+                        alert("This group invite link is invalid or the group was deleted.");
+                    }
+                } catch (e) { console.error("Error joining group:", e); }
+            }
+        }
+
+        /* ============================================================
+           USER PROFILE LOGIC
+           ============================================================ */
+        function listenToProfile() {
+            if (unsubscribeUserProfile) unsubscribeUserProfile();
+            unsubscribeUserProfile = db.collection('vox_users').doc(currentUser.uid).onSnapshot(doc => {
+                if (doc.exists) {
+                    currentUserProfile = doc.data();
+                    currentUser.name = currentUserProfile.displayName || currentUser.name;
+                } else {
+                    currentUserProfile = { displayName: currentUser.name, photoURL: "", bio: "", socials: { yt: "", discord: "" }, friends: [] };
+                    db.collection('vox_users').doc(currentUser.uid).set(currentUserProfile);
+                }
+                updateProfileUI();
+            });
+        }
+
+        function updateProfileUI() {
+            if (!currentUserProfile) return;
+            document.getElementById('user-name-display').innerText = currentUserProfile.displayName || currentUser.name;
+            const avatarImg = document.getElementById('user-avatar-display');
+            const avatarFallback = document.getElementById('user-avatar-fallback');
+            if (currentUserProfile.photoURL) { avatarImg.src = currentUserProfile.photoURL; avatarImg.style.display = 'block'; avatarFallback.style.display = 'none'; } 
+            else { avatarImg.style.display = 'none'; avatarFallback.style.display = 'flex'; avatarFallback.innerText = (currentUserProfile.displayName || "U").charAt(0).toUpperCase(); }
+        }
+
+        function openProfileModal() {
+            if (!currentUserProfile) return;
+            document.getElementById('profile-display-name').value = currentUserProfile.displayName || "";
+            document.getElementById('profile-bio').value = currentUserProfile.bio || "";
+            document.getElementById('profile-social-yt').value = (currentUserProfile.socials && currentUserProfile.socials.yt) ? currentUserProfile.socials.yt : "";
+            document.getElementById('profile-social-discord').value = (currentUserProfile.socials && currentUserProfile.socials.discord) ? currentUserProfile.socials.discord : "";
+            document.getElementById('profile-uid-display').innerText = currentUser.uid;
+            
+            const pImg = document.getElementById('profile-avatar-img');
+            const pFallback = document.getElementById('profile-avatar-fallback');
+            if (currentUserProfile.photoURL) { pImg.src = currentUserProfile.photoURL; pImg.style.display = 'block'; pFallback.style.display = 'none'; } 
+            else { pImg.style.display = 'none'; pFallback.style.display = 'flex'; pFallback.innerText = (currentUserProfile.displayName || "U").charAt(0).toUpperCase(); }
+            openModal('profile-modal');
+        }
+
+        function copyVoxId() { navigator.clipboard.writeText(currentUser.uid); alert("Vox ID copied! Send it to your friend."); }
+
+        async function uploadProfilePic() {
+            const file = document.getElementById('profile-pic-input').files[0];
+            if (!file) return;
+            
+            const formData = new FormData(); 
+            formData.append('file', file); 
+            formData.append('upload_preset', CLOUDINARY.uploadPreset);
+            
+            try {
+                const btn = document.querySelector('button[onclick="document.getElementById(\'profile-pic-input\').click()"]');
+                btn.innerText = "Uploading...";
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/image/upload`, { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (!data.secure_url) throw new Error(data.error ? data.error.message : "Upload failed");
+                
+                await db.collection('vox_users').doc(currentUser.uid).update({ photoURL: data.secure_url });
+                btn.innerText = "Change Pic"; openProfileModal();
+            } catch (err) { alert("Upload failed: " + err.message); }
+        }
+
+        async function saveProfile() {
+            const newName = document.getElementById('profile-display-name').value.trim();
+            const bio = document.getElementById('profile-bio').value.trim();
+            const yt = document.getElementById('profile-social-yt').value.trim();
+            const discord = document.getElementById('profile-social-discord').value.trim();
+            if (!newName) return alert("Display Name cannot be empty!");
+            try {
+                await db.collection('vox_users').doc(currentUser.uid).update({ displayName: newName, bio: bio, socials: { yt: yt, discord: discord } });
+                alert("Profile saved! 👑"); closeModal('profile-modal');
+            } catch (err) { alert("Save failed: " + err.message); }
+        }
+
+        /* ============================================================
+           FRIENDS & GROUPS
+           ============================================================ */
+        async function addFriend() {
+            const friendId = document.getElementById('friend-uid-input').value.trim();
+            if (!friendId) return alert("Paste a Vox ID!");
+            if (friendId === currentUser.uid) return alert("You can't add yourself! 😂");
+            try {
+                const userDoc = await db.collection('vox_users').doc(friendId).get();
+                if (!userDoc.exists) return alert("User not found! Check the ID.");
+                await db.collection('vox_users').doc(currentUser.uid).update({ friends: firebase.firestore.FieldValue.arrayUnion(friendId) });
+                alert(`Added ${userDoc.data().displayName} as a friend! 🎉`);
+                document.getElementById('friend-uid-input').value = ""; closeModal('add-friend-modal');
+            } catch (err) { alert("Failed to add friend: " + err.message); }
+        }
+
+        function loadGroupsView() {
+            currentView = "group";
+            currentServerId = null;
+            currentGroupId = null;
+            currentChannel = null;
+            document.getElementById('server-name').innerText = "Groups";
+            document.getElementById('active-channel-name').innerText = "select-a-group";
+            document.getElementById('channel-icon').innerText = "👥";
+            document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a group or create a new one.</p>`;
+            document.getElementById('share-group-btn').style.display = 'none';
+            document.getElementById('delete-chat-btn').style.display = 'none';
+            
+            document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
+            document.getElementById('home-btn').classList.add('active');
+
+            if (unsubscribeMessages) unsubscribeMessages();
+            if (unsubscribeGroups) unsubscribeGroups();
+
+            const channelList = document.getElementById('channel-list');
+            channelList.innerHTML = `
+                <div class="channel-category">My Groups</div>
+                <div id="group-list"><p style="color: var(--muted); font-size: 12px; padding: 8px;">Loading...</p></div>
+            `;
+
+            unsubscribeGroups = db.collection('vox_groups').where('members', 'array-contains', currentUser.uid).onSnapshot(snapshot => {
+                const groupList = document.getElementById('group-list');
+                groupList.innerHTML = "";
+                if (snapshot.empty) {
+                    groupList.innerHTML = `<p style="color: var(--muted); font-size: 12px; padding: 8px;">No groups yet. Click + to make one!</p>`;
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const item = document.createElement('div');
+                    item.className = 'channel-item' + (currentGroupId === doc.id ? ' active' : '');
+                    item.innerHTML = `👥 ${data.name}`;
+                    item.onclick = () => selectGroup(doc.id, data.name, item, data.createdBy);
+                    groupList.appendChild(item);
+                });
+            });
+        }
+
+        async function createGroup() {
+            const name = document.getElementById('new-group-name').value.trim();
+            if (!name) return alert("Name your group!");
+            
+            const existing = await db.collection('vox_groups').where('name', '==', name).where('members', 'array-contains', currentUser.uid).get();
+            if (!existing.empty) return alert("You already have a group with this name! 💀");
+
+            const checkboxes = document.querySelectorAll('.friend-checkbox:checked');
+            if (checkboxes.length === 0) return alert("Select at least one friend!");
+
+            const members = [currentUser.uid];
+            checkboxes.forEach(cb => members.push(cb.value));
+
+            try {
+                const docRef = await db.collection('vox_groups').add({
+                    name: name,
+                    members: members,
+                    createdBy: currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                closeModal('create-group-modal');
+                loadGroupsView();
+                setTimeout(() => selectGroup(docRef.id, name, null, currentUser.uid), 500);
+            } catch (err) { alert("Failed to create group: " + err.message); }
+        }
+
+        function selectGroup(id, name, element, creatorId) {
+            currentGroupId = id;
+            currentGroupCreatorId = creatorId;
+            currentChannel = null; 
+            document.getElementById('active-channel-name').innerText = name;
+            document.getElementById('channel-icon').innerText = "👥";
+            document.getElementById('share-group-btn').style.display = 'block';
+            document.getElementById('delete-chat-btn').style.display = (currentUser.uid === creatorId) ? 'block' : 'none';
+
+            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+            else {
+                const items = document.querySelectorAll('#group-list .channel-item');
+                items.forEach(el => { if(el.innerText.includes(name)) el.classList.add('active'); });
+            }
+
+            if (unsubscribeMessages) unsubscribeMessages();
+            listenToMessages();
+        }
+
+        /* ============================================================
+           SERVERS & CHANNELS
+           ============================================================ */
+        function listenToServers() {
+            const sidebar = document.getElementById('server-sidebar');
+            if (unsubscribeServers) unsubscribeServers();
+            unsubscribeServers = db.collection('vox_servers').onSnapshot(snapshot => {
+                sidebar.innerHTML = `
+                    <div class="server-icon home-btn" id="home-btn" onclick="loadGroupsView()" title="Groups">💬</div>
+                    <div style="width: 32px; height: 2px; background: #35373c; border-radius: 1px; margin: 4px 0;"></div>
+                `;
+                if (currentView === "group") document.getElementById('home-btn').classList.add('active');
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const icon = document.createElement('div');
+                    icon.className = 'server-icon' + (currentServerId === doc.id && currentView === 'server' ? ' active' : '');
+                    icon.textContent = (data.name || '?').charAt(0).toUpperCase();
+                    icon.title = data.name || 'Server';
+                    icon.onclick = () => selectServer(doc.id, data.name || 'Server', data.webhookUrl || "", data.owner);
+                    sidebar.appendChild(icon);
+                });
+                const addBtn = document.createElement('div');
+                addBtn.className = 'server-icon add-server';
+                addBtn.textContent = '+';
+                addBtn.title = 'Create New';
+                addBtn.onclick = () => openCreateMenu();
+                sidebar.appendChild(addBtn);
+            });
+        }
+
+        async function createServer() {
+            const name = document.getElementById('new-server-name').value.trim();
+            if (!name) return alert("Enter a server name!");
+            
+            const existing = await db.collection('vox_servers').where('name', '==', name).get();
+            if (!existing.empty) return alert("A server with this name already exists! 💀");
+
+            const docRef = await db.collection('vox_servers').add({ name: name, owner: currentUser.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await db.collection('vox_channels').add({ serverId: docRef.id, name: "general", type: "text", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            
+            closeModal('create-server-modal');
+            document.getElementById('new-server-name').value = "";
+            selectServer(docRef.id, name, "", currentUser.uid);
+        }
+
+        function selectServer(id, name, webhook, ownerId) {
+            currentView = "server";
+            currentServerId = id;
+            currentServerOwnerId = ownerId;
+            currentGroupId = null;
+            currentChannel = null;
+            document.getElementById('server-name').innerText = name;
+            document.getElementById('webhook-url').value = webhook || "";
+            document.getElementById('active-channel-name').innerText = "select-a-channel";
+            document.getElementById('channel-icon').innerText = "#";
+            document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a channel to start chatting.</p>`;
+            
+            document.getElementById('share-group-btn').style.display = 'none'; 
+            document.getElementById('delete-chat-btn').style.display = (currentUser.uid === ownerId) ? 'block' : 'none';
+            
+            listenToServers();
+            loadChannels();
+        }
+
+        async function loadChannels() {
+            if (unsubscribeGroups) unsubscribeGroups(); 
+            const channelList = document.getElementById('channel-list');
+            channelList.innerHTML = `<p style="color: var(--muted); text-align: center; font-size: 12px;">Loading...</p>`;
+            const snapshot = await db.collection('vox_channels').where('serverId', '==', currentServerId).orderBy('createdAt', 'asc').get();
+            
+            channelList.innerHTML = `
+                <div class="channel-category">Text Channels <button class="add-channel-btn" onclick="openModal('create-channel-modal')">+</button></div>
+                <div id="text-channels"></div>
+                <div class="channel-category">Voice / Bots <button class="add-channel-btn" onclick="openModal('owner-panel-modal')">👑</button></div>
+                <div id="voice-channels"></div>
+            `;
+            
+            let firstTextChannel = null;
+            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const item = document.createElement('div');
+                item.className = 'channel-item';
+                
+                if (data.type === 'voice') {
+                    item.textContent = '🔊 ' + data.name;
+                    item.onclick = () => selectChannel(data.name, 'voice', item);
+                    document.getElementById('voice-channels').appendChild(item);
+                } else {
+                    item.textContent = '# ' + data.name;
+                    item.onclick = () => selectChannel(data.name, 'text', item);
+                    document.getElementById('text-channels').appendChild(item);
+                    if (!firstTextChannel) {
+                        firstTextChannel = { name: data.name, element: item };
+                    }
+                }
+            });
+
+            if (!currentChannel && firstTextChannel) {
+                selectChannel(firstTextChannel.name, 'text', firstTextChannel.element);
+            }
+        }
+
+        async function createChannel() {
+            const nameEl = document.getElementById('new-channel-name');
+            const name = nameEl.value.trim().replace(/\s+/g, '-').toLowerCase();
+            const type = document.getElementById('new-channel-type').value;
+            if (!name || !currentServerId) return;
+            await db.collection('vox_channels').add({ serverId: currentServerId, name: name, type: type, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            nameEl.value = ""; closeModal('create-channel-modal'); loadChannels();
+        }
+
+        function selectChannel(channelName, type, element) {
+            currentChannel = channelName;
+            currentChannelType = type;
+            document.getElementById('active-channel-name').innerText = channelName;
+            document.getElementById('channel-icon').innerText = type === 'voice' ? '🔊' : '#';
+            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+            if (unsubscribeMessages) unsubscribeMessages();
+            if (type === 'text') {
+                listenToMessages();
+            } else {
+                document.getElementById('messages-container').innerHTML = `
+                    <div style="text-align: center; margin-top: 50px;">
+                        <p style="color: var(--muted); font-size: 16px; margin-bottom: 20px;">You are in the voice channel: <strong>${channelName}</strong></p>
+                        <button class="btn" style="width: auto; padding: 12px 30px; background: var(--green); font-size: 16px;" onclick="startCall()">📹 Join Video Call</button>
+                    </div>
+                `;
+            }
+        }
+
+        /* ============================================================
+           TEXT CHAT
+           ============================================================ */
+        function listenToMessages() {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = `<p style="color: var(--muted); text-align: center;">Loading...</p>`;
+            
+            let query;
+            if (currentView === "group") {
+                query = db.collection('vox_messages').where('groupId', '==', currentGroupId);
+            } else {
+                query = db.collection('vox_messages').where('serverId', '==', currentServerId).where('channel', '==', currentChannel);
+            }
+            
+            unsubscribeMessages = query.orderBy('timestamp', 'asc').limit(50)
+                .onSnapshot(snapshot => {
+                    container.innerHTML = "";
+                    if (snapshot.empty) {
+                        container.innerHTML = `<p style="color: var(--muted); text-align: center;">This is the start of the chat. Say hi!</p>`;
+                        return;
+                    }
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const time = data.timestamp ? data.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
+                        
+                        const msgRow = document.createElement('div');
+                        msgRow.className = 'message';
+                        
+                        const avatar = document.createElement('img');
+                        avatar.className = 'msg-avatar';
+                        if (data.senderPhoto) { avatar.src = data.senderPhoto; } 
+                        else { avatar.src = `https://ui-avatars.com/api/?name=${data.sender || 'User'}&background=5865F2&color=fff`; }
+                        
+                        const content = document.createElement('div');
+                        content.className = 'msg-content';
+                        const header = document.createElement('div');
+                        header.className = 'msg-header';
+                        const author = document.createElement('span');
+                        author.className = 'msg-author';
+                        author.textContent = data.sender || "Anon";
+                        const timeEl = document.createElement('span');
+                        timeEl.className = 'msg-time';
+                        timeEl.textContent = time;
+                        header.appendChild(author); header.appendChild(timeEl);
+                        content.appendChild(header);
+                        
+                        if (data.text) {
+                            const textEl = document.createElement('div');
+                            textEl.className = 'msg-text';
+                            textEl.innerHTML = data.text.replace(/</g, "&lt;").replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank">${url}</a>`);
+                            content.appendChild(textEl);
+                        }
+                        if (data.mediaUrl) content.appendChild(buildMedia(data.mediaUrl, data.mediaType || ""));
+                        
+                        msgRow.appendChild(avatar); msgRow.appendChild(content);
+                        container.appendChild(msgRow);
+                    });
+                    container.scrollTop = container.scrollHeight;
+                });
+        }
+
+        function buildMedia(url, type) {
+            const wrap = document.createElement('div');
+            
+            if (type.startsWith('video/')) {
+                wrap.className = 'vox-video-container';
+                wrap.onclick = (e) => {
+                    // Prevent opening viewer if they clicked the native controls
+                    if(e.target.tagName !== 'VIDEO') openMediaViewer(url, type);
+                };
+                wrap.innerHTML = `
+                    <video src="${url}"></video>
+                    <button class="expand-btn">⛶ Expand</button>
+                `;
+                // Add event listener to expand button
+                setTimeout(() => {
+                    const btn = wrap.querySelector('.expand-btn');
+                    if(btn) btn.onclick = (e) => { e.stopPropagation(); openMediaViewer(url, type); };
+                }, 0);
+
+            } else if (type.startsWith('audio/')) {
+                wrap.className = 'vox-audio-card';
+                const audioId = 'audio_' + Math.random().toString(36).slice(2, 11);
+                wrap.innerHTML = `
+                    <button class="vox-audio-btn" onclick="toggleAudio('${audioId}')">▶️</button>
+                    <div class="vox-audio-progress" onclick="seekAudio(event, '${audioId}')"><div class="vox-audio-fill" id="fill_${audioId}"></div></div>
+                    <span class="vox-audio-time" id="time_${audioId}">0:00</span>
+                    <audio id="${audioId}" src="${url}" ontimeupdate="updateAudio('${audioId}')" onended="resetAudio('${audioId}')"></audio>
+                `;
+            } else if (type.startsWith('image/')) {
+                const img = document.createElement('img'); 
+                img.src = url;
+                img.style.cssText = "max-width:400px;border-radius:8px;margin-top:8px;cursor:pointer;";
+                img.onclick = () => openMediaViewer(url, type); 
+                wrap.appendChild(img);
+            } else {
+                // PDFs and other files
+                wrap.innerHTML = `
+                    <div style="background: #2b2d31; padding: 12px; border-radius: 8px; margin-top: 8px; display: inline-flex; align-items: center; gap: 12px; border: 1px solid #1e1f22;">
+                        <span style="font-size: 24px;">📄</span>
+                        <div>
+                            <div style="font-weight: bold; color: white;">File Attachment</div>
+                            <a href="${url}" target="_blank" style="color: var(--brand); font-size: 12px; text-decoration: none;">👁 View / Download</a>
+                        </div>
+                    </div>
+                `;
+            }
+            return wrap;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            if (currentView === "group" && !currentGroupId) return;
+            if (currentView === "server" && (!currentServerId || !currentChannel || currentChannelType !== 'text')) return;
+            
+            input.value = "";
+            
+            const msgData = {
+                sender: currentUser.name, 
+                senderPhoto: currentUserProfile.photoURL || "",
+                text: text, 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            if (currentView === "group") {
+                msgData.groupId = currentGroupId;
+            } else {
+                msgData.serverId = currentServerId;
+                msgData.channel = currentChannel;
+            }
+
+            await db.collection('vox_messages').add(msgData);
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file) return;
+            if (currentView === "group" && !currentGroupId) return;
+            if (currentView === "server" && (!currentServerId || !currentChannel || currentChannelType !== 'text')) return;
+
+            // 🛑 SIZE CHECK (Cloudinary free tier limit)
+            if (file.size > 25 * 1024 * 1024) {
+                alert("File is too big! Max 25MB on the free plan. Try a smaller file.");
+                fileInput.value = "";
+                return;
+            }
+
+            // ⏳ ADD OPTIMISTIC UI LOADING BUBBLE
+            const container = document.getElementById('messages-container');
+            const tempId = 'temp_' + Date.now();
+            const tempMsg = document.createElement('div');
+            tempMsg.className = 'message';
+            tempMsg.id = tempId;
+            tempMsg.innerHTML = `
+                <div class="msg-avatar" style="background: #232428; border: 2px solid var(--brand);">
+                    <div class="spinner"></div>
+                </div>
+                <div class="msg-content">
+                    <div class="msg-header"><span class="msg-author">Uploading...</span></div>
+                    <div class="msg-text" style="color: var(--muted); font-size: 13px;">Processing <strong>${file.name}</strong></div>
+                </div>
+            `;
+            if(container) {
+                container.appendChild(tempMsg);
+                container.scrollTop = container.scrollHeight;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY.uploadPreset);
+
+            try {
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/auto/upload`, { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (!data.secure_url) {
+                    throw new Error(data.error ? data.error.message : "Upload failed");
+                }
+
+                const msgData = {
+                    sender: currentUser.name, 
+                    senderPhoto: currentUserProfile.photoURL || "",
+                    text: "", 
+                    mediaUrl: data.secure_url, 
+                    mediaType: file.type, 
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp() 
+                };
+                
+                if (currentView === "group") msgData.groupId = currentGroupId;
+                else { msgData.serverId = currentServerId; msgData.channel = currentChannel; }
+
+                await db.collection('vox_messages').add(msgData);
+            } catch (error) { 
+                alert("Upload failed: " + error.message); 
+            } finally { 
+                // 🧹 REMOVE TEMP LOADING BUBBLE
+                const el = document.getElementById(tempId);
+                if (el) el.remove();
+                fileInput.value = ""; 
+            }
+        }
+
+        /* ============================================================
+           WEBRTC, BOTS & HELPERS
+           ============================================================ */
+        async function saveWebhook() {
+            const url = document.getElementById('webhook-url').value.trim();
+            if (!currentServerId) return;
+            await db.collection('vox_servers').doc(currentServerId).update({ webhookUrl: url });
+            alert("Webhook saved!"); closeModal('owner-panel-modal');
+        }
+
+        async function startCall() {
+            if (!currentServerId || !currentChannel) return alert("Pick a voice channel first!");
+            callRoomId = currentServerId + '_' + currentChannel;
+            document.getElementById('video-overlay').classList.add('active');
+            document.getElementById('remote-video-box').style.display = 'none';
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('local-video').srcObject = localStream;
+                const callDocRef = db.collection('vox_calls').doc(callRoomId);
+                const callDoc = await callDocRef.get();
+                if (callDoc.exists && callDoc.data().callerUid !== currentUser.uid) await joinAsCallee(callDocRef, callDoc.data());
+                else await becomeCaller(callDocRef);
+            } catch (err) { alert("Could not access camera/mic: " + err.message); endCall(); }
+        }
+
+        async function becomeCaller(callDocRef) {
+            isCallee = false; createPeerConnection(callDocRef);
+            unsubscribeCall = callDocRef.onSnapshot(async snapshot => {
+                const data = snapshot.data();
+                if (!data) { endCall(); return; }
+                if (data.answer && peerConnection && !peerConnection.currentRemoteDescription) {
+                    try { await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)); } catch (e) {}
+                }
+            });
+            unsubscribeCalleeCandidates = callDocRef.collection('calleeCandidates').onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => { if (change.type === 'added' && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(() => {}); });
+            });
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            await callDocRef.set({ callerUid: currentUser.uid, callerName: currentUser.name, offer: { type: offer.type, sdp: offer.sdp }, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+
+        async function joinAsCallee(callDocRef, data) {
+            isCallee = true; createPeerConnection(callDocRef);
+            unsubscribeCallerCandidates = callDocRef.collection('callerCandidates').onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => { if (change.type === 'added' && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(() => {}); });
+            });
+            unsubscribeCall = callDocRef.onSnapshot(snapshot => { if (!snapshot.exists) endCall(); });
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            await callDocRef.update({ answer: { type: answer.type, sdp: answer.sdp } });
+        }
+
+        function createPeerConnection(callDocRef) {
+            peerConnection = new RTCPeerConnection(iceServers);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.ontrack = event => { document.getElementById('remote-video').srcObject = event.streams[0]; document.getElementById('remote-video-box').style.display = 'block'; };
+            peerConnection.onicecandidate = event => {
+                if (!event.candidate) return;
+                const sub = isCallee ? 'calleeCandidates' : 'callerCandidates';
+                callDocRef.collection(sub).add(event.candidate.toJSON()).catch(e => {});
+            };
+        }
+
+        async function endCall() {
+            document.getElementById('video-overlay').classList.remove('active');
+            document.getElementById('remote-video-box').style.display = 'none';
+            if (unsubscribeCall) { unsubscribeCall(); unsubscribeCall = null; }
+            if (unsubscribeCallerCandidates) { unsubscribeCallerCandidates(); unsubscribeCallerCandidates = null; }
+            if (unsubscribeCalleeCandidates) { unsubscribeCalleeCandidates(); unsubscribeCalleeCandidates = null; }
+            if (peerConnection) { peerConnection.close(); peerConnection = null; }
+            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+            if (callRoomId) { try { await db.collection('vox_calls').doc(callRoomId).delete(); } catch (e) {} callRoomId = null; }
+        }
+
+        document.getElementById('chat-input').addEventListener('keypress', function (e) { if (e.key === 'Enter') sendMessage(); });
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function toggleAudio(id) { const audio = document.getElementById(id); const btn = audio.parentElement.querySelector('.vox-audio-btn'); if (audio.paused) { audio.play(); btn.innerText = "⏸"; } else { audio.pause(); btn.innerText = "▶️"; } }
+        function updateAudio(id) { const audio = document.getElementById(id); const fill = document.getElementById('fill_' + id); const timeEl = document.getElementById('time_' + id); if (audio.duration) { fill.style.width = (audio.currentTime / audio.duration) * 100 + '%'; let mins = Math.floor(audio.currentTime / 60); let secs = Math.floor(audio.currentTime % 60); if (secs < 10) secs = '0' + secs; timeEl.innerText = `${mins}:${secs}`; } }
+        function seekAudio(e, id) { const audio = document.getElementById(id); const rect = e.currentTarget.getBoundingClientRect(); if (audio.duration) audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration; }
+        function resetAudio(id) { const audio = document.getElementById(id); audio.currentTime = 0; audio.parentElement.querySelector('.vox-audio-btn').innerText = "▶️"; document.getElementById('fill_' + id).style.width = '0%'; document.getElementById('time_' + id).innerText = '0:00'; }
+    </script>
 </body>
 </html>
