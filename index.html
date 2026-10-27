@@ -227,52 +227,21 @@ let screenTrack = null;
 let autocompleteActive = false;
 let autocompleteIndex = 0;
 let currentSuggestions = [];
+let MASTER_EMOJI_DICT = {}; // Will hold thousands of emojis
 
-/* 🚨 EMOJI DICTIONARY FOR AUTOCOMPLETE */
-const EMOJI_DICT = {
-    "skull": "💀", "joy": "😂", "fire": "🔥", "rocket": "🚀", "crown": "👑",
-    "heart": "❤️", "100": "💯", "thinking": "🤔", "sob": "😭", "sunglasses": "😎",
-    "eyes": "👀", "thumbsup": "👍", "thumbsdown": "👎", "pray": "🙏", "clap": "👏",
-    "wave": "👋", "ok": "👌", "punch": "👊", "muscle": "💪", "point_up": "☝️",
-    "smile": "😊", "grin": "😁", "laughing": "😆", "sweat_smile": "😅", "rofl": "🤣",
-    "smirk": "😏", "unamused": "😒", "roll_eyes": "🙄", "pensive": "😔", "sleepy": "😪",
-    "mask": "😷", "nauseated": "🤢", "sneeze": "🤧", "hot": "🥵", "cold": "🥶",
-    "dizzy": "😵", "exploding_head": "🤯", "cowboy": "🤠", "party": "🥳", "alien": "👽",
-    "robot": "🤖", "ghost": "👻", "poop": "💩", "imp": "👿", "japanese_ogre": "👹",
-    "monkey": "🐒", "dog": "🐶", "cat": "🐱", "mouse": "🐭", "hamster": "🐹",
-    "rabbit": "🐰", "fox": "🦊", "bear": "🐻", "panda": "🐼", "koala": "🐨",
-    "tiger": "🐯", "lion": "🦁", "cow": "🐮", "pig": "🐷", "frog": "🐸",
-    "chicken": "🐔", "penguin": "🐧", "bird": "🐦", "eagle": "🦅", "duck": "🦆",
-    "owl": "🦉", "bat": "🦇", "wolf": "🐺", "boar": "🐗", "horse": "🐴",
-    "unicorn": "🦄", "bee": "🐝", "bug": "🐛", "butterfly": "🦋", "snail": "🐌",
-    "spider": "🕷️", "scorpion": "🦂", "crab": "🦀", "shrimp": "🦐", "squid": "🦑",
-    "octopus": "🐙", "fish": "🐟", "dolphin": "🐬", "whale": "🐳", "shark": "🦈",
-    "crocodile": "🐊", "turtle": "🐢", "snake": "🐍", "dragon": "🐉", "t_rex": "🦖",
-    "soccer": "⚽", "basketball": "🏀", "football": "🏈", "baseball": "⚾", "tennis": "🎾",
-    "volleyball": "🏐", "rugby": "🏉", "8ball": "🎱", "ping_pong": "🏓", "badminton": "🏸",
-    "hockey": "🏒", "field_hockey": "🏑", "cricket": "🏏", "lacrosse": "🥍", "goal": "🥅",
-    "golf": "⛳", "ice_skate": "⛸️", "fishing_pole": "🎣", "boxing": "🥊", "martial_arts": "🥋",
-    "video_game": "🎮", "joystick": "🕹️", "game_die": "🎲", "chess": "♟️", "dart": "🎯",
-    "guitar": "🎸", "drum": "🥁", "trumpet": "🎺", "violin": "🎻", "musical_note": "🎵",
-    "headphones": "🎧", "microphone": "🎤", "radio": "📻", "tv": "📺", "camera": "📷",
-    "computer": "💻", "desktop": "🖥️", "keyboard": "⌨️", "mouse": "🖱️", "printer": "🖨️",
-    "phone": "📱", "battery": "🔋", "electric_plug": "🔌", "bulb": "💡", "flashlight": "🔦",
-    "car": "🚗", "taxi": "🚕", "bus": "🚌", "truck": "🚚", "fire_engine": "🚒",
-    "police_car": "🚓", "ambulance": "🚑", "bike": "🚲", "motorcycle": "🏍️", "airplane": "✈️",
-    "helicopter": "🚁", "train": "🚆", "ship": "🚢", "sailboat": "⛵", "ufo": "🛸",
-    "apple": "🍎", "banana": "🍌", "watermelon": "🍉", "grapes": "🍇", "strawberry": "🍓",
-    "melon": "🍈", "cherries": "🍒", "peach": "🍑", "pineapple": "🍍", "kiwi": "🥝",
-    "tomato": "🍅", "eggplant": "🍆", "avocado": "🥑", "broccoli": "🥦", "mushroom": "🍄",
-    "bread": "🍞", "cheese": "🧀", "meat": "🍖", "hamburger": "🍔", "fries": "🍟",
-    "pizza": "🍕", "hotdog": "🌭", "taco": "🌮", "burrito": "🌯", "ramen": "🍜",
-    "spaghetti": "🍝", "sushi": "🍣", "rice": "🍚", "curry": "🍛", "dumpling": "🥟",
-    "icecream": "🍦", "cake": "🎂", "cookie": "🍪", "chocolate": "🍫", "candy": "🍬",
-    "coffee": "☕", "tea": "🍵", "beer": "🍺", "wine": "🍷", "cocktail": "🍸",
-    "warning": "⚠️", "no_entry": "⛔", "check": "✅", "x": "❌", "question": "❓",
-    "exclamation": "❗", "zap": "⚡", "star": "⭐", "sparkles": "✨", "boom": "💥",
-    "snowflake": "❄️", "umbrella": "☔", "earth": "🌍", "sun": "☀️", "moon": "🌙",
-    "cloud": "☁️", "rainbow": "🌈", "ocean": "🌊", "mountain": "⛰️", "tree": "🌳"
-};
+/* 🚨 FETCH ALL EMOJIS FROM CDN ON LOAD */
+async function loadAllEmojis() {
+    try {
+        // This fetches a standard JSON file with all emoji shortcodes (e.g. "skull": "💀")
+        const res = await fetch('https://cdn.jsdelivr.net/npm/emojibase-data@15.0.0/en/shortcodes/emojibase.json');
+        MASTER_EMOJI_DICT = await res.json();
+        console.log("Loaded all emojis!");
+    } catch (e) {
+        console.error("Failed to load emoji dictionary, using fallback", e);
+        MASTER_EMOJI_DICT = { "skull": "💀", "fire": "🔥", "joy": "😂", "100": "💯", "rocket": "🚀" };
+    }
+}
+loadAllEmojis();
 
 function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -306,7 +275,8 @@ function handleEmojiTyping() {
     
     if (match) {
         const search = match[1].toLowerCase();
-        currentSuggestions = Object.keys(EMOJI_DICT).filter(key => key.includes(search)).slice(0, 8);
+        // Filter the master dictionary (limit to 8 results for speed)
+        currentSuggestions = Object.keys(MASTER_EMOJI_DICT).filter(key => key.includes(search)).slice(0, 8);
         
         if (currentSuggestions.length > 0) {
             autocompleteActive = true;
@@ -328,7 +298,7 @@ function renderEmojiAutocomplete() {
     currentSuggestions.forEach((name, index) => {
         const div = document.createElement('div');
         div.className = `emoji-suggestion ${index === autocompleteIndex ? 'active' : ''}`;
-        div.innerHTML = `<span class="emoji-icon">${EMOJI_DICT[name]}</span> <span class="emoji-name">:${name}</span>`;
+        div.innerHTML = `<span class="emoji-icon">${MASTER_EMOJI_DICT[name]}</span> <span class="emoji-name">:${name}</span>`;
         div.onclick = () => insertEmoji(name);
         box.appendChild(div);
     });
@@ -345,7 +315,7 @@ function insertEmoji(name) {
     const textBeforeCursor = val.slice(0, cursor);
     const textAfterCursor = val.slice(cursor);
     
-    const newTextBefore = textBeforeCursor.replace(/:([a-zA-Z0-9_+-]+)$/, EMOJI_DICT[name] + ' ');
+    const newTextBefore = textBeforeCursor.replace(/:([a-zA-Z0-9_+-]+)$/, MASTER_EMOJI_DICT[name] + ' ');
     
     $('text').value = newTextBefore + textAfterCursor;
     $('text').selectionStart = $('text').selectionEnd = newTextBefore.length;
@@ -525,7 +495,6 @@ function renderSide() {
     const s = servers.find(x => x.id === view.id); if (!s) return;
     t.textContent = s.name;
     
-    // 🚨 NEW WEBHOOK MODAL BUTTON HERE!
     b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Two-Way Discord Bridge" onclick="openWebhookModal('${s.id}')">🤖</button><button title="Import Discord Bot" onclick="importBotModal('${s.id}')">🔌</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
     
     l.innerHTML = channels.map(c => `<div class="item ${channel && channel.id === c.id ? 'on' : ''}" onclick="selectChannel('${c.id}')"><span>${c.type === 'voice' ? '🔊' : '#'} ${esc(c.name)}</span></div>`).join('');
@@ -736,7 +705,6 @@ async function postMessage(extra) {
     }).catch(err => console.log("Bot API error:", err));
   }
   
-  // 🪝 REVERSE BRIDGE: Send to Discord Webhook (If it exists)
   if (view.type === 'server' && extra.text) {
     const s = servers.find(x => x.id === view.id);
     if (s && s.webhookUrl) {
@@ -862,7 +830,6 @@ async function addFriend() {
   }
 }
 
-/* 🪝 WEBHOOK MODAL FOR REVERSE BRIDGE 🪝 */
 function openWebhookModal(serverId) {
   const s = servers.find(x => x.id === serverId);
   modal(`
