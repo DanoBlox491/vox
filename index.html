@@ -79,12 +79,8 @@ input:focus,textarea:focus{border-color:var(--blue)}
 .vnav{position:absolute;top:50%;transform:translateY(-50%);font-size:26px;background:#000a;border-radius:50%;width:48px;height:48px;padding:0}
 .vnav.l{left:12px}.vnav.r{right:12px}
 .empty{color:var(--mut);text-align:center;margin-top:20vh}
-
-/* Spinner for Uploads */
 .spinner {width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite;}
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* modal */
 #modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:20}
 #modal .box{background:var(--p1);border:2px solid var(--p3);border-radius:16px;padding:22px;width:min(420px,92vw);max-height:90vh;overflow-y:auto}
 #modal h3{margin-bottom:12px}
@@ -154,7 +150,7 @@ input:focus,textarea:focus{border-color:var(--blue)}
 </div>
 
 <script>
-/* 🤖 YOUR RENDER BOT URL */
+/* 🚨 YOUR RENDER BOT URL */
 const BOT_API_URL = 'https://vox-bot-04l6.onrender.com/api/bot';
 
 const firebaseConfig = {
@@ -179,10 +175,8 @@ function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.t
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function stop(k) { if (unsubs[k]) { unsubs[k](); unsubs[k] = null; } }
 
-/* ---------- activity / 5-day timeout ---------- */
 ['click', 'keydown'].forEach(e => document.addEventListener(e, () => { if (me) localStorage.setItem('vox_last_active', Date.now()); }));
 
-/* ---------- auth ---------- */
 async function login() {
   try { await auth.signInWithEmailAndPassword($('lEmail').value.trim(), $('lPass').value); }
   catch (e) { $('lErr').textContent = e.message; }
@@ -247,7 +241,6 @@ async function handleJoin() {
   history.replaceState({}, '', location.pathname);
 }
 
-/* ---------- rendering ---------- */
 function renderMe() { $('meName').textContent = profile.displayName || 'You'; $('meAv').src = profile.photoURL || DEFAULT_AV; }
 
 function renderRail() {
@@ -313,7 +306,10 @@ function renderSide() {
   } else if (view.type === 'server') {
     const s = servers.find(x => x.id === view.id); if (!s) return;
     t.textContent = s.name;
-    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Bot webhook" onclick="setWebhook('${s.id}')">🤖</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
+    
+    // 🚨 HERE IS THE PLUG BUTTON!
+    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Bot webhook" onclick="setWebhook('${s.id}')">🤖</button><button title="Import Discord Bot" onclick="importBotModal('${s.id}')">🔌</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
+    
     l.innerHTML = channels.map(c => `<div class="item ${channel && channel.id === c.id ? 'on' : ''}" onclick="selectChannel('${c.id}')"><span>${c.type === 'voice' ? '🔊' : '#'} ${esc(c.name)}</span></div>`).join('');
   } else if (view.type === 'group') {
     const g = groups.find(x => x.id === view.id); if (!g) return;
@@ -323,7 +319,6 @@ function renderSide() {
   }
 }
 
-/* ---------- messages ---------- */
 function listenMessages() {
   stop('msgs');
   let q = db.collection('vox_messages');
@@ -336,17 +331,13 @@ function listenMessages() {
     if (view.type === 'server') m = m.filter(x => x.channel === chId);
     m.sort((a, b) => (a.timestamp?.seconds || 9e9) - (b.timestamp?.seconds || 9e9));
     const box = $('msgs');
-    
-    // Check if a temp upload bubble exists
     const tempUpload = box.querySelector('[id^="temp_upload_"]');
-    
     if(m.length) {
         box.innerHTML = m.map(renderMsg).join('');
-        if (tempUpload) box.appendChild(tempUpload); // keep temp bubble at bottom
+        if (tempUpload) box.appendChild(tempUpload);
     } else {
         if(!tempUpload) box.innerHTML = '<div class="empty">Nothing here yet. Say hi! 👋</div>';
     }
-    
     box.scrollTop = box.scrollHeight;
     m.forEach(x => msgCache[x.id] = x); loadPreviews();
     const cur = vList[vIdx];
@@ -449,22 +440,12 @@ async function postMessage(extra) {
   else return;
   await db.collection('vox_messages').add({...base, ...extra});
   
-  // 🤖 BOT INTEGRATION: Send message to Render backend
   if (extra.text && BOT_API_URL) {
     fetch(BOT_API_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        text: extra.text,
-        sender: base.sender,
-        groupId: base.groupId || null,
-        serverId: base.serverId || null,
-        channel: base.channel || null
-      })
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text: extra.text, sender: base.sender, groupId: base.groupId || null, serverId: base.serverId || null, channel: base.channel || null })
     }).catch(err => console.log("Bot API error:", err));
   }
-
-  // Old Discord webhook logic
   if (view.type === 'server' && extra.text) {
     const s = servers.find(x => x.id === view.id);
     if (s && s.webhookUrl) fetch(s.webhookUrl, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({content: `${base.sender}: ${extra.text}`})}).catch(() => {});
@@ -476,7 +457,6 @@ async function send() {
   try { await postMessage({text: v}); } catch (e) { toast('Could not send: ' + e.message); }
 }
 
-/* ---------- UPLOAD MENU ---------- */
 function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); }
 document.addEventListener('click', () => $('menu').classList.add('hidden'));
 function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
@@ -495,7 +475,7 @@ async function catbox(file) {
   const fd = new FormData(); fd.append('reqtype', 'fileupload'); fd.append('fileToUpload', file);
   let r;
   try { r = await fetch('https://catbox.moe/user/api.php', {method: 'POST', body: fd}); }
-  catch (e) { throw new Error('could not reach Catbox (it may be down or blocked by the browser)'); }
+  catch (e) { throw new Error('could not reach Catbox'); }
   const u = (await r.text()).trim(); if (!u.startsWith('http')) throw new Error(u || 'Catbox sent no link'); return u;
 }
 async function upload(inp) {
@@ -516,9 +496,7 @@ async function sendFile(f) {
   if (box) {
     const tempMsg = document.createElement('div');
     tempMsg.className = 'msg'; tempMsg.id = tempId;
-    tempMsg.innerHTML = `
-      <div class="avatar" style="display:flex;align-items:center;justify-content:center;background:var(--p1);border:2px solid var(--blue);"><div class="spinner"></div></div>
-      <div class="body"><span class="n">Uploading...</span><div style="color:var(--mut);font-size:13px;margin-top:4px;">Processing <b>${esc(f.name)}</b></div></div>`;
+    tempMsg.innerHTML = `<div class="avatar" style="display:flex;align-items:center;justify-content:center;background:var(--p1);border:2px solid var(--blue);"><div class="spinner"></div></div><div class="body"><span class="n">Uploading...</span><div style="color:var(--mut);font-size:13px;margin-top:4px;">Processing <b>${esc(f.name)}</b></div></div>`;
     box.appendChild(tempMsg); box.scrollTop = box.scrollHeight;
   }
   try {
@@ -529,7 +507,6 @@ async function sendFile(f) {
   finally { const el = document.getElementById(tempId); if (el) el.remove(); }
 }
 
-/* ---------- modals ---------- */
 function modal(html) { $('modalBox').innerHTML = html; $('modal').classList.remove('hidden'); }
 function closeModal() { $('modal').classList.add('hidden'); }
 $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
@@ -570,6 +547,46 @@ async function addFriend() {
   closeModal(); toast('Friend added! 🎉');
 }
 
+/* 🚨 IMPORT BOT MODAL 🚨 */
+function importBotModal(serverId) {
+  modal(`
+    <h3>Import Discord Bot 🔌</h3>
+    <p style="color:var(--mut);font-size:13px;margin-bottom:12px;">Paste a Discord Bot Token below. Vox will bridge that bot into this server!</p>
+    <input id="importToken" placeholder="Discord Bot Token (e.g. OTMx...)" type="password">
+    <input id="importDiscordChannel" placeholder="Discord Channel ID to listen to">
+    <input id="importVoxChannel" placeholder="Vox Channel ID (e.g. mXz7LMB1...)">
+    <div class="row" style="margin-top:16px;">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="pri" onclick="importDiscordBot('${serverId}')">Bridge Bot</button>
+    </div>
+  `);
+}
+async function importDiscordBot(serverId) {
+  const token = $('importToken').value.trim();
+  const voxChannel = $('importVoxChannel').value.trim();
+  
+  if (!token || !voxChannel) return toast('Please fill in the token and Vox Channel ID.');
+  toast('Connecting bot to Discord... ⏳');
+  
+  try {
+    const res = await fetch('https://vox-bot-04l6.onrender.com/api/import-discord-bot', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ botToken: token, voxServerId: serverId, voxChannelId: voxChannel })
+    });
+    
+    const text = await res.text();
+    if (res.ok) {
+      toast('Bot imported successfully! 🎉');
+      closeModal();
+    } else {
+      toast('Failed: ' + text);
+    }
+  } catch (e) {
+    toast('Network error: could not reach Render.');
+  }
+}
+
 /* ---------- servers ---------- */
 function createServerModal() {
   modal(`<h3>Create a server</h3><input id="svName" placeholder="Server name"><input id="svHook" placeholder="Webhook URL (optional, for bots)"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`);
@@ -589,7 +606,6 @@ async function addChannel() {
   await db.collection('vox_channels').add({serverId: view.id, name, type, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
   closeModal();
 }
-
 async function setWebhook(id) {
   const s = servers.find(x => x.id === id);
   const url = prompt('Bot webhook URL (leave empty to turn off):', (s && s.webhookUrl) || '');
@@ -597,7 +613,7 @@ async function setWebhook(id) {
   try { await db.collection('vox_servers').doc(id).update({webhookUrl: url.trim()}); toast('Webhook saved 🤖'); } catch (e) { dbErr(e); }
 }
 async function deleteServer(id) {
-  if (!confirm('Delete this server, all its channels and all its messages? This cannot be undone.')) return;
+  if (!confirm('Delete this server? This cannot be undone.')) return;
   try {
     toast('Deleting… 🗑️');
     const refs = [];
@@ -613,7 +629,7 @@ async function deleteServer(id) {
 
 /* ---------- groups ---------- */
 async function deleteGroup(id) {
-  if (!confirm('Delete this group and all its messages? This cannot be undone.')) return;
+  if (!confirm('Delete this group?')) return;
   try {
     const refs = [];
     (await db.collection('vox_messages').where('groupId', '==', id).get()).forEach(d => refs.push(d.ref));
@@ -639,7 +655,7 @@ function shareInvite(id) {
   navigator.clipboard.writeText(url).then(() => toast('Invite link copied! 🔗'), () => prompt('Copy this link:', url));
 }
 
-/* ---------- WebRTC video calls (Firestore signaling) ---------- */
+/* ---------- WebRTC video calls ---------- */
 const rtcCfg = {iceServers: [{urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302']}]};
 let pc = null, localStream = null, callRef = null, callUnsubs = [];
 
