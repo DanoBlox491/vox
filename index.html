@@ -113,8 +113,14 @@
         .vox-audio-fill { height: 100%; width: 0%; background: var(--brand); border-radius: 3px; transition: width 0.1s linear; }
         .vox-audio-time { font-size: 12px; color: var(--muted); font-weight: 600; font-family: monospace; flex-shrink: 0; }
 
-        .chat-input-area { padding: 0 16px 24px 16px; }
-        .chat-input-wrapper { background: #383a40; border-radius: 8px; display: flex; align-items: center; padding: 0 16px; }
+        /* --- UPLOAD MENU --- */
+        .chat-input-area { padding: 0 16px 24px 16px; position: relative; }
+        .chat-input-wrapper { background: #383a40; border-radius: 8px; display: flex; align-items: center; padding: 0 16px; position: relative; }
+        
+        .upload-menu { position: absolute; bottom: 55px; left: 0; background: var(--bg-mid); border: 1px solid #111; border-radius: 8px; padding: 8px; display: none; flex-direction: column; gap: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 10; width: 180px; }
+        .upload-menu button { background: transparent; border: none; color: white; padding: 10px 12px; text-align: left; cursor: pointer; border-radius: 4px; font-size: 14px; font-weight: 600; transition: 0.2s; }
+        .upload-menu button:hover { background: var(--brand); }
+
         .chat-input { flex: 1; background: transparent; border: none; color: white; padding: 12px 0; font-size: 15px; outline: none; }
         .chat-input::placeholder { color: var(--muted); }
         .action-btn { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 8px; transition: 0.2s; }
@@ -225,8 +231,16 @@
             </div>
             <div class="chat-input-area">
                 <div class="chat-input-wrapper">
-                    <input type="file" id="file-input" style="display: none;" accept="image/*,video/*,audio/*" onchange="uploadFile()">
-                    <button class="action-btn" title="Upload File" onclick="document.getElementById('file-input').click()">+</button>
+                    <!-- NEW UPLOAD MENU -->
+                    <div class="upload-menu" id="upload-menu">
+                        <button onclick="triggerUpload('image/*,video/*')">📷 Photo / Video</button>
+                        <button onclick="triggerUpload('audio/*')">🎵 Music / Audio</button>
+                        <button onclick="triggerUpload('*/*')">📁 Document / File</button>
+                    </div>
+                    
+                    <input type="file" id="file-input" style="display: none;" onchange="uploadFile()">
+                    <button class="action-btn" title="Upload File" onclick="toggleUploadMenu(event)">+</button>
+                    
                     <span id="upload-status" class="uploading-text">Uploading...</span>
                     <input type="text" id="chat-input" class="chat-input" placeholder="Message...">
                     <button class="action-btn" onclick="sendMessage()" title="Send">➤</button>
@@ -235,7 +249,7 @@
         </div>
     </div>
 
-    <!-- CREATE MENU MODAL (The New Universal + Menu) -->
+    <!-- CREATE MENU MODAL -->
     <div class="modal" id="create-menu-modal">
         <div class="modal-content">
             <div class="modal-title">What are we building? <button class="close-modal-btn" onclick="closeModal('create-menu-modal')">✖</button></div>
@@ -435,6 +449,29 @@
         });
 
         /* ============================================================
+           UPLOAD MENU
+           ============================================================ */
+        function toggleUploadMenu(e) {
+            e.stopPropagation(); // Prevent closing immediately
+            const menu = document.getElementById('upload-menu');
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function triggerUpload(acceptStr) {
+            const input = document.getElementById('file-input');
+            input.accept = acceptStr;
+            input.click();
+            document.getElementById('upload-menu').style.display = 'none';
+        }
+
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('upload-menu');
+            if (menu && !e.target.closest('.chat-input-wrapper')) {
+                menu.style.display = 'none';
+            }
+        });
+
+        /* ============================================================
            UNIVERSAL CREATE MENU
            ============================================================ */
         function openCreateMenu() { openModal('create-menu-modal'); }
@@ -475,27 +512,45 @@
         }
 
         /* ============================================================
-           DELETE CHAT LOGIC
+           DELETE CHAT LOGIC (FIXED)
            ============================================================ */
         async function deleteCurrentChat() {
             if (currentView === 'server' && currentServerId) {
                 if (currentUser.uid !== currentServerOwnerId) return alert("Only the server owner can delete it! 👑");
                 if (!confirm("Are you sure you want to delete this server? All channels and messages will be lost.")) return;
                 
-                await db.collection('vox_servers').doc(currentServerId).delete();
-                const channels = await db.collection('vox_channels').where('serverId', '==', currentServerId).get();
-                channels.forEach(async (doc) => await doc.ref.delete());
-                
-                currentServerId = null;
-                loadGroupsView(); // Kick back to home
+                try {
+                    // Delete all channels
+                    const channels = await db.collection('vox_channels').where('serverId', '==', currentServerId).get();
+                    for (const doc of channels.docs) { await doc.ref.delete(); }
+                    
+                    // Delete all messages in this server
+                    const msgs = await db.collection('vox_messages').where('serverId', '==', currentServerId).get();
+                    for (const doc of msgs.docs) { await doc.ref.delete(); }
+
+                    // Delete server itself
+                    await db.collection('vox_servers').doc(currentServerId).delete();
+                    
+                    currentServerId = null;
+                    currentChannel = null;
+                    loadGroupsView(); // Kick back to home
+                } catch (e) { alert("Error deleting: " + e.message); }
             } 
             else if (currentView === 'group' && currentGroupId) {
                 if (currentUser.uid !== currentGroupCreatorId) return alert("Only the group creator can delete it! 👑");
                 if (!confirm("Are you sure you want to delete this group?")) return;
                 
-                await db.collection('vox_groups').doc(currentGroupId).delete();
-                currentGroupId = null;
-                loadGroupsView();
+                try {
+                    // Delete messages
+                    const msgs = await db.collection('vox_messages').where('groupId', '==', currentGroupId).get();
+                    for (const doc of msgs.docs) { await doc.ref.delete(); }
+                    
+                    // Delete group
+                    await db.collection('vox_groups').doc(currentGroupId).delete();
+                    
+                    currentGroupId = null;
+                    loadGroupsView();
+                } catch (e) { alert("Error deleting: " + e.message); }
             }
         }
 
@@ -667,7 +722,6 @@
             const name = document.getElementById('new-group-name').value.trim();
             if (!name) return alert("Name your group!");
             
-            // Duplicate check
             const existing = await db.collection('vox_groups').where('name', '==', name).where('members', 'array-contains', currentUser.uid).get();
             if (!existing.empty) return alert("You already have a group with this name! 💀");
 
@@ -684,12 +738,9 @@
                     createdBy: currentUser.uid,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
-                // Auto-close menu, switch view, and select the new group
                 closeModal('create-group-modal');
                 loadGroupsView();
                 setTimeout(() => selectGroup(docRef.id, name, null, currentUser.uid), 500);
-                
             } catch (err) { alert("Failed to create group: " + err.message); }
         }
 
@@ -699,8 +750,6 @@
             currentChannel = null; 
             document.getElementById('active-channel-name').innerText = name;
             document.getElementById('channel-icon').innerText = "👥";
-            
-            // Show share if group, show delete if creator
             document.getElementById('share-group-btn').style.display = 'block';
             document.getElementById('delete-chat-btn').style.display = (currentUser.uid === creatorId) ? 'block' : 'none';
 
@@ -741,7 +790,7 @@
                 addBtn.className = 'server-icon add-server';
                 addBtn.textContent = '+';
                 addBtn.title = 'Create New';
-                addBtn.onclick = () => openCreateMenu(); // Open universal menu
+                addBtn.onclick = () => openCreateMenu();
                 sidebar.appendChild(addBtn);
             });
         }
@@ -750,13 +799,15 @@
             const name = document.getElementById('new-server-name').value.trim();
             if (!name) return alert("Enter a server name!");
             
-            // Duplicate check
             const existing = await db.collection('vox_servers').where('name', '==', name).get();
             if (!existing.empty) return alert("A server with this name already exists! 💀");
 
             const docRef = await db.collection('vox_servers').add({ name: name, owner: currentUser.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             await db.collection('vox_channels').add({ serverId: docRef.id, name: "general", type: "text", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            
             closeModal('create-server-modal');
+            document.getElementById('new-server-name').value = "";
+            
             selectServer(docRef.id, name, "", currentUser.uid);
         }
 
@@ -765,14 +816,13 @@
             currentServerId = id;
             currentServerOwnerId = ownerId;
             currentGroupId = null;
+            currentChannel = null; // Important: reset channel so auto-select works
             document.getElementById('server-name').innerText = name;
             document.getElementById('webhook-url').value = webhook || "";
-            currentChannel = null;
             document.getElementById('active-channel-name').innerText = "select-a-channel";
             document.getElementById('channel-icon').innerText = "#";
             document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a channel to start chatting.</p>`;
             
-            // Show delete if owner
             document.getElementById('share-group-btn').style.display = 'none'; 
             document.getElementById('delete-chat-btn').style.display = (currentUser.uid === ownerId) ? 'block' : 'none';
             
@@ -785,16 +835,21 @@
             const channelList = document.getElementById('channel-list');
             channelList.innerHTML = `<p style="color: var(--muted); text-align: center; font-size: 12px;">Loading...</p>`;
             const snapshot = await db.collection('vox_channels').where('serverId', '==', currentServerId).orderBy('createdAt', 'asc').get();
+            
             channelList.innerHTML = `
                 <div class="channel-category">Text Channels <button class="add-channel-btn" onclick="openModal('create-channel-modal')">+</button></div>
                 <div id="text-channels"></div>
                 <div class="channel-category">Voice / Bots <button class="add-channel-btn" onclick="openModal('owner-panel-modal')">👑</button></div>
                 <div id="voice-channels"></div>
             `;
+            
+            let firstTextChannel = null;
+            
             snapshot.forEach(doc => {
                 const data = doc.data();
                 const item = document.createElement('div');
                 item.className = 'channel-item';
+                
                 if (data.type === 'voice') {
                     item.textContent = '🔊 ' + data.name;
                     item.onclick = () => selectChannel(data.name, 'voice', item);
@@ -803,8 +858,16 @@
                     item.textContent = '# ' + data.name;
                     item.onclick = () => selectChannel(data.name, 'text', item);
                     document.getElementById('text-channels').appendChild(item);
+                    if (!firstTextChannel) {
+                        firstTextChannel = { name: data.name, element: item };
+                    }
                 }
             });
+
+            // AUTO SELECT FIRST CHANNEL (Fixes the "Can't Send" bug!)
+            if (!currentChannel && firstTextChannel) {
+                selectChannel(firstTextChannel.name, 'text', firstTextChannel.element);
+            }
         }
 
         async function createChannel() {
