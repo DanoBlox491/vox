@@ -12,13 +12,15 @@
 :root{--bg:#0b0d14;--p1:#12151f;--p2:#191d2b;--p3:#232839;--blue:#00b2ff;--pink:#ff2e93;--txt:#e8ecf5;--mut:#8a93ad}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Rubik,sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden}
-button{font-family:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;font-weight:700;color:#fff;background:var(--p3)}
-button:hover{filter:brightness(1.2)}
+button{font-family:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;font-weight:700;color:#fff;background:var(--p3);transition:.2s}
+button:hover{filter:brightness(1.2);box-shadow:0 0 10px var(--p3)}
 button.pri{background:var(--blue);color:#001a2b;box-shadow:0 0 18px #00b2ff66}
+button.pri:hover{box-shadow:0 0 25px #00b2ffaa}
 button.pink{background:var(--pink);box-shadow:0 0 18px #ff2e9355}
-button.danger{background:#d6334a}
-input,textarea{font-family:inherit;width:100%;padding:11px 13px;border-radius:10px;border:2px solid var(--p3);background:var(--p1);color:var(--txt);outline:0;margin-bottom:10px}
-input:focus,textarea:focus{border-color:var(--blue)}
+button.pink:hover{box-shadow:0 0 25px #ff2e93aa}
+button.danger{background:#d6334a;box-shadow:0 0 15px #d6334a66}
+input,textarea{font-family:inherit;width:100%;padding:11px 13px;border-radius:10px;border:2px solid var(--p3);background:var(--p1);color:var(--txt);outline:0;margin-bottom:10px;transition:.2s}
+input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff33}
 .hidden{display:none!important}
 /* landing */
 #landing{display:grid;grid-template-columns:1fr 1fr;height:100vh}
@@ -33,43 +35,51 @@ input:focus,textarea:focus{border-color:var(--blue)}
 /* app */
 #app{display:grid;grid-template-columns:72px 240px 1fr;height:100vh}
 #rail{background:var(--bg);display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0;overflow-y:auto}
-.ico{width:48px;height:48px;border-radius:24px;background:var(--p3);display:grid;place-items:center;font-weight:900;cursor:pointer;transition:.15s;overflow:hidden;flex-shrink:0}
-.ico:hover,.ico.on{border-radius:14px;background:var(--blue);color:#001a2b;box-shadow:0 0 14px #00b2ff88}
-.ico.grp{background:#2b3a2f}.ico.grp.on{background:#3ddc84;color:#032}
-#side2{background:var(--p1);display:flex;flex-direction:column;min-height:0}
+.ico{width:48px;height:48px;border-radius:24px;background:var(--p3);display:grid;place-items:center;font-weight:900;cursor:pointer;transition:.15s;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 transparent}
+.ico:hover,.ico.on{border-radius:14px;background:var(--blue);color:#001a2b;box-shadow:0 0 15px #00b2ff88}
+.ico.grp{background:#2b3a2f}.ico.grp.on{background:#3ddc84;color:#032;box-shadow:0 0 15px #3ddc8488}
+#side2{background:var(--p1);display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--p3)}
 #side2 header{padding:14px;font-weight:900;border-bottom:2px solid var(--p2);display:flex;justify-content:space-between;align-items:center;gap:6px}
 #list{flex:1;overflow-y:auto;padding:8px}
-.item{padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--mut);display:flex;align-items:center;gap:8px;justify-content:space-between}
-.item:hover{background:var(--p2);color:var(--txt)}.item.on{background:var(--p3);color:#fff}
+.item{padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--mut);display:flex;align-items:center;gap:8px;justify-content:space-between;transition:.2s}
+.item:hover{background:var(--p2);color:var(--txt);box-shadow:0 0 10px #00b2ff22}.item.on{background:var(--p3);color:#fff;border-left:3px solid var(--blue);box-shadow:0 0 15px #00b2ff44}
 .avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--p3);flex-shrink:0}
-#me{padding:10px;background:var(--p2);display:flex;align-items:center;gap:8px;cursor:pointer}
+#me{padding:10px;background:var(--p2);display:flex;align-items:center;gap:8px;cursor:pointer;transition:.2s}
+#me:hover{background:var(--p3);box-shadow:0 0 15px #00b2ff33}
 #me b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--p2)}
-#top{padding:14px 18px;font-weight:900;border-bottom:2px solid var(--p3);display:flex;justify-content:space-between;align-items:center;gap:8px}
+#top{padding:14px 18px;font-weight:900;border-bottom:2px solid var(--p3);display:flex;justify-content:space-between;align-items:center;gap:8px;box-shadow:0 5px 15px rgba(0,0,0,0.3);z-index:5}
 #msgs{flex:1;overflow-y:auto;padding:16px 18px}
-.msg{display:flex;gap:10px;margin-bottom:14px}
-.msg .n{font-weight:700}.msg .t{color:var(--mut);font-size:12px;margin-left:6px}
-.msg img.m,.msg video{max-width:320px;max-height:260px;border-radius:10px;margin-top:6px;display:block}
-.msg a{color:var(--blue)}
-#composer{padding:14px 18px;display:flex;gap:8px;position:relative;align-items:center}
-#composer input{margin:0}
-#plus{width:44px;font-size:20px;background:var(--p3)}
-#menu{position:absolute;bottom:68px;left:18px;background:var(--p1);border:2px solid var(--p3);border-radius:12px;padding:6px;box-shadow:0 8px 30px #000a;z-index:5}
+.msg{display:flex;gap:10px;margin-bottom:14px;animation: fadeIn 0.3s ease-out}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.msg .n{font-weight:700;color:#fff;text-shadow:0 0 10px #00b2ff66}.msg .t{color:var(--mut);font-size:12px;margin-left:6px}
+.msg img.m,.msg video{max-width:320px;max-height:260px;border-radius:10px;margin-top:6px;display:block;box-shadow:0 0 15px rgba(0,0,0,0.5)}
+.msg a{color:var(--blue);text-shadow:0 0 5px #00b2ff66}
+#composer{padding:14px 18px;display:flex;gap:8px;position:relative;align-items:center;border-top:1px solid var(--p3)}
+#composer input{margin:0;border-radius:10px}
+#plus,#emoji-btn{width:44px;font-size:20px;background:var(--p3);display:flex;justify-content:center;align-items:center}
+#menu,#emoji-menu{position:absolute;bottom:68px;background:var(--p1);border:2px solid var(--p3);border-radius:12px;padding:6px;box-shadow:0 8px 30px #000a, 0 0 20px #00b2ff33;z-index:10}
+#menu{left:18px}
+#emoji-menu{left:70px;display:grid;grid-template-columns:repeat(5, 1fr);gap:4px;max-height:200px;overflow-y:auto}
 #menu div{padding:10px 14px;border-radius:8px;cursor:pointer;white-space:nowrap}
 #menu div:hover{background:var(--p3)}
+#emoji-menu div{cursor:pointer;font-size:24px;padding:5px;text-align:center;border-radius:6px}
+#emoji-menu div:hover{background:var(--p3);transform:scale(1.1)}
 .msg{position:relative}
 .msg .body{min-width:0;flex:1;word-break:break-word}
-.msg .acts{position:absolute;right:0;top:-8px;display:none;gap:2px;background:var(--p1);border:2px solid var(--p3);border-radius:8px;padding:2px}
+.msg .acts{position:absolute;right:0;top:-8px;display:none;gap:2px;background:var(--p1);border:2px solid var(--p3);border-radius:8px;padding:2px;box-shadow:0 0 10px #000}
 .msg:hover .acts{display:flex}
 .acts button{padding:3px 8px;font-size:13px;background:transparent}
 @media(hover:none){.msg .acts{display:flex;position:static;margin-top:4px;width:max-content}}
-.prev{display:block;max-width:380px;margin-top:8px;background:var(--p1);border-left:4px solid var(--blue);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--txt)}
+.prev{display:block;max-width:380px;margin-top:8px;background:var(--p1);border-left:4px solid var(--blue);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--txt);transition:.2s}
+.prev:hover{box-shadow:0 0 15px #00b2ff44}
 .prev img{width:100%;display:block;max-height:210px;object-fit:cover}
 .prev div{padding:8px 10px}.prev b{display:block;margin-bottom:2px}.prev span{color:var(--mut);font-size:13px;display:block}.prev small{color:var(--blue);font-size:12px}
-.filecard{display:inline-flex;gap:8px;align-items:center;background:var(--p1);border:2px solid var(--p3);border-radius:10px;padding:8px 12px;margin-top:6px}
+.filecard{display:inline-flex;gap:8px;align-items:center;background:var(--p1);border:2px solid var(--p3);border-radius:10px;padding:8px 12px;margin-top:6px;transition:.2s}
+.filecard:hover{box-shadow:0 0 15px #00b2ff33}
 .filecard button{padding:4px 10px}.filecard a{color:var(--blue);text-decoration:none;font-weight:700}
 .vexp{position:absolute;top:10px;right:10px;background:#000a;padding:4px 9px}
-#viewer{position:fixed;inset:0;background:#000e;z-index:50;display:flex;flex-direction:column}
+#viewer{position:fixed;inset:0;background:#000e;z-index:50;display:flex;flex-direction:column;backdrop-filter:blur(5px)}
 #viewer .vbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;gap:8px}
 #vstage{flex:1;display:flex;overflow:auto;min-height:0}
 #vstage img{max-width:96vw;max-height:84vh;object-fit:contain;cursor:zoom-in}
@@ -79,16 +89,16 @@ input:focus,textarea:focus{border-color:var(--blue)}
 .vnav{position:absolute;top:50%;transform:translateY(-50%);font-size:26px;background:#000a;border-radius:50%;width:48px;height:48px;padding:0}
 .vnav.l{left:12px}.vnav.r{right:12px}
 .empty{color:var(--mut);text-align:center;margin-top:20vh}
-.spinner {width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite;}
+.spinner {width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite; box-shadow:0 0 10px #00b2ff66;}
 @keyframes spin { to { transform: rotate(360deg); } }
-#modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:20}
-#modal .box{background:var(--p1);border:2px solid var(--p3);border-radius:16px;padding:22px;width:min(420px,92vw);max-height:90vh;overflow-y:auto}
-#modal h3{margin-bottom:12px}
+#modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:20;backdrop-filter:blur(4px)}
+#modal .box{background:var(--p1);border:2px solid var(--p3);border-radius:16px;padding:22px;width:min(420px,92vw);max-height:90vh;overflow-y:auto;box-shadow:0 0 30px #00b2ff33}
+#modal h3{margin-bottom:12px;text-shadow:0 0 10px #00b2ff66}
 .row{display:flex;gap:8px}.row>*{flex:1}
-#callbox{position:fixed;inset:0;background:#000d;z-index:30;display:grid;place-items:center}
+#callbox{position:fixed;inset:0;background:#000d;z-index:30;display:grid;place-items:center;backdrop-filter:blur(5px)}
 #callbox .vids{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-#callbox video{width:min(420px,44vw);background:#000;border-radius:12px}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--p3);padding:10px 18px;border-radius:10px;z-index:40}
+#callbox video{width:min(420px,44vw);background:#000;border-radius:12px;box-shadow:0 0 20px #00b2ff66}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--p3);padding:10px 18px;border-radius:10px;z-index:40;box-shadow:0 0 15px #00b2ff88}
 @media(max-width:760px){#landing{grid-template-columns:1fr;overflow-y:auto}#landing .logo{position:static}#app{grid-template-columns:60px 1fr}#side2{display:none}}
 </style>
 </head>
@@ -131,6 +141,10 @@ input:focus,textarea:focus{border-color:var(--blue)}
         <div onclick="pick('audio/*')">🎵 Music/Audio</div>
         <div onclick="pick('*/*')">📁 Document/File</div>
       </div>
+      <button id="emoji-btn" onclick="toggleEmojiMenu(event)">😀</button>
+      <div id="emoji-menu" class="hidden">
+        <!-- Emojis will load here -->
+      </div>
       <input id="text" placeholder="Type a message" onkeydown="if(event.key==='Enter')send()">
       <button class="pri" onclick="send()">Send</button>
       <input type="file" id="file" class="hidden" onchange="upload(this)">
@@ -146,7 +160,10 @@ input:focus,textarea:focus{border-color:var(--blue)}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 <div id="callbox" class="hidden">
   <div><div class="vids"><video id="localV" autoplay muted playsinline></video><video id="remoteV" autoplay playsinline></video></div>
-  <p style="text-align:center;margin-top:14px"><button class="danger" onclick="hangup()">End call</button></p></div>
+  <p style="text-align:center;margin-top:14px">
+    <button class="pri" onclick="shareScreen()" id="share-screen-btn" style="display:none;">🖥️ Share Screen</button>
+    <button class="danger" onclick="hangup()">End call</button>
+  </p>
 </div>
 
 <script>
@@ -170,10 +187,27 @@ const DEFAULT_AV = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/s
 
 let me = null, profile = {}, servers = [], groups = [], view = {type: 'home'}, channels = [], channel = null;
 let unsubs = {}, userCache = {}, uploadAccept = '*/*', msgCache = {}, previewCache = {};
+let screenTrack = null;
 
 function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function stop(k) { if (unsubs[k]) { unsubs[k](); unsubs[k] = null; } }
+
+/* 🔔 NOTIFICATIONS SETUP */
+if ("Notification" in window) {
+  Notification.requestPermission();
+}
+
+/* 😀 EMOJI PICKER SETUP */
+const EMOJIS = ['😀','😂','🤣','😊','😍','😎','🔥','🚀','👑','💀','👋','👍','👎','🙏','💪','🎉','💯','😭','😡','🤔','🤖','💩','👻','🎮','❤️'];
+const emojiMenu = $('emoji-menu');
+EMOJIS.forEach(e => {
+  const d = document.createElement('div'); d.textContent = e;
+  d.onclick = () => { $('text').value += e; $('text').focus(); emojiMenu.classList.add('hidden'); };
+  emojiMenu.appendChild(d);
+});
+function toggleEmojiMenu(e) { e.stopPropagation(); emojiMenu.classList.toggle('hidden'); $('menu').classList.add('hidden'); }
+document.addEventListener('click', () => { $('menu').classList.add('hidden'); if(emojiMenu) emojiMenu.classList.add('hidden'); });
 
 ['click', 'keydown'].forEach(e => document.addEventListener(e, () => { if (me) localStorage.setItem('vox_last_active', Date.now()); }));
 
@@ -184,8 +218,9 @@ async function login() {
 async function signup() {
   try {
     const c = await auth.createUserWithEmailAndPassword($('sEmail').value.trim(), $('sPass').value);
+    const defaultUser = $('sName').value.trim() || 'New Voxer';
     await db.collection('vox_users').doc(c.user.uid).set({
-      displayName: $('sName').value.trim() || 'New Voxer', photoURL: '', bio: '', socials: {yt: '', discord: ''}, friends: []
+      displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), photoURL: '', bio: '', socials: {yt: '', discord: ''}, friends: []
     });
   } catch (e) { $('sErr').textContent = e.message; }
 }
@@ -212,21 +247,31 @@ auth.onAuthStateChanged(async user => {
   $('lErr').textContent = ''; $('sErr').textContent = '';
   const ref = db.collection('vox_users').doc(user.uid);
   $('landing').classList.add('hidden'); $('app').classList.remove('hidden');
-  $('meName').textContent = user.displayName || 'You'; $('meAv').src = user.photoURL || DEFAULT_AV;
+  
   try {
     const snap = await ref.get();
-    if (!snap.exists) await ref.set({displayName: user.displayName || 'New Voxer', photoURL: user.photoURL || '', bio: '', socials: {yt: '', discord: ''}, friends: []});
+    if (!snap.exists) {
+      const defaultUser = user.displayName || 'New Voxer';
+      await ref.set({displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), photoURL: user.photoURL || '', bio: '', socials: {yt: '', discord: ''}, friends: []});
+    }
   } catch (e) { dbErr(e); }
+  
   stop('me');
-  unsubs.me = ref.onSnapshot(s => { profile = s.data() || {}; userCache[user.uid] = profile; renderMe(); if (view.type === 'home') renderSide(); }, dbErr);
+  unsubs.me = ref.onSnapshot(s => { 
+    profile = s.data() || {}; userCache[user.uid] = profile; renderMe(); 
+    if (view.type === 'home') renderSide(); 
+  }, dbErr);
+  
   stop('servers');
   unsubs.servers = db.collection('vox_servers').onSnapshot(s => {
     servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail();
   }, dbErr);
+  
   stop('groups');
   unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => {
     groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail();
   }, dbErr);
+  
   handleJoin();
   listenCalls();
 });
@@ -298,7 +343,7 @@ function renderSide() {
     t.textContent = 'Friends'; b.innerHTML = `<button class="pri" onclick="addFriendModal()">＋ Add</button>`;
     const f = profile.friends || [];
     l.innerHTML = f.length ? f.map(u => `<div class="item"><span id="fr_${u}" style="display:flex;gap:8px;align-items:center"><img class="avatar" src="${DEFAULT_AV}"><span>…</span></span><button onclick="startCall('${u}')">📹</button></div>`).join('')
-      : '<div class="empty" style="margin-top:30px">No friends yet. Share your Vox ID from ⚙️ settings!</div>';
+      : '<div class="empty" style="margin-top:30px">No friends yet. Share your Username from ⚙️ settings!</div>';
     f.forEach(async u => {
       if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {displayName: 'Unknown'}; }
       const el = $('fr_' + u); if (el) el.innerHTML = `<img class="avatar" src="${userCache[u].photoURL || DEFAULT_AV}"><span>${esc(userCache[u].displayName)}</span>`;
@@ -307,7 +352,6 @@ function renderSide() {
     const s = servers.find(x => x.id === view.id); if (!s) return;
     t.textContent = s.name;
     
-    // 🚨 HERE IS THE PLUG BUTTON!
     b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Bot webhook" onclick="setWebhook('${s.id}')">🤖</button><button title="Import Discord Bot" onclick="importBotModal('${s.id}')">🔌</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
     
     l.innerHTML = channels.map(c => `<div class="item ${channel && channel.id === c.id ? 'on' : ''}" onclick="selectChannel('${c.id}')"><span>${c.type === 'voice' ? '🔊' : '#'} ${esc(c.name)}</span></div>`).join('');
@@ -326,7 +370,24 @@ function listenMessages() {
   else if (view.type === 'group') q = q.where('groupId', '==', view.id);
   else return;
   const chId = channel ? channel.id : null;
+  
   unsubs.msgs = q.onSnapshot(s => {
+    // 🔔 NOTIFICATION LOGIC
+    s.docChanges().forEach(change => {
+      if (change.type === "added") {
+        const data = change.doc.data();
+        // Don't notify for our own messages or if the tab is active
+        if (data.senderUid !== me.uid && data.senderUid !== 'bot' && data.senderUid !== 'discord_import' && document.hidden) {
+          if (Notification.permission === "granted") {
+            new Notification(`New message from ${data.sender}`, {
+              body: data.text || "Sent an attachment",
+              icon: data.senderPhoto || DEFAULT_AV
+            });
+          }
+        }
+      }
+    });
+
     let m = s.docs.map(d => ({id: d.id, ...d.data()}));
     if (view.type === 'server') m = m.filter(x => x.channel === chId);
     m.sort((a, b) => (a.timestamp?.seconds || 9e9) - (b.timestamp?.seconds || 9e9));
@@ -345,6 +406,7 @@ function listenMessages() {
     vIdx = Math.max(0, vList.indexOf(cur));
   });
 }
+
 function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`); }
 function renderMsg(x) {
   let media = '';
@@ -363,6 +425,7 @@ function renderMsg(x) {
   const time = x.timestamp ? new Date(x.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
   return `<div class="msg"><img class="avatar" src="${esc(x.senderPhoto) || DEFAULT_AV}"><div class="body"><span class="n">${esc(x.sender)}</span><span class="t">${time}</span><div>${linkify(x.text)}</div>${lp}${media}</div>${acts}</div>`;
 }
+
 let vList = [], vIdx = 0;
 function mediaKind(x) {
   const t = (x.mediaType || '').toLowerCase(), u = (x.mediaUrl || '').toLowerCase();
@@ -457,8 +520,7 @@ async function send() {
   try { await postMessage({text: v}); } catch (e) { toast('Could not send: ' + e.message); }
 }
 
-function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); }
-document.addEventListener('click', () => $('menu').classList.add('hidden'));
+function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); $('emoji-menu').classList.add('hidden'); }
 function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
 const CLOUDINARY = {cloudName: 'x9rwrmqe', uploadPreset: 'vox_uploads'};
 async function cloudUpload(file) {
@@ -496,7 +558,7 @@ async function sendFile(f) {
   if (box) {
     const tempMsg = document.createElement('div');
     tempMsg.className = 'msg'; tempMsg.id = tempId;
-    tempMsg.innerHTML = `<div class="avatar" style="display:flex;align-items:center;justify-content:center;background:var(--p1);border:2px solid var(--blue);"><div class="spinner"></div></div><div class="body"><span class="n">Uploading...</span><div style="color:var(--mut);font-size:13px;margin-top:4px;">Processing <b>${esc(f.name)}</b></div></div>`;
+    tempMsg.innerHTML = `<div class="avatar" style="display:flex;align-items:center;justify-content:center;background:var(--p1);border:2px solid var(--blue);box-shadow:0 0 10px #00b2ff88;"><div class="spinner"></div></div><div class="body"><span class="n">Uploading...</span><div style="color:var(--mut);font-size:13px;margin-top:4px;">Processing <b>${esc(f.name)}</b></div></div>`;
     box.appendChild(tempMsg); box.scrollTop = box.scrollHeight;
   }
   try {
@@ -514,14 +576,13 @@ $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeMo
 function openProfile() {
   const s = profile.socials || {};
   modal(`<h3>Your profile</h3>
-  <p style="text-align:center"><img class="avatar" id="pAv" style="width:80px;height:80px" src="${profile.photoURL || DEFAULT_AV}"></p>
+  <p style="text-align:center"><img class="avatar" id="pAv" style="width:80px;height:80px;box-shadow:0 0 20px #00b2ff88;" src="${profile.photoURL || DEFAULT_AV}"></p>
   <input type="file" id="pFile" accept="image/*" onchange="uploadAvatar(this)" style="border:0;padding:6px 0">
   <input id="pName" placeholder="Display name" value="${esc(profile.displayName)}">
+  <input id="pUser" placeholder="Username (for friends to add you)" value="${esc(profile.username || '')}">
   <textarea id="pBio" rows="2" placeholder="Bio">${esc(profile.bio)}</textarea>
   <input id="pYt" placeholder="YouTube link" value="${esc(s.yt)}">
   <input id="pDc" placeholder="Discord username" value="${esc(s.discord)}">
-  <p style="color:var(--mut);font-size:13px;margin-bottom:6px">Your Vox ID (share it so friends can add you):</p>
-  <input readonly value="${me.uid}" onclick="this.select();navigator.clipboard&&navigator.clipboard.writeText(this.value);toast('Vox ID copied!')">
   <div class="row"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="logout()">Log out</button></div>`);
 }
 let newPhoto = null;
@@ -530,24 +591,38 @@ async function uploadAvatar(i) {
   try { newPhoto = await catbox(f); $('pAv').src = newPhoto; toast('Photo ready, hit Save! 📸'); } catch (e) { toast('Upload failed'); }
 }
 async function saveProfile() {
-  const d = {displayName: $('pName').value.trim() || 'Voxer', bio: $('pBio').value, socials: {yt: $('pYt').value, discord: $('pDc').value}};
+  const d = {displayName: $('pName').value.trim() || 'Voxer', username: $('pUser').value.trim().toLowerCase().replace(/\s+/g, '_'), bio: $('pBio').value, socials: {yt: $('pYt').value, discord: $('pDc').value}};
   if (newPhoto) d.photoURL = newPhoto;
+  
+  if (d.username) {
+    const check = await db.collection('vox_users').where('username', '==', d.username).get();
+    if (!check.empty && check.docs[0].id !== me.uid) return toast('That username is already taken! Try another one.');
+  }
+
   await db.collection('vox_users').doc(me.uid).update(d); newPhoto = null; closeModal(); toast('Saved ✅');
 }
 
 function addFriendModal() {
-  modal(`<h3>Add a friend</h3><input id="fId" placeholder="Paste their Vox ID"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addFriend()">Add</button></div>`);
+  modal(`<h3>Add a friend</h3><input id="fId" placeholder="Enter their exact Username"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addFriend()">Add</button></div>`);
 }
 async function addFriend() {
-  const id = $('fId').value.trim();
-  if (!id || id === me.uid) return toast('That is not a valid friend ID.');
-  const s = await db.collection('vox_users').doc(id).get();
-  if (!s.exists) return toast('No user found with that ID.');
-  await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(id)});
-  closeModal(); toast('Friend added! 🎉');
+  const username = $('fId').value.trim().toLowerCase().replace(/\s+/g, '_');
+  if (!username) return toast('Type a username!');
+  
+  try {
+    const s = await db.collection('vox_users').where('username', '==', username).get();
+    if (s.empty) return toast('No user found with that username.');
+    
+    const friendUid = s.docs[0].id;
+    if (friendUid === me.uid) return toast("You can't add yourself! 😂");
+
+    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(friendUid)});
+    closeModal(); toast('Friend added! 🎉');
+  } catch(e) {
+    toast('Error adding friend.');
+  }
 }
 
-/* 🚨 IMPORT BOT MODAL 🚨 */
 function importBotModal(serverId) {
   modal(`
     <h3>Import Discord Bot 🔌</h3>
@@ -587,7 +662,6 @@ async function importDiscordBot(serverId) {
   }
 }
 
-/* ---------- servers ---------- */
 function createServerModal() {
   modal(`<h3>Create a server</h3><input id="svName" placeholder="Server name"><input id="svHook" placeholder="Webhook URL (optional, for bots)"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`);
 }
@@ -627,7 +701,6 @@ async function deleteServer(id) {
   } catch (e) { toast('Delete failed: ' + e.message); }
 }
 
-/* ---------- groups ---------- */
 async function deleteGroup(id) {
   if (!confirm('Delete this group?')) return;
   try {
@@ -669,8 +742,33 @@ async function setupPC(ref, role) {
   const theirs = role === 'caller' ? 'calleeCandidates' : 'callerCandidates';
   pc.onicecandidate = e => { if (e.candidate) ref.collection(mine).add(e.candidate.toJSON()); };
   callUnsubs.push(ref.collection(theirs).onSnapshot(s => s.docChanges().forEach(c => { if (c.type === 'added' && pc) pc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {}); })));
+  
   $('callbox').classList.remove('hidden');
+  $('share-screen-btn').style.display = 'block'; // Show screen share button
 }
+
+async function shareScreen() {
+  try {
+    const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    const screenTrack = screenStream.getVideoTracks()[0];
+    
+    // Replace the video track being sent to the other peer
+    const senders = pc.getSenders();
+    const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+    if (videoSender) await videoSender.replaceTrack(screenTrack);
+    
+    // Show the screen locally
+    $('localV').srcObject = screenStream;
+    
+    // When screen share stops, revert back to camera
+    screenTrack.onended = async () => {
+      const camTrack = localStream.getVideoTracks()[0];
+      await videoSender.replaceTrack(camTrack);
+      $('localV').srcObject = localStream;
+    };
+  } catch (e) { toast('Screen share cancelled.'); }
+}
+
 async function startCall(uid, roomRef) {
   try {
     callRef = roomRef || db.collection('vox_calls').doc();
@@ -716,6 +814,7 @@ async function hangup(remote) {
   if (pc) { pc.close(); pc = null; }
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
   $('callbox').classList.add('hidden'); $('localV').srcObject = null; $('remoteV').srcObject = null;
+  $('share-screen-btn').style.display = 'none';
   if (callRef && !remote) { const r = callRef; callRef = null; try { await r.delete(); } catch (e) {} }
   callRef = null;
 }
