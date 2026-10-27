@@ -43,7 +43,8 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 #list{flex:1;overflow-y:auto;padding:8px}
 .item{padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--mut);display:flex;align-items:center;gap:8px;justify-content:space-between;transition:.2s}
 .item:hover{background:var(--p2);color:var(--txt);box-shadow:0 0 10px #00b2ff22}.item.on{background:var(--p3);color:#fff;border-left:3px solid var(--blue);box-shadow:0 0 15px #00b2ff44}
-.avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--p3);flex-shrink:0}
+.avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--p3);flex-shrink:0;cursor:pointer;transition:.2s}
+.avatar:hover{box-shadow:0 0 10px #00b2ffaa;transform:scale(1.05)}
 #me{padding:10px;background:var(--p2);display:flex;align-items:center;gap:8px;cursor:pointer;transition:.2s}
 #me:hover{background:var(--p3);box-shadow:0 0 15px #00b2ff33}
 #me b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -52,7 +53,9 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 #msgs{flex:1;overflow-y:auto;padding:16px 18px}
 .msg{display:flex;gap:10px;margin-bottom:14px;animation: fadeIn 0.3s ease-out}
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-.msg .n{font-weight:700;color:#fff;text-shadow:0 0 10px #00b2ff66}.msg .t{color:var(--mut);font-size:12px;margin-left:6px}
+.msg .n{font-weight:700;color:#fff;text-shadow:0 0 10px #00b2ff66;cursor:pointer;transition:.2s;display:inline-block}
+.msg .n:hover{color:var(--blue);text-shadow:0 0 15px #00b2ffaa}
+.msg .t{color:var(--mut);font-size:12px;margin-left:6px}
 .msg img.m,.msg video{max-width:320px;max-height:260px;border-radius:10px;margin-top:6px;display:block;box-shadow:0 0 15px rgba(0,0,0,0.5)}
 .msg a{color:var(--blue);text-shadow:0 0 5px #00b2ff66}
 #composer{padding:14px 18px;display:flex;gap:8px;position:relative;align-items:center;border-top:1px solid var(--p3)}
@@ -100,6 +103,38 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 #callbox video{width:min(420px,44vw);background:#000;border-radius:12px;box-shadow:0 0 20px #00b2ff66}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--p3);padding:10px 18px;border-radius:10px;z-index:40;box-shadow:0 0 15px #00b2ff88}
 @media(max-width:760px){#landing{grid-template-columns:1fr;overflow-y:auto}#landing .logo{position:static}#app{grid-template-columns:60px 1fr}#side2{display:none}}
+
+/* 🚨 EMOJI AUTOCOMPLETE STYLES */
+#emoji-autocomplete {
+    position: absolute;
+    bottom: 70px;
+    left: 18px;
+    background: var(--p1);
+    border: 2px solid var(--blue);
+    border-radius: 12px;
+    box-shadow: 0 5px 25px #00b2ff44;
+    z-index: 20;
+    width: 220px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+.emoji-suggestion {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--p3);
+    transition: 0.1s;
+}
+.emoji-suggestion:hover, .emoji-suggestion.active {
+    background: var(--p3);
+    border-left: 3px solid var(--pink);
+}
+.emoji-suggestion .emoji-icon { font-size: 20px; }
+.emoji-suggestion .emoji-name { color: var(--txt); font-size: 14px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -142,10 +177,11 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
         <div onclick="pick('*/*')">📁 Document/File</div>
       </div>
       <button id="emoji-btn" onclick="toggleEmojiMenu(event)">😀</button>
-      <div id="emoji-menu" class="hidden">
-        <!-- Emojis will load here -->
-      </div>
-      <input id="text" placeholder="Type a message" onkeydown="if(event.key==='Enter')send()">
+      <div id="emoji-menu" class="hidden"></div>
+      
+      <div id="emoji-autocomplete" class="hidden"></div>
+
+      <input id="text" placeholder="Type a message (or :skull, :fire)" oninput="handleEmojiTyping()" onkeydown="handleKeyDown(event)">
       <button class="pri" onclick="send()">Send</button>
       <input type="file" id="file" class="hidden" onchange="upload(this)">
     </div>
@@ -188,6 +224,55 @@ const DEFAULT_AV = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/s
 let me = null, profile = {}, servers = [], groups = [], view = {type: 'home'}, channels = [], channel = null;
 let unsubs = {}, userCache = {}, uploadAccept = '*/*', msgCache = {}, previewCache = {};
 let screenTrack = null;
+let autocompleteActive = false;
+let autocompleteIndex = 0;
+let currentSuggestions = [];
+
+/* 🚨 EMOJI DICTIONARY FOR AUTOCOMPLETE */
+const EMOJI_DICT = {
+    "skull": "💀", "joy": "😂", "fire": "🔥", "rocket": "🚀", "crown": "👑",
+    "heart": "❤️", "100": "💯", "thinking": "🤔", "sob": "😭", "sunglasses": "😎",
+    "eyes": "👀", "thumbsup": "👍", "thumbsdown": "👎", "pray": "🙏", "clap": "👏",
+    "wave": "👋", "ok": "👌", "punch": "👊", "muscle": "💪", "point_up": "☝️",
+    "smile": "😊", "grin": "😁", "laughing": "😆", "sweat_smile": "😅", "rofl": "🤣",
+    "smirk": "😏", "unamused": "😒", "roll_eyes": "🙄", "pensive": "😔", "sleepy": "😪",
+    "mask": "😷", "nauseated": "🤢", "sneeze": "🤧", "hot": "🥵", "cold": "🥶",
+    "dizzy": "😵", "exploding_head": "🤯", "cowboy": "🤠", "party": "🥳", "alien": "👽",
+    "robot": "🤖", "ghost": "👻", "poop": "💩", "imp": "👿", "japanese_ogre": "👹",
+    "monkey": "🐒", "dog": "🐶", "cat": "🐱", "mouse": "🐭", "hamster": "🐹",
+    "rabbit": "🐰", "fox": "🦊", "bear": "🐻", "panda": "🐼", "koala": "🐨",
+    "tiger": "🐯", "lion": "🦁", "cow": "🐮", "pig": "🐷", "frog": "🐸",
+    "chicken": "🐔", "penguin": "🐧", "bird": "🐦", "eagle": "🦅", "duck": "🦆",
+    "owl": "🦉", "bat": "🦇", "wolf": "🐺", "boar": "🐗", "horse": "🐴",
+    "unicorn": "🦄", "bee": "🐝", "bug": "🐛", "butterfly": "🦋", "snail": "🐌",
+    "spider": "🕷️", "scorpion": "🦂", "crab": "🦀", "shrimp": "🦐", "squid": "🦑",
+    "octopus": "🐙", "fish": "🐟", "dolphin": "🐬", "whale": "🐳", "shark": "🦈",
+    "crocodile": "🐊", "turtle": "🐢", "snake": "🐍", "dragon": "🐉", "t_rex": "🦖",
+    "soccer": "⚽", "basketball": "🏀", "football": "🏈", "baseball": "⚾", "tennis": "🎾",
+    "volleyball": "🏐", "rugby": "🏉", "8ball": "🎱", "ping_pong": "🏓", "badminton": "🏸",
+    "hockey": "🏒", "field_hockey": "🏑", "cricket": "🏏", "lacrosse": "🥍", "goal": "🥅",
+    "golf": "⛳", "ice_skate": "⛸️", "fishing_pole": "🎣", "boxing": "🥊", "martial_arts": "🥋",
+    "video_game": "🎮", "joystick": "🕹️", "game_die": "🎲", "chess": "♟️", "dart": "🎯",
+    "guitar": "🎸", "drum": "🥁", "trumpet": "🎺", "violin": "🎻", "musical_note": "🎵",
+    "headphones": "🎧", "microphone": "🎤", "radio": "📻", "tv": "📺", "camera": "📷",
+    "computer": "💻", "desktop": "🖥️", "keyboard": "⌨️", "mouse": "🖱️", "printer": "🖨️",
+    "phone": "📱", "battery": "🔋", "electric_plug": "🔌", "bulb": "💡", "flashlight": "🔦",
+    "car": "🚗", "taxi": "🚕", "bus": "🚌", "truck": "🚚", "fire_engine": "🚒",
+    "police_car": "🚓", "ambulance": "🚑", "bike": "🚲", "motorcycle": "🏍️", "airplane": "✈️",
+    "helicopter": "🚁", "train": "🚆", "ship": "🚢", "sailboat": "⛵", "ufo": "🛸",
+    "apple": "🍎", "banana": "🍌", "watermelon": "🍉", "grapes": "🍇", "strawberry": "🍓",
+    "melon": "🍈", "cherries": "🍒", "peach": "🍑", "pineapple": "🍍", "kiwi": "🥝",
+    "tomato": "🍅", "eggplant": "🍆", "avocado": "🥑", "broccoli": "🥦", "mushroom": "🍄",
+    "bread": "🍞", "cheese": "🧀", "meat": "🍖", "hamburger": "🍔", "fries": "🍟",
+    "pizza": "🍕", "hotdog": "🌭", "taco": "🌮", "burrito": "🌯", "ramen": "🍜",
+    "spaghetti": "🍝", "sushi": "🍣", "rice": "🍚", "curry": "🍛", "dumpling": "🥟",
+    "icecream": "🍦", "cake": "🎂", "cookie": "🍪", "chocolate": "🍫", "candy": "🍬",
+    "coffee": "☕", "tea": "🍵", "beer": "🍺", "wine": "🍷", "cocktail": "🍸",
+    "warning": "⚠️", "no_entry": "⛔", "check": "✅", "x": "❌", "question": "❓",
+    "exclamation": "❗", "zap": "⚡", "star": "⭐", "sparkles": "✨", "boom": "💥",
+    "snowflake": "❄️", "umbrella": "☔", "earth": "🌍", "sun": "☀️", "moon": "🌙",
+    "cloud": "☁️", "rainbow": "🌈", "ocean": "🌊", "mountain": "⛰️", "tree": "🌳"
+};
 
 function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -198,7 +283,7 @@ if ("Notification" in window) {
   Notification.requestPermission();
 }
 
-/* 😀 EMOJI PICKER SETUP */
+/* 😀 BUTTON EMOJI PICKER SETUP */
 const EMOJIS = ['😀','😂','🤣','😊','😍','😎','🔥','🚀','👑','💀','👋','👍','👎','🙏','💪','🎉','💯','😭','😡','🤔','🤖','💩','👻','🎮','❤️'];
 const emojiMenu = $('emoji-menu');
 EMOJIS.forEach(e => {
@@ -211,6 +296,97 @@ document.addEventListener('click', () => { $('menu').classList.add('hidden'); if
 
 ['click', 'keydown'].forEach(e => document.addEventListener(e, () => { if (me) localStorage.setItem('vox_last_active', Date.now()); }));
 
+/* ---------- EMOJI AUTOCOMPLETE LOGIC ---------- */
+function handleEmojiTyping() {
+    const val = $('text').value;
+    const cursor = $('text').selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    
+    // Check if we are currently typing a word starting with a colon (e.g., :skull)
+    const match = textBeforeCursor.match(/:([a-zA-Z0-9_+-]+)$/);
+    
+    if (match) {
+        const search = match[1].toLowerCase();
+        currentSuggestions = Object.keys(EMOJI_DICT).filter(key => key.includes(search)).slice(0, 8); // limit to 8
+        
+        if (currentSuggestions.length > 0) {
+            autocompleteActive = true;
+            autocompleteIndex = 0;
+            renderEmojiAutocomplete();
+            $('emoji-autocomplete').classList.remove('hidden');
+        } else {
+            closeEmojiAutocomplete();
+        }
+    } else {
+        closeEmojiAutocomplete();
+    }
+}
+
+function renderEmojiAutocomplete() {
+    const box = $('emoji-autocomplete');
+    box.innerHTML = '';
+    
+    currentSuggestions.forEach((name, index) => {
+        const div = document.createElement('div');
+        div.className = `emoji-suggestion ${index === autocompleteIndex ? 'active' : ''}`;
+        div.innerHTML = `<span class="emoji-icon">${EMOJI_DICT[name]}</span> <span class="emoji-name">:${name}</span>`;
+        div.onclick = () => insertEmoji(name);
+        box.appendChild(div);
+    });
+}
+
+function closeEmojiAutocomplete() {
+    autocompleteActive = false;
+    $('emoji-autocomplete').classList.add('hidden');
+}
+
+function insertEmoji(name) {
+    const val = $('text').value;
+    const cursor = $('text').selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    const textAfterCursor = val.slice(cursor);
+    
+    // Replace the :word pattern with the actual emoji
+    const newTextBefore = textBeforeCursor.replace(/:([a-zA-Z0-9_+-]+)$/, EMOJI_DICT[name] + ' ');
+    
+    $('text').value = newTextBefore + textAfterCursor;
+    $('text').selectionStart = $('text').selectionEnd = newTextBefore.length;
+    $('text').focus();
+    closeEmojiAutocomplete();
+}
+
+function handleKeyDown(e) {
+    if (autocompleteActive) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            autocompleteIndex = (autocompleteIndex + 1) % currentSuggestions.length;
+            renderEmojiAutocomplete();
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            autocompleteIndex = (autocompleteIndex - 1 + currentSuggestions.length) % currentSuggestions.length;
+            renderEmojiAutocomplete();
+            return;
+        }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            insertEmoji(currentSuggestions[autocompleteIndex]);
+            return;
+        }
+        if (e.key === 'Escape') {
+            closeEmojiAutocomplete();
+            return;
+        }
+    }
+    
+    // If autocomplete is not active, normal Enter to send
+    if (e.key === 'Enter') {
+        send();
+    }
+}
+
+/* ---------- AUTH & APP LOGIC ---------- */
 async function login() {
   try { await auth.signInWithEmailAndPassword($('lEmail').value.trim(), $('lPass').value); }
   catch (e) { $('lErr').textContent = e.message; }
@@ -372,11 +548,9 @@ function listenMessages() {
   const chId = channel ? channel.id : null;
   
   unsubs.msgs = q.onSnapshot(s => {
-    // 🔔 NOTIFICATION LOGIC
     s.docChanges().forEach(change => {
       if (change.type === "added") {
         const data = change.doc.data();
-        // Don't notify for our own messages or if the tab is active
         if (data.senderUid !== me.uid && data.senderUid !== 'bot' && data.senderUid !== 'discord_import' && document.hidden) {
           if (Notification.permission === "granted") {
             new Notification(`New message from ${data.sender}`, {
@@ -423,7 +597,61 @@ function renderMsg(x) {
   const mine = x.senderUid ? x.senderUid === me.uid : (x.sender === profile.displayName || x.sender === me.displayName);
   const acts = `<div class="acts"><button title="Copy" onclick="copyMsg('${x.id}')">📋 Copy</button>${mine ? `<button title="Delete" onclick="delMsg('${x.id}')">🗑️ Delete</button>` : ''}</div>`;
   const time = x.timestamp ? new Date(x.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
-  return `<div class="msg"><img class="avatar" src="${esc(x.senderPhoto) || DEFAULT_AV}"><div class="body"><span class="n">${esc(x.sender)}</span><span class="t">${time}</span><div>${linkify(x.text)}</div>${lp}${media}</div>${acts}</div>`;
+  
+  const isBot = x.senderUid === 'bot' || x.senderUid === 'discord_import' || x.senderUid === 'external_bot';
+  const clickAttr = isBot ? '' : `onclick="viewOtherProfile('${x.senderUid}')"`;
+  
+  return `<div class="msg">
+    <img class="avatar" ${clickAttr} src="${esc(x.senderPhoto) || DEFAULT_AV}">
+    <div class="body">
+      <span class="n" ${clickAttr}>${esc(x.sender)}</span><span class="t">${time}</span>
+      <div>${linkify(x.text)}</div>${lp}${media}
+    </div>
+    ${acts}
+  </div>`;
+}
+
+async function viewOtherProfile(uid) {
+  if (!uid || uid === 'bot' || uid === 'discord_import' || uid === 'external_bot') return;
+  if (!userCache[uid]) {
+    try { const s = await db.collection('vox_users').doc(uid).get(); userCache[uid] = s.data() || {}; } 
+    catch (e) { return toast('Could not load profile.'); }
+  }
+  const u = userCache[uid];
+  if (!u) return;
+  const s = u.socials || {};
+  modal(`
+    <div style="text-align:center;padding-bottom:10px;">
+      <img class="avatar" style="width:80px;height:80px;margin:0 auto;border:3px solid var(--blue);box-shadow:0 0 20px #00b2ff88;" src="${u.photoURL || DEFAULT_AV}">
+      <h3 style="margin-top:10px;font-size:24px;">${esc(u.displayName || 'Unknown User')}</h3>
+      <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="color:var(--blue);font-weight:700;">@${esc(u.username || 'nousername')}</span>
+        <button onclick="copyUsername('${esc(u.username || '')}')" style="padding:4px 8px;font-size:12px;background:var(--p3);">📋 Copy</button>
+      </div>
+      ${u.bio ? `<p style="color:var(--txt);font-size:14px;background:var(--p2);padding:10px;border-radius:8px;margin-bottom:12px;">"${esc(u.bio)}"</p>` : ''}
+      ${s.yt || s.discord ? `<div style="text-align:left;background:var(--p2);padding:10px;border-radius:8px;margin-bottom:12px;font-size:13px;">
+        ${s.yt ? `<div style="margin-bottom:4px;">📺 <a href="${esc(s.yt)}" target="_blank" style="color:var(--blue);text-decoration:none;">YouTube</a></div>` : ''}
+        ${s.discord ? `<div>🎮 Discord: <b>${esc(s.discord)}</b></div>` : ''}
+      </div>` : ''}
+      <div class="row" style="margin-top:20px;">
+        <button onclick="closeModal()">Close</button>
+        <button class="pri" onclick="quickAddFriend('${uid}', '${esc(u.displayName)}')">+ Add Friend</button>
+      </div>
+    </div>
+  `);
+}
+
+function copyUsername(uname) {
+  if(!uname) return;
+  navigator.clipboard.writeText(uname).then(() => toast('Username copied! 📋'), () => prompt('Copy this:', uname));
+}
+async function quickAddFriend(uid, name) {
+  try {
+    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)});
+    toast(`Added ${name} as a friend! 🎉`);
+    closeModal();
+    renderSide(); 
+  } catch (e) { toast('Error adding friend.'); }
 }
 
 let vList = [], vIdx = 0;
@@ -517,6 +745,7 @@ async function postMessage(extra) {
 async function send() {
   const v = $('text').value.trim(); if (!v) return;
   $('text').value = '';
+  closeEmojiAutocomplete();
   try { await postMessage({text: v}); } catch (e) { toast('Could not send: ' + e.message); }
 }
 
@@ -752,15 +981,12 @@ async function shareScreen() {
     const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
     const screenTrack = screenStream.getVideoTracks()[0];
     
-    // Replace the video track being sent to the other peer
     const senders = pc.getSenders();
     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
     if (videoSender) await videoSender.replaceTrack(screenTrack);
     
-    // Show the screen locally
     $('localV').srcObject = screenStream;
     
-    // When screen share stops, revert back to camera
     screenTrack.onended = async () => {
       const camTrack = localStream.getVideoTracks()[0];
       await videoSender.replaceTrack(camTrack);
