@@ -324,7 +324,7 @@ function renderMsg(x) {
   }
   const link = (x.text || '').match(/https?:\/\/[^\s<]+/);
   const lp = link ? `<div class="lp" data-url="${esc(link[0])}"></div>` : '';
-  const mine = x.senderUid ? x.senderUid === me.uid : x.sender === profile.displayName;
+  const mine = x.senderUid ? x.senderUid === me.uid : (x.sender === profile.displayName || x.sender === me.displayName);
   const acts = `<div class="acts"><button title="Copy" onclick="copyMsg('${x.id}')">📋 Copy</button>${mine ? `<button title="Delete" onclick="delMsg('${x.id}')">🗑️ Delete</button>` : ''}</div>`;
   const time = x.timestamp ? new Date(x.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
   return `<div class="msg"><img class="avatar" src="${esc(x.senderPhoto) || DEFAULT_AV}"><div class="body"><span class="n">${esc(x.sender)}</span><span class="t">${time}</span><div>${linkify(x.text)}</div>${lp}${media}</div>${acts}</div>`;
