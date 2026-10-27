@@ -58,6 +58,10 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 .msg .t{color:var(--mut);font-size:12px;margin-left:6px}
 .msg img.m,.msg video{max-width:320px;max-height:260px;border-radius:10px;margin-top:6px;display:block;box-shadow:0 0 15px rgba(0,0,0,0.5)}
 .msg a{color:var(--blue);text-shadow:0 0 5px #00b2ff66}
+
+/* ⌨️ TYPING INDICATOR */
+#typing-indicator { position: absolute; bottom: 60px; left: 25px; font-size: 12px; font-weight: 600; color: var(--blue); text-shadow: 0 0 8px #00b2ff88; font-style: italic; }
+
 #composer{padding:14px 18px;display:flex;gap:8px;position:relative;align-items:center;border-top:1px solid var(--p3)}
 #composer input{margin:0;border-radius:10px}
 #plus,#emoji-btn{width:44px;font-size:20px;background:var(--p3);display:flex;justify-content:center;align-items:center}
@@ -169,6 +173,9 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
   <div id="main">
     <div id="top"><span id="topTitle">Pick something on the left</span><span id="topBtns"></span></div>
     <div id="msgs"><div class="empty">No chat open yet. Pick a server, group or friend. 🔥</div></div>
+    
+    <div id="typing-indicator" class="hidden"></div>
+
     <div id="composer" class="hidden">
       <button id="plus" onclick="toggleMenu(event)">+</button>
       <div id="menu" class="hidden">
@@ -181,7 +188,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
       
       <div id="emoji-autocomplete" class="hidden"></div>
 
-      <input id="text" placeholder="Type a message (or :skull, :fire)" oninput="handleEmojiTyping()" onkeydown="handleKeyDown(event)">
+      <input id="text" placeholder="Type a message..." oninput="handleInput()" onkeydown="handleKeyDown(event)">
       <button class="pri" onclick="send()">Send</button>
       <input type="file" id="file" class="hidden" onchange="upload(this)">
     </div>
@@ -227,18 +234,24 @@ let screenTrack = null;
 let autocompleteActive = false;
 let autocompleteIndex = 0;
 let currentSuggestions = [];
-let MASTER_EMOJI_DICT = {}; // Will hold thousands of emojis
+let MASTER_EMOJI_DICT = {};
+let typingTimer = null;
+let typingUnsub = null;
 
-/* 🚨 FETCH ALL EMOJIS FROM CDN ON LOAD */
+/* 🚨 FETCH EVERY SINGLE EMOJI IN EXISTENCE */
 async function loadAllEmojis() {
     try {
-        // This fetches a standard JSON file with all emoji shortcodes (e.g. "skull": "💀")
-        const res = await fetch('https://cdn.jsdelivr.net/npm/emojibase-data@15.0.0/en/shortcodes/emojibase.json');
-        MASTER_EMOJI_DICT = await res.json();
-        console.log("Loaded all emojis!");
+        const res = await fetch('https://cdn.jsdelivr.net/npm/emoji-datasource@15.0.0/emoji.json');
+        const data = await res.json();
+        data.forEach(emoji => {
+            if (emoji.short_names && emoji.unified) {
+                const unicode = String.fromCodePoint(...emoji.unified.split('-').map(h => parseInt(h, 16)));
+                emoji.short_names.forEach(name => { MASTER_EMOJI_DICT[name] = unicode; });
+            }
+        });
+        console.log(`✅ Loaded ${Object.keys(MASTER_EMOJI_DICT).length} emojis!`);
     } catch (e) {
-        console.error("Failed to load emoji dictionary, using fallback", e);
-        MASTER_EMOJI_DICT = { "skull": "💀", "fire": "🔥", "joy": "😂", "100": "💯", "rocket": "🚀" };
+        MASTER_EMOJI_DICT = { "skull": "💀", "fire": "🔥", "joy": "😂", "100": "💯" };
     }
 }
 loadAllEmojis();
@@ -247,10 +260,7 @@ function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.t
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function stop(k) { if (unsubs[k]) { unsubs[k](); unsubs[k] = null; } }
 
-/* 🔔 NOTIFICATIONS SETUP */
-if ("Notification" in window) {
-  Notification.requestPermission();
-}
+if ("Notification" in window) Notification.requestPermission();
 
 /* 😀 BUTTON EMOJI PICKER SETUP */
 const EMOJIS = ['😀','😂','🤣','😊','😍','😎','🔥','🚀','👑','💀','👋','👍','👎','🙏','💪','🎉','💯','😭','😡','🤔','🤖','💩','👻','🎮','❤️'];
@@ -265,36 +275,80 @@ document.addEventListener('click', () => { $('menu').classList.add('hidden'); if
 
 ['click', 'keydown'].forEach(e => document.addEventListener(e, () => { if (me) localStorage.setItem('vox_last_active', Date.now()); }));
 
-/* ---------- EMOJI AUTOCOMPLETE LOGIC ---------- */
+/* ---------- ⌨️ TYPING & EMOJI LOGIC ---------- */
+function getRoomId() {
+    if (view.type === 'server' && view.id && channel) return `server_${view.id}_${channel.id}`;
+    if (view.type === 'group' && view.id) return `group_${view.id}`;
+    if (view.type === 'dm' && view.id) {
+        const ids = [me.uid, view.id].sort();
+        return `dm_${ids[0]}_${ids[1]}`;
+    }
+    return null;
+}
+
+function handleInput() {
+    handleEmojiTyping();
+    handleTypingStatus();
+}
+
+function handleTypingStatus() {
+    const roomId = getRoomId();
+    if (!roomId) return;
+
+    // Set user as typing
+    db.collection('vox_typing').doc(roomId).set({ [me.uid]: profile.displayName }, { merge: true });
+
+    // Clear previous timeout
+    if (typingTimer) clearTimeout(typingTimer);
+
+    // After 2 seconds of no typing, remove the status
+    typingTimer = setTimeout(() => {
+        db.collection('vox_typing').doc(roomId).update({ [me.uid]: firebase.firestore.FieldValue.delete() });
+    }, 2000);
+}
+
+function listenTyping() {
+    if (typingUnsub) typingUnsub();
+    const roomId = getRoomId();
+    if (!roomId) return;
+
+    typingUnsub = db.collection('vox_typing').doc(roomId).onSnapshot(doc => {
+        const indicator = $('typing-indicator');
+        if (!doc.exists) { indicator.classList.add('hidden'); return; }
+        
+        const data = doc.data();
+        const typers = Object.keys(data).filter(uid => uid !== me.uid);
+        
+        if (typers.length > 0) {
+            const names = typers.map(uid => data[uid]).join(', ');
+            indicator.textContent = `${names} is typing...`;
+            indicator.classList.remove('hidden');
+        } else {
+            indicator.classList.add('hidden');
+        }
+    });
+}
+
 function handleEmojiTyping() {
     const val = $('text').value;
     const cursor = $('text').selectionStart;
     const textBeforeCursor = val.slice(0, cursor);
-    
     const match = textBeforeCursor.match(/:([a-zA-Z0-9_+-]+)$/);
     
     if (match) {
         const search = match[1].toLowerCase();
-        // Filter the master dictionary (limit to 8 results for speed)
         currentSuggestions = Object.keys(MASTER_EMOJI_DICT).filter(key => key.includes(search)).slice(0, 8);
-        
         if (currentSuggestions.length > 0) {
             autocompleteActive = true;
             autocompleteIndex = 0;
             renderEmojiAutocomplete();
             $('emoji-autocomplete').classList.remove('hidden');
-        } else {
-            closeEmojiAutocomplete();
-        }
-    } else {
-        closeEmojiAutocomplete();
-    }
+        } else closeEmojiAutocomplete();
+    } else closeEmojiAutocomplete();
 }
 
 function renderEmojiAutocomplete() {
-    const box = $('emoji-autocomplete');
-    box.innerHTML = '';
-    
+    const box = $('emoji-autocomplete'); box.innerHTML = '';
     currentSuggestions.forEach((name, index) => {
         const div = document.createElement('div');
         div.className = `emoji-suggestion ${index === autocompleteIndex ? 'active' : ''}`;
@@ -303,57 +357,24 @@ function renderEmojiAutocomplete() {
         box.appendChild(div);
     });
 }
-
-function closeEmojiAutocomplete() {
-    autocompleteActive = false;
-    $('emoji-autocomplete').classList.add('hidden');
-}
-
+function closeEmojiAutocomplete() { autocompleteActive = false; $('emoji-autocomplete').classList.add('hidden'); }
 function insertEmoji(name) {
-    const val = $('text').value;
-    const cursor = $('text').selectionStart;
-    const textBeforeCursor = val.slice(0, cursor);
-    const textAfterCursor = val.slice(cursor);
-    
-    const newTextBefore = textBeforeCursor.replace(/:([a-zA-Z0-9_+-]+)$/, MASTER_EMOJI_DICT[name] + ' ');
-    
-    $('text').value = newTextBefore + textAfterCursor;
-    $('text').selectionStart = $('text').selectionEnd = newTextBefore.length;
-    $('text').focus();
-    closeEmojiAutocomplete();
+    const val = $('text').value, cursor = $('text').selectionStart;
+    const newText = val.slice(0, cursor).replace(/:([a-zA-Z0-9_+-]+)$/, MASTER_EMOJI_DICT[name] + ' ') + val.slice(cursor);
+    $('text').value = newText; $('text').focus(); closeEmojiAutocomplete();
 }
 
 function handleKeyDown(e) {
     if (autocompleteActive) {
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            autocompleteIndex = (autocompleteIndex + 1) % currentSuggestions.length;
-            renderEmojiAutocomplete();
-            return;
-        }
-        if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            autocompleteIndex = (autocompleteIndex - 1 + currentSuggestions.length) % currentSuggestions.length;
-            renderEmojiAutocomplete();
-            return;
-        }
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            insertEmoji(currentSuggestions[autocompleteIndex]);
-            return;
-        }
-        if (e.key === 'Escape') {
-            closeEmojiAutocomplete();
-            return;
-        }
+        if (e.key === 'ArrowDown') { e.preventDefault(); autocompleteIndex = (autocompleteIndex + 1) % currentSuggestions.length; renderEmojiAutocomplete(); return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); autocompleteIndex = (autocompleteIndex - 1 + currentSuggestions.length) % currentSuggestions.length; renderEmojiAutocomplete(); return; }
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertEmoji(currentSuggestions[autocompleteIndex]); return; }
+        if (e.key === 'Escape') { closeEmojiAutocomplete(); return; }
     }
-    
-    if (e.key === 'Enter') {
-        send();
-    }
+    if (e.key === 'Enter') send();
 }
 
-/* ---------- AUTH & APP LOGIC ---------- */
+/* ---------- AUTH ---------- */
 async function login() {
   try { await auth.signInWithEmailAndPassword($('lEmail').value.trim(), $('lPass').value); }
   catch (e) { $('lErr').textContent = e.message; }
@@ -362,24 +383,18 @@ async function signup() {
   try {
     const c = await auth.createUserWithEmailAndPassword($('sEmail').value.trim(), $('sPass').value);
     const defaultUser = $('sName').value.trim() || 'New Voxer';
-    await db.collection('vox_users').doc(c.user.uid).set({
-      displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), photoURL: '', bio: '', socials: {yt: '', discord: ''}, friends: []
-    });
+    await db.collection('vox_users').doc(c.user.uid).set({ displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), photoURL: '', bio: '', socials: {yt: '', discord: ''}, friends: [] });
   } catch (e) { $('sErr').textContent = e.message; }
 }
 let googleBusy = false;
 async function google() {
-  if (googleBusy) return;
-  googleBusy = true; $('lErr').textContent = '';
+  if (googleBusy) return; googleBusy = true; $('lErr').textContent = '';
   try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-  catch (e) {
-    if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') return;
-    $('lErr').textContent = e.message;
-  }
+  catch (e) { if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') return; $('lErr').textContent = e.message; }
   finally { googleBusy = false; }
 }
 function logout() { auth.signOut(); closeModal(); }
-function dbErr(e) { console.error(e); toast('Database error: ' + (e.code || e.message) + ' - check your Firestore rules!'); }
+function dbErr(e) { console.error(e); toast('Database error: ' + (e.code || e.message)); }
 
 auth.onAuthStateChanged(async user => {
   if (!user) { me = null; Object.keys(unsubs).forEach(stop); $('app').classList.add('hidden'); $('landing').classList.remove('hidden'); return; }
@@ -400,23 +415,12 @@ auth.onAuthStateChanged(async user => {
   } catch (e) { dbErr(e); }
   
   stop('me');
-  unsubs.me = ref.onSnapshot(s => { 
-    profile = s.data() || {}; userCache[user.uid] = profile; renderMe(); 
-    if (view.type === 'home') renderSide(); 
-  }, dbErr);
-  
+  unsubs.me = ref.onSnapshot(s => { profile = s.data() || {}; userCache[user.uid] = profile; renderMe(); if (view.type === 'home') renderSide(); }, dbErr);
   stop('servers');
-  unsubs.servers = db.collection('vox_servers').onSnapshot(s => {
-    servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail();
-  }, dbErr);
-  
+  unsubs.servers = db.collection('vox_servers').onSnapshot(s => { servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
   stop('groups');
-  unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => {
-    groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail();
-  }, dbErr);
-  
-  handleJoin();
-  listenCalls();
+  unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => { groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
+  handleJoin(); listenCalls();
 });
 
 async function handleJoin() {
@@ -442,11 +446,12 @@ function renderRail() {
 
 async function openView(type, id) {
   view = {type, id}; channel = null; channels = [];
-  stop('chan'); stop('msgs');
-  $('composer').classList.add('hidden');
+  stop('chan'); stop('msgs'); if (typingUnsub) typingUnsub();
+  $('composer').classList.add('hidden'); $('typing-indicator').classList.add('hidden');
   $('msgs').innerHTML = '<div class="empty">No chat open yet. 🔥</div>';
-  $('topTitle').textContent = type === 'home' ? 'Friends' : '';
+  $('topTitle').textContent = type === 'home' ? 'Friends' : (type === 'dm' ? 'Direct Message' : '');
   $('topBtns').innerHTML = '';
+  
   if (type === 'server') {
     unsubs.chan = db.collection('vox_channels').where('serverId', '==', id).onSnapshot(s => {
       channels = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
@@ -461,7 +466,12 @@ async function openView(type, id) {
     $('topTitle').textContent = '👥 ' + (g ? g.name : 'Group');
     $('topBtns').innerHTML = `<button onclick="shareInvite('${id}')">🔗 Invite link</button>` + (g && g.createdBy === me.uid ? ` <button class="danger" onclick="deleteGroup('${id}')">🗑️ Delete</button>` : '');
     $('composer').classList.remove('hidden');
-    listenMessages();
+    listenMessages(); listenTyping();
+  } else if (type === 'dm') {
+    const friend = userCache[id];
+    $('topTitle').textContent = '💬 ' + (friend ? friend.displayName : 'Direct Message');
+    $('composer').classList.remove('hidden');
+    listenMessages(); listenTyping();
   }
   renderRail(); renderSide();
 }
@@ -469,7 +479,7 @@ async function openView(type, id) {
 function selectChannel(cid) {
   const c = channels.find(x => x.id === cid); if (!c) return;
   if (c.type === 'voice') {
-    channel = c; stop('msgs');
+    channel = c; stop('msgs'); if (typingUnsub) typingUnsub(); $('typing-indicator').classList.add('hidden');
     $('topTitle').textContent = '🔊 ' + c.name; $('composer').classList.add('hidden');
     $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join video call</button></div>`;
     renderSide(); return;
@@ -477,7 +487,7 @@ function selectChannel(cid) {
   channel = c;
   $('topTitle').textContent = '# ' + c.name;
   $('composer').classList.remove('hidden');
-  listenMessages(); renderSide();
+  listenMessages(); listenTyping(); renderSide();
 }
 
 function renderSide() {
@@ -485,8 +495,11 @@ function renderSide() {
   if (view.type === 'home') {
     t.textContent = 'Friends'; b.innerHTML = `<button class="pri" onclick="addFriendModal()">＋ Add</button>`;
     const f = profile.friends || [];
-    l.innerHTML = f.length ? f.map(u => `<div class="item"><span id="fr_${u}" style="display:flex;gap:8px;align-items:center"><img class="avatar" src="${DEFAULT_AV}"><span>…</span></span><button onclick="startCall('${u}')">📹</button></div>`).join('')
+    
+    // Make friend clickable for DM
+    l.innerHTML = f.length ? f.map(u => `<div class="item ${view.type==='dm' && view.id===u ? 'on' : ''}" onclick="openView('dm', '${u}')"><span id="fr_${u}" style="display:flex;gap:8px;align-items:center"><img class="avatar" src="${DEFAULT_AV}"><span>…</span></span><button onclick="event.stopPropagation(); startCall('${u}')">📹</button></div>`).join('')
       : '<div class="empty" style="margin-top:30px">No friends yet. Share your Username from ⚙️ settings!</div>';
+      
     f.forEach(async u => {
       if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {displayName: 'Unknown'}; }
       const el = $('fr_' + u); if (el) el.innerHTML = `<img class="avatar" src="${userCache[u].photoURL || DEFAULT_AV}"><span>${esc(userCache[u].displayName)}</span>`;
@@ -494,15 +507,16 @@ function renderSide() {
   } else if (view.type === 'server') {
     const s = servers.find(x => x.id === view.id); if (!s) return;
     t.textContent = s.name;
-    
-    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Two-Way Discord Bridge" onclick="openWebhookModal('${s.id}')">🤖</button><button title="Import Discord Bot" onclick="importBotModal('${s.id}')">🔌</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
-    
+    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Webhook" onclick="openWebhookModal('${s.id}')">🤖</button><button title="Import Bot" onclick="importBotModal('${s.id}')">🔌</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
     l.innerHTML = channels.map(c => `<div class="item ${channel && channel.id === c.id ? 'on' : ''}" onclick="selectChannel('${c.id}')"><span>${c.type === 'voice' ? '🔊' : '#'} ${esc(c.name)}</span></div>`).join('');
   } else if (view.type === 'group') {
     const g = groups.find(x => x.id === view.id); if (!g) return;
     t.textContent = g.name; b.innerHTML = '';
     l.innerHTML = (g.members || []).map(u => `<div class="item"><span>👤 ${esc((userCache[u] || {}).displayName || u.slice(0, 6))}</span></div>`).join('');
     (g.members || []).forEach(async u => { if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {}; renderSide(); } });
+  } else if (view.type === 'dm') {
+    t.textContent = 'Direct Messages'; b.innerHTML = `<button onclick="openView('home')">Back</button>`;
+    l.innerHTML = `<div class="item on"><span>💬 ${esc((userCache[view.id] || {}).displayName || 'Chat')}</span></div>`;
   }
 }
 
@@ -511,6 +525,7 @@ function listenMessages() {
   let q = db.collection('vox_messages');
   if (view.type === 'server') q = q.where('serverId', '==', view.id);
   else if (view.type === 'group') q = q.where('groupId', '==', view.id);
+  else if (view.type === 'dm') q = q.where('dmId', '==', getRoomId());
   else return;
   const chId = channel ? channel.id : null;
   
@@ -520,10 +535,7 @@ function listenMessages() {
         const data = change.doc.data();
         if (data.senderUid !== me.uid && data.senderUid !== 'bot' && data.senderUid !== 'discord_import' && document.hidden) {
           if (Notification.permission === "granted") {
-            new Notification(`New message from ${data.sender}`, {
-              body: data.text || "Sent an attachment",
-              icon: data.senderPhoto || DEFAULT_AV
-            });
+            new Notification(`New message from ${data.sender}`, { body: data.text || "Sent an attachment", icon: data.senderPhoto || DEFAULT_AV });
           }
         }
       }
@@ -602,23 +614,17 @@ async function viewOtherProfile(uid) {
       </div>` : ''}
       <div class="row" style="margin-top:20px;">
         <button onclick="closeModal()">Close</button>
-        <button class="pri" onclick="quickAddFriend('${uid}', '${esc(u.displayName)}')">+ Add Friend</button>
+        <button class="pri" onclick="openView('dm', '${uid}'); closeModal();">💬 Message</button>
+        <button class="pink" onclick="quickAddFriend('${uid}', '${esc(u.displayName)}'); closeModal();">+ Add</button>
       </div>
     </div>
   `);
 }
 
-function copyUsername(uname) {
-  if(!uname) return;
-  navigator.clipboard.writeText(uname).then(() => toast('Username copied! 📋'), () => prompt('Copy this:', uname));
-}
+function copyUsername(uname) { if(!uname) return; navigator.clipboard.writeText(uname).then(() => toast('Username copied! 📋'), () => prompt('Copy this:', uname)); }
 async function quickAddFriend(uid, name) {
-  try {
-    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)});
-    toast(`Added ${name} as a friend! 🎉`);
-    closeModal();
-    renderSide(); 
-  } catch (e) { toast('Error adding friend.'); }
+  try { await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)}); toast(`Added ${name} as a friend! 🎉`); renderSide(); } 
+  catch (e) { toast('Error adding friend.'); }
 }
 
 let vList = [], vIdx = 0;
@@ -631,99 +637,62 @@ function mediaKind(x) {
   return 'file';
 }
 function dlUrl(u) { return u.includes('/upload/') ? u.replace('/upload/', '/upload/fl_attachment/') : u; }
-function openViewer(id) {
-  const i = vList.indexOf(id);
-  if (i < 0) { vList.push(id); vIdx = vList.length - 1; } else vIdx = i;
-  showViewer();
-}
+function openViewer(id) { const i = vList.indexOf(id); if (i < 0) { vList.push(id); vIdx = vList.length - 1; } else vIdx = i; showViewer(); }
 function showViewer() {
   const x = msgCache[vList[vIdx]]; if (!x) return;
-  const k = mediaKind(x), st = $('vstage'); let el;
-  st.innerHTML = '';
+  const k = mediaKind(x), st = $('vstage'); let el; st.innerHTML = '';
   if (k === 'image') { el = document.createElement('img'); el.src = x.mediaUrl; el.onclick = () => el.classList.toggle('z'); }
   else if (k === 'video') { el = document.createElement('video'); el.src = x.mediaUrl; el.controls = true; el.autoplay = true; }
   else { el = document.createElement('iframe'); el.src = x.mediaUrl; }
   el.style.margin = 'auto'; st.appendChild(el);
-  $('vtitle').textContent = (x.sender || '') + (x.text ? ' - ' + x.text : '');
-  $('vdl').href = dlUrl(x.mediaUrl);
-  $('vprev').style.display = $('vnext').style.display = vList.length > 1 ? '' : 'none';
-  $('viewer').classList.remove('hidden');
+  $('vtitle').textContent = (x.sender || '') + (x.text ? ' - ' + x.text : ''); $('vdl').href = dlUrl(x.mediaUrl);
+  $('vprev').style.display = $('vnext').style.display = vList.length > 1 ? '' : 'none'; $('viewer').classList.remove('hidden');
 }
 function closeViewer() { $('viewer').classList.add('hidden'); $('vstage').innerHTML = ''; }
 function vnav(d) { vIdx = (vIdx + d + vList.length) % vList.length; showViewer(); }
-document.addEventListener('keydown', e => {
-  if ($('viewer').classList.contains('hidden')) return;
-  if (e.key === 'Escape') closeViewer();
-  else if (e.key === 'ArrowLeft') vnav(-1);
-  else if (e.key === 'ArrowRight') vnav(1);
-});
-function copyMsg(id) {
-  const x = msgCache[id]; if (!x) return;
-  const t = x.text || x.mediaUrl || '';
-  navigator.clipboard.writeText(t).then(() => toast('Copied! 📋'), () => prompt('Copy this:', t));
-}
-async function delMsg(id) {
-  if (!confirm('Delete this message?')) return;
-  try { await db.collection('vox_messages').doc(id).delete(); toast('Message deleted 🗑️'); }
-  catch (e) { toast('Could not delete: ' + (e.code || e.message)); }
-}
+document.addEventListener('keydown', e => { if ($('viewer').classList.contains('hidden')) return; if (e.key === 'Escape') closeViewer(); else if (e.key === 'ArrowLeft') vnav(-1); else if (e.key === 'ArrowRight') vnav(1); });
+function copyMsg(id) { const x = msgCache[id]; if (!x) return; const t = x.text || x.mediaUrl || ''; navigator.clipboard.writeText(t).then(() => toast('Copied! 📋'), () => prompt('Copy this:', t)); }
+async function delMsg(id) { if (!confirm('Delete this message?')) return; try { await db.collection('vox_messages').doc(id).delete(); toast('Message deleted 🗑️'); } catch (e) { toast('Could not delete: ' + (e.code || e.message)); } }
 async function getPreview(url) {
-  if (previewCache[url] !== undefined) return previewCache[url];
-  let info = null;
-  try {
-    const r = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url));
-    const j = await r.json();
-    if (j.status === 'success') { const d = j.data; info = {title: d.title || '', desc: d.description || '', img: (d.image && d.image.url) || (d.logo && d.logo.url) || '', site: d.publisher || ''}; }
-  } catch (e) {}
+  if (previewCache[url] !== undefined) return previewCache[url]; let info = null;
+  try { const r = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url)); const j = await r.json(); if (j.status === 'success') { const d = j.data; info = {title: d.title || '', desc: d.description || '', img: (d.image && d.image.url) || (d.logo && d.logo.url) || '', site: d.publisher || ''}; } } catch (e) {}
   const yt = url.match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);
-  if (yt) {
-    info = info || {title: 'YouTube video', desc: '', img: '', site: 'YouTube'};
-    info.img = `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
-  }
+  if (yt) { info = info || {title: 'YouTube video', desc: '', img: '', site: 'YouTube'}; info.img = `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`; }
   previewCache[url] = info; return info;
 }
 function loadPreviews() {
   document.querySelectorAll('.lp:not([data-done])').forEach(async el => {
-    el.dataset.done = 1;
-    const info = await getPreview(el.dataset.url);
-    if (!info || !(info.title || info.img)) return;
+    el.dataset.done = 1; const info = await getPreview(el.dataset.url); if (!info || !(info.title || info.img)) return;
     el.innerHTML = `<a class="prev" href="${esc(el.dataset.url)}" target="_blank" rel="noopener">${info.img ? `<img src="${esc(info.img)}" alt="">` : ''}<div><small>${esc(info.site)}</small><b>${esc(info.title)}</b><span>${esc((info.desc || '').slice(0, 160))}</span></div></a>`;
     const box = $('msgs'); if (el.closest('.msg') === box.lastElementChild) box.scrollTop = box.scrollHeight;
   });
 }
+
 async function postMessage(extra) {
   const base = {senderUid: me.uid, sender: profile.displayName || 'Voxer', senderPhoto: profile.photoURL || '', text: '', mediaUrl: '', mediaType: '', timestamp: firebase.firestore.FieldValue.serverTimestamp()};
   if (view.type === 'server') { if (!channel) return toast('Pick a text channel first!'); base.serverId = view.id; base.channel = channel.id; }
   else if (view.type === 'group') base.groupId = view.id;
+  else if (view.type === 'dm') base.dmId = getRoomId();
   else return;
   await db.collection('vox_messages').add({...base, ...extra});
   
-  if (extra.text && BOT_API_URL) {
-    fetch(BOT_API_URL, {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ text: extra.text, sender: base.sender, groupId: base.groupId || null, serverId: base.serverId || null, channel: base.channel || null })
-    }).catch(err => console.log("Bot API error:", err));
+  // Clear typing status immediately on send
+  const roomId = getRoomId();
+  if (roomId) db.collection('vox_typing').doc(roomId).update({ [me.uid]: firebase.firestore.FieldValue.delete() });
+  
+  if (extra.text && BOT_API_URL && view.type !== 'dm') {
+    fetch(BOT_API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text: extra.text, sender: base.sender, groupId: base.groupId || null, serverId: base.serverId || null, channel: base.channel || null }) }).catch(err => console.log("Bot API error:", err));
   }
   
   if (view.type === 'server' && extra.text) {
     const s = servers.find(x => x.id === view.id);
     if (s && s.webhookUrl) {
-        fetch(s.webhookUrl, {
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({
-                username: base.sender,
-                avatar_url: base.senderPhoto || DEFAULT_AV,
-                content: extra.text
-            })
-        }).catch(() => {});
+        fetch(s.webhookUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: base.sender, avatar_url: base.senderPhoto || DEFAULT_AV, content: extra.text }) }).catch(() => {});
     }
   }
 }
 async function send() {
-  const v = $('text').value.trim(); if (!v) return;
-  $('text').value = '';
-  closeEmojiAutocomplete();
+  const v = $('text').value.trim(); if (!v) return; $('text').value = ''; closeEmojiAutocomplete();
   try { await postMessage({text: v}); } catch (e) { toast('Could not send: ' + e.message); }
 }
 
@@ -732,48 +701,30 @@ function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = a
 const CLOUDINARY = {cloudName: 'x9rwrmqe', uploadPreset: 'vox_uploads'};
 async function cloudUpload(file) {
   const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', CLOUDINARY.uploadPreset);
-  let r;
-  try { r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/auto/upload`, {method: 'POST', body: fd}); }
-  catch (e) { throw new Error('could not reach Cloudinary'); }
-  const j = await r.json();
-  if (!j.secure_url) throw new Error((j.error && j.error.message) || 'upload failed');
-  return j.secure_url;
+  let r; try { r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/auto/upload`, {method: 'POST', body: fd}); } catch (e) { throw new Error('could not reach Cloudinary'); }
+  const j = await r.json(); if (!j.secure_url) throw new Error((j.error && j.error.message) || 'upload failed'); return j.secure_url;
 }
 async function catbox(file) {
   if (CLOUDINARY.cloudName && CLOUDINARY.uploadPreset) return cloudUpload(file);
   const fd = new FormData(); fd.append('reqtype', 'fileupload'); fd.append('fileToUpload', file);
-  let r;
-  try { r = await fetch('https://catbox.moe/user/api.php', {method: 'POST', body: fd}); }
-  catch (e) { throw new Error('could not reach Catbox'); }
+  let r; try { r = await fetch('https://catbox.moe/user/api.php', {method: 'POST', body: fd}); } catch (e) { throw new Error('could not reach Catbox'); }
   const u = (await r.text()).trim(); if (!u.startsWith('http')) throw new Error(u || 'Catbox sent no link'); return u;
 }
-async function upload(inp) {
-  const f = inp.files[0]; inp.value = ''; if (!f) return;
-  sendFile(f);
-}
-document.addEventListener('paste', e => {
-  if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return;
-  const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
-  if (!it) return;
-  const f = it.getAsFile(); if (!f) return;
-  e.preventDefault(); sendFile(f);
-});
+async function upload(inp) { const f = inp.files[0]; inp.value = ''; if (!f) return; sendFile(f); }
+document.addEventListener('paste', e => { if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return; const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/')); if (!it) return; const f = it.getAsFile(); if (!f) return; e.preventDefault(); sendFile(f); });
+
 async function sendFile(f) {
   if (f.size > 25 * 1024 * 1024) return toast('File is too big! Max 25MB on the free plan.');
-  const tempId = 'temp_upload_' + Date.now();
-  const box = $('msgs');
+  const tempId = 'temp_upload_' + Date.now(); const box = $('msgs');
   if (box) {
-    const tempMsg = document.createElement('div');
-    tempMsg.className = 'msg'; tempMsg.id = tempId;
+    const tempMsg = document.createElement('div'); tempMsg.className = 'msg'; tempMsg.id = tempId;
     tempMsg.innerHTML = `<div class="avatar" style="display:flex;align-items:center;justify-content:center;background:var(--p1);border:2px solid var(--blue);box-shadow:0 0 10px #00b2ff88;"><div class="spinner"></div></div><div class="body"><span class="n">Uploading...</span><div style="color:var(--mut);font-size:13px;margin-top:4px;">Processing <b>${esc(f.name)}</b></div></div>`;
     box.appendChild(tempMsg); box.scrollTop = box.scrollHeight;
   }
   try {
-    const url = await catbox(f);
-    const type = f.type.startsWith('image') ? 'image' : f.type.startsWith('video') ? 'video' : f.type.startsWith('audio') ? 'audio' : 'file';
+    const url = await catbox(f); const type = f.type.startsWith('image') ? 'image' : f.type.startsWith('video') ? 'video' : f.type.startsWith('audio') ? 'audio' : 'file';
     await postMessage({mediaUrl: url, mediaType: type, text: type === 'file' ? f.name : ''});
-  } catch (e) { toast('Upload failed: ' + e.message); } 
-  finally { const el = document.getElementById(tempId); if (el) el.remove(); }
+  } catch (e) { toast('Upload failed: ' + e.message); } finally { const el = document.getElementById(tempId); if (el) el.remove(); }
 }
 
 function modal(html) { $('modalBox').innerHTML = html; $('modal').classList.remove('hidden'); }
@@ -782,15 +733,7 @@ $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeMo
 
 function openProfile() {
   const s = profile.socials || {};
-  modal(`<h3>Your profile</h3>
-  <p style="text-align:center"><img class="avatar" id="pAv" style="width:80px;height:80px;box-shadow:0 0 20px #00b2ff88;" src="${profile.photoURL || DEFAULT_AV}"></p>
-  <input type="file" id="pFile" accept="image/*" onchange="uploadAvatar(this)" style="border:0;padding:6px 0">
-  <input id="pName" placeholder="Display name" value="${esc(profile.displayName)}">
-  <input id="pUser" placeholder="Username (for friends to add you)" value="${esc(profile.username || '')}">
-  <textarea id="pBio" rows="2" placeholder="Bio">${esc(profile.bio)}</textarea>
-  <input id="pYt" placeholder="YouTube link" value="${esc(s.yt)}">
-  <input id="pDc" placeholder="Discord username" value="${esc(s.discord)}">
-  <div class="row"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="logout()">Log out</button></div>`);
+  modal(`<h3>Your profile</h3><p style="text-align:center"><img class="avatar" id="pAv" style="width:80px;height:80px;box-shadow:0 0 20px #00b2ff88;" src="${profile.photoURL || DEFAULT_AV}"></p><input type="file" id="pFile" accept="image/*" onchange="uploadAvatar(this)" style="border:0;padding:6px 0"><input id="pName" placeholder="Display name" value="${esc(profile.displayName)}"><input id="pUser" placeholder="Username (for friends to add you)" value="${esc(profile.username || '')}"><textarea id="pBio" rows="2" placeholder="Bio">${esc(profile.bio)}</textarea><input id="pYt" placeholder="YouTube link" value="${esc(s.yt)}"><input id="pDc" placeholder="Discord username" value="${esc(s.discord)}"><div class="row"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="logout()">Log out</button></div>`);
 }
 let newPhoto = null;
 async function uploadAvatar(i) {
@@ -800,172 +743,56 @@ async function uploadAvatar(i) {
 async function saveProfile() {
   const d = {displayName: $('pName').value.trim() || 'Voxer', username: $('pUser').value.trim().toLowerCase().replace(/\s+/g, '_'), bio: $('pBio').value, socials: {yt: $('pYt').value, discord: $('pDc').value}};
   if (newPhoto) d.photoURL = newPhoto;
-  
-  if (d.username) {
-    const check = await db.collection('vox_users').where('username', '==', d.username).get();
-    if (!check.empty && check.docs[0].id !== me.uid) return toast('That username is already taken! Try another one.');
-  }
-
+  if (d.username) { const check = await db.collection('vox_users').where('username', '==', d.username).get(); if (!check.empty && check.docs[0].id !== me.uid) return toast('That username is already taken!'); }
   await db.collection('vox_users').doc(me.uid).update(d); newPhoto = null; closeModal(); toast('Saved ✅');
 }
 
-function addFriendModal() {
-  modal(`<h3>Add a friend</h3><input id="fId" placeholder="Enter their exact Username"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addFriend()">Add</button></div>`);
-}
+function addFriendModal() { modal(`<h3>Add a friend</h3><input id="fId" placeholder="Enter their exact Username"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addFriend()">Add</button></div>`); }
 async function addFriend() {
-  const username = $('fId').value.trim().toLowerCase().replace(/\s+/g, '_');
-  if (!username) return toast('Type a username!');
-  
-  try {
-    const s = await db.collection('vox_users').where('username', '==', username).get();
-    if (s.empty) return toast('No user found with that username.');
-    
-    const friendUid = s.docs[0].id;
-    if (friendUid === me.uid) return toast("You can't add yourself! 😂");
-
-    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(friendUid)});
-    closeModal(); toast('Friend added! 🎉');
-  } catch(e) {
-    toast('Error adding friend.');
-  }
+  const username = $('fId').value.trim().toLowerCase().replace(/\s+/g, '_'); if (!username) return toast('Type a username!');
+  try { const s = await db.collection('vox_users').where('username', '==', username).get(); if (s.empty) return toast('No user found with that username.'); const friendUid = s.docs[0].id; if (friendUid === me.uid) return toast("You can't add yourself! 😂"); await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(friendUid)}); closeModal(); toast('Friend added! 🎉'); } catch(e) { toast('Error adding friend.'); }
 }
 
 function openWebhookModal(serverId) {
   const s = servers.find(x => x.id === serverId);
-  modal(`
-    <h3>Two-Way Discord Bridge 🤖</h3>
-    <p style="color:var(--mut);font-size:13px;margin-bottom:12px;">To send Vox messages to Discord, paste a Discord Webhook URL below.</p>
-    
-    <div class="input-group">
-      <label>Discord Webhook URL</label>
-      <input id="webhookUrlInput" placeholder="https://discord.com/api/webhooks/..." value="${esc((s && s.webhookUrl) || '')}">
-    </div>
-    
-    <div style="background:var(--p2); padding:10px; border-radius:8px; font-size:12px; color:var(--mut); margin-bottom:15px;">
-      <b>How to get this:</b> Go to your Discord channel -> Edit Channel -> Integrations -> Webhooks -> New Webhook -> Copy Webhook URL.
-    </div>
-
-    <div class="row" style="margin-top:16px;">
-      <button onclick="closeModal()">Cancel</button>
-      <button class="pri" onclick="saveWebhook('${serverId}')">Save Webhook</button>
-    </div>
-  `);
+  modal(`<h3>Two-Way Discord Bridge 🤖</h3><p style="color:var(--mut);font-size:13px;margin-bottom:12px;">To send Vox messages to Discord, paste a Discord Webhook URL below.</p><div class="input-group"><label>Discord Webhook URL</label><input id="webhookUrlInput" placeholder="https://discord.com/api/webhooks/..." value="${esc((s && s.webhookUrl) || '')}"></div><div style="background:var(--p2); padding:10px; border-radius:8px; font-size:12px; color:var(--mut); margin-bottom:15px;"><b>How to get this:</b> Go to your Discord channel -> Edit Channel -> Integrations -> Webhooks -> New Webhook -> Copy Webhook URL.</div><div class="row" style="margin-top:16px;"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="saveWebhook('${serverId}')">Save Webhook</button></div>`);
 }
+async function saveWebhook(id) { const url = $('webhookUrlInput').value.trim(); try { await db.collection('vox_servers').doc(id).update({webhookUrl: url}); toast('Webhook saved! 🤖'); closeModal(); } catch (e) { dbErr(e); } }
 
-async function saveWebhook(id) {
-  const url = $('webhookUrlInput').value.trim();
-  try { 
-    await db.collection('vox_servers').doc(id).update({webhookUrl: url}); 
-    toast('Webhook saved! 🤖'); 
-    closeModal(); 
-  } catch (e) { dbErr(e); }
-}
-
-function importBotModal(serverId) {
-  modal(`
-    <h3>Import Discord Bot 🔌</h3>
-    <p style="color:var(--mut);font-size:13px;margin-bottom:12px;">Paste a Discord Bot Token below. Vox will bridge that bot into this server!</p>
-    <input id="importToken" placeholder="Discord Bot Token (e.g. OTMx...)" type="password">
-    <input id="importDiscordChannel" placeholder="Discord Channel ID to listen to">
-    <input id="importVoxChannel" placeholder="Vox Channel ID (e.g. mXz7LMB1...)">
-    <div class="row" style="margin-top:16px;">
-      <button onclick="closeModal()">Cancel</button>
-      <button class="pri" onclick="importDiscordBot('${serverId}')">Bridge Bot</button>
-    </div>
-  `);
-}
+function importBotModal(serverId) { modal(`<h3>Import Discord Bot 🔌</h3><p style="color:var(--mut);font-size:13px;margin-bottom:12px;">Paste a Discord Bot Token below. Vox will bridge that bot into this server!</p><input id="importToken" placeholder="Discord Bot Token (e.g. OTMx...)" type="password"><input id="importDiscordChannel" placeholder="Discord Channel ID to listen to"><input id="importVoxChannel" placeholder="Vox Channel ID (e.g. mXz7LMB1...)"><div class="row" style="margin-top:16px;"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="importDiscordBot('${serverId}')">Bridge Bot</button></div>`); }
 async function importDiscordBot(serverId) {
-  const token = $('importToken').value.trim();
-  const voxChannel = $('importVoxChannel').value.trim();
-  
-  if (!token || !voxChannel) return toast('Please fill in the token and Vox Channel ID.');
-  toast('Connecting bot to Discord... ⏳');
-  
-  try {
-    const res = await fetch('https://vox-bot-04l6.onrender.com/api/import-discord-bot', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ botToken: token, voxServerId: serverId, voxChannelId: voxChannel })
-    });
-    
-    const text = await res.text();
-    if (res.ok) {
-      toast('Bot imported successfully! 🎉');
-      closeModal();
-    } else {
-      toast('Failed: ' + text);
-    }
-  } catch (e) {
-    toast('Network error: could not reach Render.');
-  }
+  const token = $('importToken').value.trim(); const voxChannel = $('importVoxChannel').value.trim();
+  if (!token || !voxChannel) return toast('Please fill in the token and Vox Channel ID.'); toast('Connecting bot to Discord... ⏳');
+  try { const res = await fetch('https://vox-bot-04l6.onrender.com/api/import-discord-bot', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ botToken: token, voxServerId: serverId, voxChannelId: voxChannel }) }); const text = await res.text(); if (res.ok) { toast('Bot imported successfully! 🎉'); closeModal(); } else { toast('Failed: ' + text); } } catch (e) { toast('Network error: could not reach Render.'); }
 }
 
-function createServerModal() {
-  modal(`<h3>Create a server</h3><input id="svName" placeholder="Server name"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`);
-}
-async function createServer() {
-  const name = $('svName').value.trim(); if (!name) return toast('Give your server a name!');
-  const ref = await db.collection('vox_servers').add({name, owner: me.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  await db.collection('vox_channels').add({serverId: ref.id, name: 'general', type: 'text', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal(); openView('server', ref.id);
-}
-function addChannelModal() {
-  modal(`<h3>New channel</h3><input id="chName" placeholder="channel-name"><div class="row"><button id="tText" class="pri" onclick="this.dataset.s=1;this.nextElementSibling.dataset.s=0;this.classList.add('pri');this.nextElementSibling.classList.remove('pri')" data-s="1"># Text</button><button onclick="this.dataset.s=1;this.previousElementSibling.dataset.s=0;this.classList.add('pri');this.previousElementSibling.classList.remove('pri')" data-s="0">🔊 Voice</button></div><div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addChannel()">Create</button></div>`);
-}
-async function addChannel() {
-  const name = $('chName').value.trim().toLowerCase().replace(/\s+/g, '-'); if (!name) return;
-  const type = $('tText').dataset.s === '1' ? 'text' : 'voice';
-  await db.collection('vox_channels').add({serverId: view.id, name, type, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal();
-}
-async function deleteServer(id) {
-  if (!confirm('Delete this server? This cannot be undone.')) return;
-  try {
-    toast('Deleting… 🗑️');
-    const refs = [];
-    (await db.collection('vox_messages').where('serverId', '==', id).get()).forEach(d => refs.push(d.ref));
-    (await db.collection('vox_channels').where('serverId', '==', id).get()).forEach(d => refs.push(d.ref));
-    refs.push(db.collection('vox_servers').doc(id));
-    for (let i = 0; i < refs.length; i += 400) {
-      const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit();
-    }
-    openView('home'); toast('Server deleted ✅');
-  } catch (e) { toast('Delete failed: ' + e.message); }
-}
+function createServerModal() { modal(`<h3>Create a server</h3><input id="svName" placeholder="Server name"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`); }
+async function createServer() { const name = $('svName').value.trim(); if (!name) return toast('Give your server a name!'); const ref = await db.collection('vox_servers').add({name, owner: me.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp()}); await db.collection('vox_channels').add({serverId: ref.id, name: 'general', type: 'text', createdAt: firebase.firestore.FieldValue.serverTimestamp()}); closeModal(); openView('server', ref.id); }
+function addChannelModal() { modal(`<h3>New channel</h3><input id="chName" placeholder="channel-name"><div class="row"><button id="tText" class="pri" onclick="this.dataset.s=1;this.nextElementSibling.dataset.s=0;this.classList.add('pri');this.nextElementSibling.classList.remove('pri')" data-s="1"># Text</button><button onclick="this.dataset.s=1;this.previousElementSibling.dataset.s=0;this.classList.add('pri');this.previousElementSibling.classList.remove('pri')" data-s="0">🔊 Voice</button></div><div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addChannel()">Create</button></div>`); }
+async function addChannel() { const name = $('chName').value.trim().toLowerCase().replace(/\s+/g, '-'); if (!name) return; const type = $('tText').dataset.s === '1' ? 'text' : 'voice'; await db.collection('vox_channels').add({serverId: view.id, name, type, createdAt: firebase.firestore.FieldValue.serverTimestamp()}); closeModal(); }
+async function deleteServer(id) { if (!confirm('Delete this server? This cannot be undone.')) return; try { toast('Deleting… 🗑️'); const refs = []; (await db.collection('vox_messages').where('serverId', '==', id).get()).forEach(d => refs.push(d.ref)); (await db.collection('vox_channels').where('serverId', '==', id).get()).forEach(d => refs.push(d.ref)); refs.push(db.collection('vox_servers').doc(id)); for (let i = 0; i < refs.length; i += 400) { const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); } openView('home'); toast('Server deleted ✅'); } catch (e) { toast('Delete failed: ' + e.message); } }
 
-async function deleteGroup(id) {
-  if (!confirm('Delete this group?')) return;
-  try {
-    const refs = [];
-    (await db.collection('vox_messages').where('groupId', '==', id).get()).forEach(d => refs.push(d.ref));
-    refs.push(db.collection('vox_groups').doc(id));
-    for (let i = 0; i < refs.length; i += 400) { const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); }
-    openView('home'); toast('Group deleted ✅');
-  } catch (e) { toast('Delete failed: ' + (e.code || e.message)); }
-}
-async function createGroupModal() {
-  const f = profile.friends || [];
-  if (!f.length) return toast('Add some friends first!');
-  for (const u of f) if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {}; }
-  modal(`<h3>Create a group</h3><input id="gName" placeholder="Group name">${f.map(u => `<label class="item"><span>${esc((userCache[u] || {}).displayName || u)}</span><input type="checkbox" class="gm" value="${u}" style="width:auto;margin:0"></label>`).join('')}<div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createGroup()">Create</button></div>`);
-}
-async function createGroup() {
-  const name = $('gName').value.trim(); if (!name) return toast('Name your group!');
-  const members = [me.uid, ...[...document.querySelectorAll('.gm:checked')].map(c => c.value)];
-  const ref = await db.collection('vox_groups').add({name, members, createdBy: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal(); openView('group', ref.id);
-}
-function shareInvite(id) {
-  const url = location.origin + location.pathname + '?join=' + id;
-  navigator.clipboard.writeText(url).then(() => toast('Invite link copied! 🔗'), () => prompt('Copy this link:', url));
-}
+async function deleteGroup(id) { if (!confirm('Delete this group?')) return; try { const refs = []; (await db.collection('vox_messages').where('groupId', '==', id).get()).forEach(d => refs.push(d.ref)); refs.push(db.collection('vox_groups').doc(id)); for (let i = 0; i < refs.length; i += 400) { const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); } openView('home'); toast('Group deleted ✅'); } catch (e) { toast('Delete failed: ' + (e.code || e.message)); } }
+async function createGroupModal() { const f = profile.friends || []; if (!f.length) return toast('Add some friends first!'); for (const u of f) if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {}; } modal(`<h3>Create a group</h3><input id="gName" placeholder="Group name">${f.map(u => `<label class="item"><span>${esc((userCache[u] || {}).displayName || u)}</span><input type="checkbox" class="gm" value="${u}" style="width:auto;margin:0"></label>`).join('')}<div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createGroup()">Create</button></div>`); }
+async function createGroup() { const name = $('gName').value.trim(); if (!name) return toast('Name your group!'); const members = [me.uid, ...[...document.querySelectorAll('.gm:checked')].map(c => c.value)]; const ref = await db.collection('vox_groups').add({name, members, createdBy: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()}); closeModal(); openView('group', ref.id); }
+function shareInvite(id) { const url = location.origin + location.pathname + '?join=' + id; navigator.clipboard.writeText(url).then(() => toast('Invite link copied! 🔗'), () => prompt('Copy this link:', url)); }
 
-/* ---------- WebRTC video calls ---------- */
+/* ---------- 🎙️ WebRTC Video Calls (Mic Check) ---------- */
 const rtcCfg = {iceServers: [{urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302']}]};
 let pc = null, localStream = null, callRef = null, callUnsubs = [];
 
 async function setupPC(ref, role) {
-  localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+  let hasAudio = true;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const audioInputs = devices.filter(d => d.kind === 'audioinput');
+    if (audioInputs.length === 0) {
+      toast('No microphone found. Joining in Listen-Only mode. 🎧');
+      hasAudio = false;
+    }
+  } catch(e) { console.warn("Could not enumerate devices", e); }
+
+  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: hasAudio });
   $('localV').srcObject = localStream;
   pc = new RTCPeerConnection(rtcCfg);
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
@@ -983,18 +810,11 @@ async function shareScreen() {
   try {
     const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
     const screenTrack = screenStream.getVideoTracks()[0];
-    
     const senders = pc.getSenders();
     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
     if (videoSender) await videoSender.replaceTrack(screenTrack);
-    
     $('localV').srcObject = screenStream;
-    
-    screenTrack.onended = async () => {
-      const camTrack = localStream.getVideoTracks()[0];
-      await videoSender.replaceTrack(camTrack);
-      $('localV').srcObject = localStream;
-    };
+    screenTrack.onended = async () => { const camTrack = localStream.getVideoTracks()[0]; await videoSender.replaceTrack(camTrack); $('localV').srcObject = localStream; };
   } catch (e) { toast('Screen share cancelled.'); }
 }
 
@@ -1013,11 +833,7 @@ async function startCall(uid, roomRef) {
 async function joinVoice() {
   if (!channel || pc) return;
   const ref = db.collection('vox_calls').doc(view.id + '_' + channel.id);
-  try {
-    const snap = await ref.get(); const d = snap.data();
-    if (snap.exists && d.offer && !d.answer && d.callerUid !== me.uid) await answerCall(ref, d);
-    else await startCall(null, ref);
-  } catch (e) { dbErr(e); }
+  try { const snap = await ref.get(); const d = snap.data(); if (snap.exists && d.offer && !d.answer && d.callerUid !== me.uid) await answerCall(ref, d); else await startCall(null, ref); } catch (e) { dbErr(e); }
 }
 function listenCalls() {
   stop('calls');
@@ -1030,20 +846,13 @@ function listenCalls() {
   }));
 }
 async function answerCall(ref, d) {
-  try {
-    callRef = ref; await setupPC(ref, 'callee');
-    await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
-    const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
-    await ref.update({answer: {type: ans.type, sdp: ans.sdp}});
-    callUnsubs.push(ref.onSnapshot(s => { if (!s.exists) hangup(true); }));
-  } catch (e) { toast('Call failed: ' + e.message); hangup(true); }
+  try { callRef = ref; await setupPC(ref, 'callee'); await pc.setRemoteDescription(new RTCSessionDescription(d.offer)); const ans = await pc.createAnswer(); await pc.setLocalDescription(ans); await ref.update({answer: {type: ans.type, sdp: ans.sdp}}); callUnsubs.push(ref.onSnapshot(s => { if (!s.exists) hangup(true); })); } catch (e) { toast('Call failed: ' + e.message); hangup(true); }
 }
 async function hangup(remote) {
   callUnsubs.forEach(u => u()); callUnsubs = [];
   if (pc) { pc.close(); pc = null; }
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  $('callbox').classList.add('hidden'); $('localV').srcObject = null; $('remoteV').srcObject = null;
-  $('share-screen-btn').style.display = 'none';
+  $('callbox').classList.add('hidden'); $('localV').srcObject = null; $('remoteV').srcObject = null; $('share-screen-btn').style.display = 'none';
   if (callRef && !remote) { const r = callRef; callRef = null; try { await r.delete(); } catch (e) {} }
   callRef = null;
 }
