@@ -302,12 +302,11 @@ function handleEmojiTyping() {
     const cursor = $('text').selectionStart;
     const textBeforeCursor = val.slice(0, cursor);
     
-    // Check if we are currently typing a word starting with a colon (e.g., :skull)
     const match = textBeforeCursor.match(/:([a-zA-Z0-9_+-]+)$/);
     
     if (match) {
         const search = match[1].toLowerCase();
-        currentSuggestions = Object.keys(EMOJI_DICT).filter(key => key.includes(search)).slice(0, 8); // limit to 8
+        currentSuggestions = Object.keys(EMOJI_DICT).filter(key => key.includes(search)).slice(0, 8);
         
         if (currentSuggestions.length > 0) {
             autocompleteActive = true;
@@ -346,7 +345,6 @@ function insertEmoji(name) {
     const textBeforeCursor = val.slice(0, cursor);
     const textAfterCursor = val.slice(cursor);
     
-    // Replace the :word pattern with the actual emoji
     const newTextBefore = textBeforeCursor.replace(/:([a-zA-Z0-9_+-]+)$/, EMOJI_DICT[name] + ' ');
     
     $('text').value = newTextBefore + textAfterCursor;
@@ -380,7 +378,6 @@ function handleKeyDown(e) {
         }
     }
     
-    // If autocomplete is not active, normal Enter to send
     if (e.key === 'Enter') {
         send();
     }
@@ -528,7 +525,8 @@ function renderSide() {
     const s = servers.find(x => x.id === view.id); if (!s) return;
     t.textContent = s.name;
     
-    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Bot webhook" onclick="setWebhook('${s.id}')">🤖</button><button title="Import Discord Bot" onclick="importBotModal('${s.id}')">🔌</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
+    // 🚨 NEW WEBHOOK MODAL BUTTON HERE!
+    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Two-Way Discord Bridge" onclick="openWebhookModal('${s.id}')">🤖</button><button title="Import Discord Bot" onclick="importBotModal('${s.id}')">🔌</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
     
     l.innerHTML = channels.map(c => `<div class="item ${channel && channel.id === c.id ? 'on' : ''}" onclick="selectChannel('${c.id}')"><span>${c.type === 'voice' ? '🔊' : '#'} ${esc(c.name)}</span></div>`).join('');
   } else if (view.type === 'group') {
@@ -737,9 +735,21 @@ async function postMessage(extra) {
       body: JSON.stringify({ text: extra.text, sender: base.sender, groupId: base.groupId || null, serverId: base.serverId || null, channel: base.channel || null })
     }).catch(err => console.log("Bot API error:", err));
   }
+  
+  // 🪝 REVERSE BRIDGE: Send to Discord Webhook (If it exists)
   if (view.type === 'server' && extra.text) {
     const s = servers.find(x => x.id === view.id);
-    if (s && s.webhookUrl) fetch(s.webhookUrl, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({content: `${base.sender}: ${extra.text}`})}).catch(() => {});
+    if (s && s.webhookUrl) {
+        fetch(s.webhookUrl, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({
+                username: base.sender,
+                avatar_url: base.senderPhoto || DEFAULT_AV,
+                content: extra.text
+            })
+        }).catch(() => {});
+    }
   }
 }
 async function send() {
@@ -852,6 +862,38 @@ async function addFriend() {
   }
 }
 
+/* 🪝 WEBHOOK MODAL FOR REVERSE BRIDGE 🪝 */
+function openWebhookModal(serverId) {
+  const s = servers.find(x => x.id === serverId);
+  modal(`
+    <h3>Two-Way Discord Bridge 🤖</h3>
+    <p style="color:var(--mut);font-size:13px;margin-bottom:12px;">To send Vox messages to Discord, paste a Discord Webhook URL below.</p>
+    
+    <div class="input-group">
+      <label>Discord Webhook URL</label>
+      <input id="webhookUrlInput" placeholder="https://discord.com/api/webhooks/..." value="${esc((s && s.webhookUrl) || '')}">
+    </div>
+    
+    <div style="background:var(--p2); padding:10px; border-radius:8px; font-size:12px; color:var(--mut); margin-bottom:15px;">
+      <b>How to get this:</b> Go to your Discord channel -> Edit Channel -> Integrations -> Webhooks -> New Webhook -> Copy Webhook URL.
+    </div>
+
+    <div class="row" style="margin-top:16px;">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="pri" onclick="saveWebhook('${serverId}')">Save Webhook</button>
+    </div>
+  `);
+}
+
+async function saveWebhook(id) {
+  const url = $('webhookUrlInput').value.trim();
+  try { 
+    await db.collection('vox_servers').doc(id).update({webhookUrl: url}); 
+    toast('Webhook saved! 🤖'); 
+    closeModal(); 
+  } catch (e) { dbErr(e); }
+}
+
 function importBotModal(serverId) {
   modal(`
     <h3>Import Discord Bot 🔌</h3>
@@ -892,11 +934,11 @@ async function importDiscordBot(serverId) {
 }
 
 function createServerModal() {
-  modal(`<h3>Create a server</h3><input id="svName" placeholder="Server name"><input id="svHook" placeholder="Webhook URL (optional, for bots)"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`);
+  modal(`<h3>Create a server</h3><input id="svName" placeholder="Server name"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`);
 }
 async function createServer() {
   const name = $('svName').value.trim(); if (!name) return toast('Give your server a name!');
-  const ref = await db.collection('vox_servers').add({name, owner: me.uid, webhookUrl: $('svHook').value.trim(), createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+  const ref = await db.collection('vox_servers').add({name, owner: me.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp()});
   await db.collection('vox_channels').add({serverId: ref.id, name: 'general', type: 'text', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
   closeModal(); openView('server', ref.id);
 }
@@ -908,12 +950,6 @@ async function addChannel() {
   const type = $('tText').dataset.s === '1' ? 'text' : 'voice';
   await db.collection('vox_channels').add({serverId: view.id, name, type, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
   closeModal();
-}
-async function setWebhook(id) {
-  const s = servers.find(x => x.id === id);
-  const url = prompt('Bot webhook URL (leave empty to turn off):', (s && s.webhookUrl) || '');
-  if (url === null) return;
-  try { await db.collection('vox_servers').doc(id).update({webhookUrl: url.trim()}); toast('Webhook saved 🤖'); } catch (e) { dbErr(e); }
 }
 async function deleteServer(id) {
   if (!confirm('Delete this server? This cannot be undone.')) return;
@@ -973,7 +1009,7 @@ async function setupPC(ref, role) {
   callUnsubs.push(ref.collection(theirs).onSnapshot(s => s.docChanges().forEach(c => { if (c.type === 'added' && pc) pc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {}); })));
   
   $('callbox').classList.remove('hidden');
-  $('share-screen-btn').style.display = 'block'; // Show screen share button
+  $('share-screen-btn').style.display = 'block'; 
 }
 
 async function shareScreen() {
