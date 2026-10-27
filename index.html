@@ -3,7 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vox | Chat with your buddies</title>
+    
+    <!-- 🚀 SEO & SHARE TAGS (Makes Vox look pro on Google/Discord/WhatsApp) -->
+    <title>Vox Chat | Chat with your buddies smoothly</title>
+    <meta name="description" content="Vox is an ultra-lightweight chat app. Create servers, send media, and start WebRTC video calls with your friends smoothly.">
+    <meta name="theme-color" content="#5865F2">
+    
+    <!-- Open Graph tags (for Discord, WhatsApp, iMessage link previews) -->
+    <meta property="og:title" content="Vox Chat">
+    <meta property="og:description" content="Start chatting with your buddies smoothly. Built by Dano.">
+    <meta property="og:type" content="website">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
     <!-- 🚀 COMPAT SDK v10.8.0 — DO NOT swap these for npm/modular imports! -->
@@ -734,7 +744,6 @@
             unsubscribeCall = callDocRef.onSnapshot(async snapshot => {
                 const data = snapshot.data();
                 if (!data) {
-                    // Caller hung up / doc deleted
                     endCall(); 
                     return;
                 }
@@ -776,7 +785,6 @@
                 });
             });
             
-            // Listen for caller leaving
             unsubscribeCall = callDocRef.onSnapshot(snapshot => {
                 if (!snapshot.exists) {
                     endCall();
