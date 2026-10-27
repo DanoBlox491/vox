@@ -3,20 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- 🚀 SEO & SHARE TAGS (Makes Vox look pro on Google/Discord/WhatsApp) -->
     <title>Vox Chat | Chat with your buddies smoothly</title>
     <meta name="description" content="Vox is an ultra-lightweight chat app. Create servers, send media, and start WebRTC video calls with your friends smoothly.">
     <meta name="theme-color" content="#5865F2">
-    
-    <!-- Open Graph tags (for Discord, WhatsApp, iMessage link previews) -->
     <meta property="og:title" content="Vox Chat">
     <meta property="og:description" content="Start chatting with your buddies smoothly. Built by Dano.">
     <meta property="og:type" content="website">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
-    <!-- 🚀 COMPAT SDK v10.8.0 — DO NOT swap these for npm/modular imports! -->
+    <!-- 🚀 COMPAT SDK v10.8.0 -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -35,28 +31,73 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background: var(--bg-dark); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
 
-        /* --- LOGIN SCREEN --- */
-        #auth-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-dark); display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; background-image: radial-gradient(circle at 50% 50%, #2b2d31 0%, #1e1f22 100%); }
-        .auth-box { background: var(--bg-light); padding: 40px; border-radius: 12px; width: 400px; max-width: 90vw; box-shadow: 0 10px 30px rgba(0,0,0,0.6); border-top: 5px solid var(--brand); text-align: center; }
-        .auth-box h1 { font-size: 36px; font-weight: 800; color: var(--brand); margin-bottom: 8px; letter-spacing: -1px; }
-        .auth-box p { color: var(--muted); font-size: 15px; margin-bottom: 24px; }
-        .auth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-bottom: 12px; }
-        .auth-btn:hover { transform: scale(1.02); }
-        .btn-google { background: white; color: #333; }
-        .auth-divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: var(--muted); font-size: 12px; font-weight: bold; }
-        .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #333; }
-        .auth-divider::before { margin-right: 10px; }
-        .auth-divider::after { margin-left: 10px; }
-        .input-group { text-align: left; margin-bottom: 16px; }
-        .input-group label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
-        .input-group input { width: 100%; padding: 12px; background: #1e1f22; border: 1px solid #111; border-radius: 4px; color: white; outline: none; font-size: 15px; }
-        .input-group input:focus { border-color: var(--brand); }
-        .btn-primary { width: 100%; padding: 14px; background: var(--brand); color: white; border: none; border-radius: 4px; font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s; margin-top: 8px; }
-        .btn-primary:hover { background: #4752c4; }
-        .toggle-text { color: var(--muted); font-size: 13px; margin-top: 16px; cursor: pointer; }
-        .toggle-text span { color: var(--brand); font-weight: bold; }
+        /* --- NEW LANDING PAGE (Roblox Vibe) --- */
+        #landing-screen { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: #0a0a0f; 
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(88, 101, 242, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(218, 55, 60, 0.15) 0%, transparent 50%),
+                linear-gradient(135deg, #121212 0%, #1a1a24 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 200; overflow-y: auto; padding: 20px;
+        }
+        
+        .landing-header { text-align: center; margin-bottom: 30px; }
+        .landing-header h1 { font-size: 56px; font-weight: 800; color: white; letter-spacing: -2px; text-shadow: 0 0 20px rgba(88, 101, 242, 0.6); margin-bottom: 8px; }
+        .landing-header p { color: #b0b3c6; font-size: 18px; font-weight: 600; }
 
-        /* --- SERVER SIDEBAR --- */
+        /* Split Screen Glass Card */
+        .auth-split-container {
+            display: flex; width: 100%; max-width: 800px;
+            background: rgba(30, 31, 34, 0.6); /* Glass base */
+            backdrop-filter: blur(16px); /* Frosted glass */
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            overflow: hidden;
+        }
+
+        /* Individual panels */
+        .auth-panel { flex: 1; padding: 40px 30px; display: flex; flex-direction: column; justify-content: center; }
+        .auth-panel.login-panel { background: rgba(0,0,0,0.2); border-right: 1px solid rgba(255,255,255,0.05); }
+        .auth-panel.signup-panel { background: rgba(88, 101, 242, 0.05); }
+
+        .panel-title { font-size: 24px; font-weight: 800; margin-bottom: 24px; color: white; }
+        
+        .auth-input-group { margin-bottom: 16px; }
+        .auth-input-group label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+        .auth-input-group input { 
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: white; outline: none; font-size: 15px; transition: 0.2s;
+        }
+        .auth-input-group input:focus { border-color: var(--brand); background: rgba(0,0,0,0.6); }
+        
+        .auth-btn { 
+            width: 100%; padding: 14px; background: var(--brand); color: white; border: none; border-radius: 6px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px;
+        }
+        .auth-btn:hover { background: #4752c4; transform: translateY(-1px); box-shadow: 0 5px 15px rgba(88, 101, 242, 0.4); }
+        
+        /* Google Button */
+        .btn-google { 
+            display: flex; align-items: center; justify-content: center; gap: 10px; background: white; color: #333; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; transition: 0.2s; margin-bottom: 20px; 
+        }
+        .btn-google:hover { background: #f0f0f0; transform: scale(1.02); }
+        
+        .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: var(--muted); font-size: 12px; font-weight: bold; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .divider::before { margin-right: 10px; }
+        .divider::after { margin-left: 10px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .auth-split-container { flex-direction: column; max-width: 400px; }
+            .auth-panel.login-panel { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+            .landing-header h1 { font-size: 40px; }
+        }
+
+        /* --- APP UI (Unchanged) --- */
+        #app { display: none; width: 100%; height: 100%; }
         .server-sidebar { width: 72px; background: var(--bg-dark); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; border-right: 1px solid #1a1b1e; overflow-y: auto; }
         .server-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-mid); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; cursor: pointer; transition: 0.2s; color: white; flex-shrink: 0; overflow: hidden; }
         .server-icon:hover { border-radius: 16px; background: var(--brand); }
@@ -64,7 +105,6 @@
         .add-server { color: var(--green); font-size: 24px; }
         .add-server:hover { background: var(--green); color: white; }
 
-        /* --- CHANNEL SIDEBAR --- */
         .channel-sidebar { width: 240px; background: var(--bg-mid); display: flex; flex-direction: column; }
         .server-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .channel-list { padding: 16px 8px; flex: 1; overflow-y: auto; }
@@ -83,7 +123,6 @@
         .logout-btn { background: transparent; border: 1px solid #da373c; color: #da373c; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: auto; }
         .logout-btn:hover { background: #da373c; color: white; }
 
-        /* --- MAIN CHAT --- */
         .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-light); min-width: 0; }
         .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #26272b; font-weight: 800; box-shadow: 0 1px 2px rgba(0,0,0,0.1); gap: 8px; }
         .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
@@ -97,7 +136,6 @@
         .msg-text a { color: #00a8fc; text-decoration: none; }
         .msg-text a:hover { text-decoration: underline; }
 
-        /* VIDEO / AUDIO PLAYERS */
         .vox-video-container { max-width: 450px; border-radius: 8px; overflow: hidden; margin-top: 8px; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
         .vox-video-container video { width: 100%; display: block; }
         .vox-audio-card { display: flex; align-items: center; gap: 12px; background: #2b2d31; padding: 12px; border-radius: 8px; margin-top: 8px; width: 350px; max-width: 100%; border: 1px solid #1e1f22; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
@@ -115,7 +153,6 @@
         .action-btn:hover { color: white; }
         .uploading-text { font-size: 12px; color: var(--green); display: none; margin-left: 10px; font-weight: bold; }
 
-        /* --- MODALS --- */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; padding: 16px; }
         .modal.active { display: flex; }
         .modal-content { background: var(--bg-light); padding: 24px; border-radius: 8px; width: 400px; max-width: 100%; border-top: 4px solid var(--brand); }
@@ -125,9 +162,7 @@
         .input-group input, .input-group select { width: 100%; padding: 10px; background: #1e1f22; border: 1px solid #111; border-radius: 4px; color: white; outline: none; }
         .btn { width: 100%; padding: 12px; background: var(--brand); color: white; border: none; border-radius: 4px; font-weight: 800; cursor: pointer; transition: 0.2s; margin-bottom: 8px; }
         .btn:hover { background: #4752c4; }
-        .btn-danger { background: var(--red); }
 
-        /* VIDEO CALL OVERLAY */
         #video-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 300; flex-direction: column; align-items: center; justify-content: center; }
         #video-overlay.active { display: flex; }
         .video-grid { display: flex; gap: 20px; width: 90%; max-width: 1200px; justify-content: center; flex-wrap: wrap; }
@@ -140,55 +175,62 @@
 </head>
 <body>
 
-    <!-- LOGIN SCREEN -->
-    <div id="auth-screen">
-        <div class="auth-box">
+    <!-- NEW LANDING PAGE -->
+    <div id="landing-screen">
+        <div class="landing-header">
             <h1>Vox</h1>
             <p>Start chatting with your buddies smoothly</p>
+        </div>
 
-            <button class="auth-btn btn-google" onclick="loginWithGoogle()">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt=""> Continue with Google
-            </button>
+        <div class="auth-split-container">
+            <!-- LOGIN PANEL -->
+            <div class="auth-panel login-panel">
+                <div class="panel-title">Log In</div>
+                
+                <button class="btn-google" onclick="loginWithGoogle()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt=""> Continue with Google
+                </button>
+                
+                <div class="divider">OR</div>
 
-            <div class="auth-divider">OR</div>
-
-            <!-- Login Form -->
-            <div id="login-fields">
-                <div class="input-group">
+                <div class="auth-input-group">
                     <label>Email</label>
                     <input type="email" id="login-email" placeholder="you@gmail.com">
                 </div>
-                <div class="input-group">
+                <div class="auth-input-group">
                     <label>Password</label>
                     <input type="password" id="login-password" placeholder="••••••••">
                 </div>
-                <button class="btn-primary" onclick="handleEmailLogin()">Log In</button>
-                <p class="toggle-text" onclick="toggleAuthMode()">Don't have an account? <span>Sign Up</span></p>
+                <button class="auth-btn" onclick="handleEmailLogin()">Log In</button>
             </div>
 
-            <!-- Signup Form -->
-            <div id="signup-fields" style="display: none;">
-                <div class="input-group">
-                    <label>Display Name</label>
+            <!-- SIGN UP PANEL -->
+            <div class="auth-panel signup-panel">
+                <div class="panel-title">Create Account</div>
+                
+                <div class="auth-input-group">
+                    <label>Username</label>
                     <input type="text" id="signup-name" placeholder="e.g. Dano" maxlength="30">
                 </div>
-                <div class="input-group">
+                <div class="auth-input-group">
                     <label>Email</label>
                     <input type="email" id="signup-email" placeholder="you@gmail.com">
                 </div>
-                <div class="input-group">
-                    <label>Password (6+ chars)</label>
-                    <input type="password" id="signup-password" placeholder="••••••••">
+                <div class="auth-input-group">
+                    <label>Password</label>
+                    <input type="password" id="signup-password" placeholder="6+ characters">
                 </div>
-                <button class="btn-primary" onclick="handleEmailSignup()">Create Account</button>
-                <p class="toggle-text" onclick="toggleAuthMode()">Already have an account? <span>Log In</span></p>
+                <div class="auth-input-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="signup-confirm-password" placeholder="Re-type password">
+                </div>
+                <button class="auth-btn" onclick="handleEmailSignup()">Sign Up</button>
             </div>
         </div>
     </div>
 
-    <!-- APP -->
-    <div id="app" style="display: none; width: 100%; height: 100%;">
-
+    <!-- MAIN APP -->
+    <div id="app">
         <div class="server-sidebar" id="server-sidebar"></div>
 
         <div class="channel-sidebar">
@@ -196,9 +238,7 @@
                 <span id="server-name">Select a Server</span>
                 <span style="font-size: 18px;">⌄</span>
             </div>
-            <div class="channel-list" id="channel-list">
-                <!-- Channels load here -->
-            </div>
+            <div class="channel-list" id="channel-list"></div>
             <div class="user-panel">
                 <div class="user-info">
                     <div class="avatar" id="user-avatar-display">D</div>
@@ -243,7 +283,7 @@
         <button class="end-call-btn" onclick="endCall()">End Call</button>
     </div>
 
-    <!-- CREATE SERVER MODAL -->
+    <!-- MODALS -->
     <div class="modal" id="create-server-modal">
         <div class="modal-content">
             <div class="modal-title">Create a Server</div>
@@ -256,7 +296,6 @@
         </div>
     </div>
 
-    <!-- CREATE CHANNEL MODAL -->
     <div class="modal" id="create-channel-modal">
         <div class="modal-content">
             <div class="modal-title">Create a Channel</div>
@@ -276,7 +315,6 @@
         </div>
     </div>
 
-    <!-- OWNER PANEL (BOTS) -->
     <div class="modal" id="owner-panel-modal">
         <div class="modal-content">
             <div class="modal-title">👑 Owner Panel (Bots)</div>
@@ -291,7 +329,7 @@
 
     <script>
         /* ============================================================
-           FIREBASE CONFIG — vox-chat-979fd (compat SDK, NOT modular)
+           FIREBASE CONFIG (vox-chat-979fd)
            ============================================================ */
         const firebaseConfig = {
             apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
@@ -317,7 +355,6 @@
         let currentChannelType = "text";
         let unsubscribeMessages = null;
         let unsubscribeServers = null;
-        let isSignUpMode = false;
 
         // WebRTC state
         let peerConnection = null;
@@ -335,12 +372,6 @@
         /* ============================================================
            AUTHENTICATION
            ============================================================ */
-        function toggleAuthMode() {
-            isSignUpMode = !isSignUpMode;
-            document.getElementById('login-fields').style.display = isSignUpMode ? 'none' : 'block';
-            document.getElementById('signup-fields').style.display = isSignUpMode ? 'block' : 'none';
-        }
-
         async function loginWithGoogle() {
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
@@ -369,8 +400,12 @@
             const name = document.getElementById('signup-name').value.trim();
             const email = document.getElementById('signup-email').value.trim();
             const pass = document.getElementById('signup-password').value;
-            if (!name || !email || !pass) return alert("Fill in all fields!");
+            const confirmPass = document.getElementById('signup-confirm-password').value;
+            
+            if (!name || !email || !pass || !confirmPass) return alert("Fill in all fields!");
+            if (pass !== confirmPass) return alert("Passwords do not match! 💀");
             if (pass.length < 6) return alert("Password must be at least 6 characters.");
+            
             try {
                 const cred = await auth.createUserWithEmailAndPassword(email, pass);
                 await cred.user.updateProfile({ displayName: name });
@@ -390,14 +425,14 @@
                     name: user.displayName || (user.email ? user.email.split('@')[0] : "Guest"),
                     uid: user.uid
                 };
-                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('landing-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
                 document.getElementById('user-name-display').innerText = currentUser.name;
                 document.getElementById('user-avatar-display').innerText = currentUser.name.charAt(0).toUpperCase();
                 listenToServers();
             } else {
                 currentUser = null;
-                document.getElementById('auth-screen').style.display = 'flex';
+                document.getElementById('landing-screen').style.display = 'flex';
                 document.getElementById('app').style.display = 'none';
                 if (unsubscribeServers) { unsubscribeServers(); unsubscribeServers = null; }
             }
@@ -426,9 +461,7 @@
                 addBtn.title = 'Create Server';
                 addBtn.onclick = () => openModal('create-server-modal');
                 sidebar.appendChild(addBtn);
-            }, err => {
-                console.error("Servers listener error:", err);
-            });
+            }, err => console.error("Servers listener error:", err));
         }
 
         async function createServer() {
@@ -436,23 +469,15 @@
             if (!name) return alert("Enter a server name!");
             try {
                 const docRef = await db.collection('vox_servers').add({
-                    name: name,
-                    owner: currentUser.uid,
-                    webhookUrl: "",
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    name: name, owner: currentUser.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 await db.collection('vox_channels').add({
-                    serverId: docRef.id,
-                    name: "general",
-                    type: "text",
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    serverId: docRef.id, name: "general", type: "text", createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 closeModal('create-server-modal');
                 document.getElementById('new-server-name').value = "";
                 selectServer(docRef.id, name, "");
-            } catch (err) {
-                alert("Create server failed: " + err.message);
-            }
+            } catch (err) { alert("Create server failed: " + err.message); }
         }
 
         function selectServer(id, name, webhook) {
@@ -460,13 +485,10 @@
             currentServerName = name;
             document.getElementById('server-name').innerText = name;
             document.getElementById('webhook-url').value = webhook || "";
-            
-            // Reset channel view when switching servers
             currentChannel = null;
             document.getElementById('active-channel-name').innerText = "select-a-channel";
             document.getElementById('channel-icon').innerText = "#";
             document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a channel to start chatting.</p>`;
-
             listenToServers();
             loadChannels();
         }
@@ -474,20 +496,14 @@
         async function loadChannels() {
             const channelList = document.getElementById('channel-list');
             channelList.innerHTML = `<p style="color: var(--muted); text-align: center; font-size: 12px;">Loading...</p>`;
-
             try {
-                const snapshot = await db.collection('vox_channels')
-                    .where('serverId', '==', currentServerId)
-                    .orderBy('createdAt', 'asc')
-                    .get();
-
+                const snapshot = await db.collection('vox_channels').where('serverId', '==', currentServerId).orderBy('createdAt', 'asc').get();
                 channelList.innerHTML = `
                     <div class="channel-category">Text Channels <button class="add-channel-btn" onclick="openModal('create-channel-modal')">+</button></div>
                     <div id="text-channels"></div>
                     <div class="channel-category">Voice / Bots <button class="add-channel-btn" onclick="openModal('owner-panel-modal')">👑</button></div>
                     <div id="voice-channels"></div>
                 `;
-
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const item = document.createElement('div');
@@ -498,18 +514,13 @@
                         item.onclick = () => selectChannel(data.name, 'voice', item);
                         document.getElementById('voice-channels').appendChild(item);
                     } else {
-                        if (currentChannel === data.name && currentChannelType === 'text') {
-                            item.classList.add('active');
-                        }
+                        if (currentChannel === data.name && currentChannelType === 'text') item.classList.add('active');
                         item.textContent = '# ' + data.name;
                         item.onclick = () => selectChannel(data.name, 'text', item);
                         document.getElementById('text-channels').appendChild(item);
                     }
                 });
-            } catch (err) {
-                channelList.innerHTML = `<p style="color: var(--red); font-size: 12px; padding: 0 8px;">Couldn't load channels. Check Firestore rules.</p>`;
-                console.error(err);
-            }
+            } catch (err) { channelList.innerHTML = `<p style="color: var(--red); font-size: 12px; padding: 0 8px;">Couldn't load channels.</p>`; }
         }
 
         async function createChannel() {
@@ -519,18 +530,11 @@
             if (!name) return alert("Enter a channel name!");
             if (!currentServerId) return alert("Select a server first!");
             try {
-                await db.collection('vox_channels').add({
-                    serverId: currentServerId,
-                    name: name,
-                    type: type,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                await db.collection('vox_channels').add({ serverId: currentServerId, name: name, type: type, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
                 nameEl.value = "";
                 closeModal('create-channel-modal');
                 loadChannels();
-            } catch (err) {
-                alert("Create channel failed: " + err.message);
-            }
+            } catch (err) { alert("Create channel failed: " + err.message); }
         }
 
         function selectChannel(channelName, type, element) {
@@ -538,16 +542,12 @@
             currentChannelType = type;
             document.getElementById('active-channel-name').innerText = channelName;
             document.getElementById('channel-icon').innerText = type === 'voice' ? '🔊' : '#';
-
             document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
             if (element) element.classList.add('active');
-
             if (unsubscribeMessages) unsubscribeMessages();
-            
             if (type === 'text') {
                 listenToMessages();
             } else {
-                // Voice channel view
                 document.getElementById('messages-container').innerHTML = `
                     <div style="text-align: center; margin-top: 50px;">
                         <p style="color: var(--muted); font-size: 16px; margin-bottom: 20px;">You are in the voice channel: <strong>${escapeHtml(channelName)}</strong></p>
@@ -558,27 +558,21 @@
         }
 
         /* ============================================================
-           BOTS (WEBHOOKS)
+           BOTS & TEXT CHAT
            ============================================================ */
         async function saveWebhook() {
             const url = document.getElementById('webhook-url').value.trim();
             if (!currentServerId) return;
             try {
                 await db.collection('vox_servers').doc(currentServerId).update({ webhookUrl: url });
-                alert("Webhook saved! Messages will now forward to this bot.");
+                alert("Webhook saved!");
                 closeModal('owner-panel-modal');
-            } catch (err) {
-                alert("Save webhook failed: " + err.message);
-            }
+            } catch (err) { alert("Save webhook failed: " + err.message); }
         }
 
-        /* ============================================================
-           TEXT CHAT
-           ============================================================ */
         function listenToMessages() {
             const container = document.getElementById('messages-container');
             container.innerHTML = `<p style="color: var(--muted); text-align: center;">Loading...</p>`;
-
             unsubscribeMessages = db.collection('vox_messages')
                 .where('serverId', '==', currentServerId)
                 .where('channel', '==', currentChannel)
@@ -594,17 +588,13 @@
                         const data = doc.data();
                         const time = data.timestamp ? data.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
                         const senderName = data.sender || "Anon";
-
                         const msgRow = document.createElement('div');
                         msgRow.className = 'message';
-
                         const avatar = document.createElement('div');
                         avatar.className = 'msg-avatar';
                         avatar.textContent = senderName.charAt(0).toUpperCase();
-
                         const content = document.createElement('div');
                         content.className = 'msg-content';
-
                         const header = document.createElement('div');
                         header.className = 'msg-header';
                         const author = document.createElement('span');
@@ -613,29 +603,21 @@
                         const timeEl = document.createElement('span');
                         timeEl.className = 'msg-time';
                         timeEl.textContent = time;
-                        header.appendChild(author);
-                        header.appendChild(timeEl);
+                        header.appendChild(author); header.appendChild(timeEl);
                         content.appendChild(header);
-
                         if (data.text) {
                             const textEl = document.createElement('div');
                             textEl.className = 'msg-text';
                             textEl.innerHTML = formatText(data.text);
                             content.appendChild(textEl);
                         }
-
-                        if (data.mediaUrl) {
-                            content.appendChild(buildMedia(data.mediaUrl, data.mediaType || ""));
-                        }
-
-                        msgRow.appendChild(avatar);
-                        msgRow.appendChild(content);
+                        if (data.mediaUrl) content.appendChild(buildMedia(data.mediaUrl, data.mediaType || ""));
+                        msgRow.appendChild(avatar); msgRow.appendChild(content);
                         container.appendChild(msgRow);
                     });
                     container.scrollTop = container.scrollHeight;
                 }, err => {
-                    console.error("Messages listener error:", err);
-                    container.innerHTML = `<p style="color: var(--red); text-align: center;">Can't load messages. Check Firestore rules!</p>`;
+                    container.innerHTML = `<p style="color: var(--red); text-align: center;">Can't load messages. Check rules!</p>`;
                 });
         }
 
@@ -643,10 +625,7 @@
             const wrap = document.createElement('div');
             if (type.startsWith('video/')) {
                 wrap.className = 'vox-video-container';
-                const v = document.createElement('video');
-                v.src = url;
-                v.controls = true;
-                wrap.appendChild(v);
+                const v = document.createElement('video'); v.src = url; v.controls = true; wrap.appendChild(v);
             } else if (type.startsWith('audio/')) {
                 wrap.className = 'vox-audio-card';
                 const audioId = 'audio_' + Math.random().toString(36).slice(2, 11);
@@ -657,19 +636,14 @@
                     <audio id="${audioId}" src="${url}" ontimeupdate="updateAudio('${audioId}')" onended="resetAudio('${audioId}')"></audio>
                 `;
             } else {
-                const img = document.createElement('img');
-                img.src = url;
+                const img = document.createElement('img'); img.src = url;
                 img.style.cssText = "max-width:400px;border-radius:8px;margin-top:8px;cursor:pointer;";
-                img.onclick = () => window.open(url, '_blank');
-                wrap.appendChild(img);
+                img.onclick = () => window.open(url, '_blank'); wrap.appendChild(img);
             }
             return wrap;
         }
 
-        function escapeHtml(s) {
-            return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
-
+        function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
         function formatText(text) {
             const safe = escapeHtml(text);
             return safe.replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
@@ -680,237 +654,125 @@
             const text = input.value.trim();
             if (!text || !currentServerId || !currentChannel || currentChannelType !== 'text') return;
             input.value = "";
-
             try {
                 await db.collection('vox_messages').add({
-                    serverId: currentServerId,
-                    channel: currentChannel,
-                    sender: currentUser.name,
-                    text: text,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    serverId: currentServerId, channel: currentChannel, sender: currentUser.name, text: text, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
-
                 const serverDoc = await db.collection('vox_servers').doc(currentServerId).get();
                 const data = serverDoc.data();
                 const webhookUrl = data ? data.webhookUrl : "";
                 if (webhookUrl && webhookUrl.startsWith('http')) {
                     fetch(webhookUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content: `**[${currentUser.name}]**: ${text}` })
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: `**[${currentUser.name}]**: ${text}` })
                     }).catch(e => console.log("Bot error:", e));
                 }
-            } catch (err) {
-                console.error("Send failed:", err);
-                alert("Message failed to send. Check Firestore rules!");
-            }
+            } catch (err) { alert("Message failed to send."); }
         }
 
         /* ============================================================
-           WEBRTC — Voice/Video Calling
+           WEBRTC
            ============================================================ */
         async function startCall() {
-            if (!currentServerId || !currentChannel) {
-                return alert("Pick a voice channel first!");
-            }
-
+            if (!currentServerId || !currentChannel) return alert("Pick a voice channel first!");
             callRoomId = currentServerId + '_' + currentChannel;
             document.getElementById('video-overlay').classList.add('active');
             document.getElementById('remote-video-box').style.display = 'none';
-
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 document.getElementById('local-video').srcObject = localStream;
-
                 const callDocRef = db.collection('vox_calls').doc(callRoomId);
                 const callDoc = await callDocRef.get();
-
                 if (callDoc.exists && callDoc.data().callerUid !== currentUser.uid) {
                     await joinAsCallee(callDocRef, callDoc.data());
                 } else {
                     await becomeCaller(callDocRef);
                 }
-            } catch (err) {
-                console.error("Call error:", err);
-                alert("Could not access camera/mic: " + err.message);
-                endCall();
-            }
+            } catch (err) { alert("Could not access camera/mic: " + err.message); endCall(); }
         }
 
         async function becomeCaller(callDocRef) {
             isCallee = false;
             createPeerConnection(callDocRef);
-
             unsubscribeCall = callDocRef.onSnapshot(async snapshot => {
                 const data = snapshot.data();
-                if (!data) {
-                    endCall(); 
-                    return;
-                }
+                if (!data) { endCall(); return; }
                 if (data.answer && peerConnection && !peerConnection.currentRemoteDescription) {
-                    try {
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    } catch (e) { console.error(e); }
+                    try { await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)); } catch (e) {}
                 }
             });
-
             unsubscribeCalleeCandidates = callDocRef.collection('calleeCandidates').onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
-                    if (change.type === 'added' && peerConnection) {
-                        peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(() => {});
-                    }
+                    if (change.type === 'added' && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(() => {});
                 });
             });
-
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
-
-            await callDocRef.set({
-                callerUid: currentUser.uid,
-                callerName: currentUser.name,
-                offer: { type: offer.type, sdp: offer.sdp },
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            await callDocRef.set({ callerUid: currentUser.uid, callerName: currentUser.name, offer: { type: offer.type, sdp: offer.sdp }, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         }
 
         async function joinAsCallee(callDocRef, data) {
             isCallee = true;
             createPeerConnection(callDocRef);
-
             unsubscribeCallerCandidates = callDocRef.collection('callerCandidates').onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
-                    if (change.type === 'added' && peerConnection) {
-                        peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(() => {});
-                    }
+                    if (change.type === 'added' && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(() => {});
                 });
             });
-            
-            unsubscribeCall = callDocRef.onSnapshot(snapshot => {
-                if (!snapshot.exists) {
-                    endCall();
-                }
-            });
-
+            unsubscribeCall = callDocRef.onSnapshot(snapshot => { if (!snapshot.exists) endCall(); });
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
-
-            await callDocRef.update({
-                answer: { type: answer.type, sdp: answer.sdp }
-            });
+            await callDocRef.update({ answer: { type: answer.type, sdp: answer.sdp } });
         }
 
         function createPeerConnection(callDocRef) {
             peerConnection = new RTCPeerConnection(iceServers);
-
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
             peerConnection.ontrack = event => {
                 document.getElementById('remote-video').srcObject = event.streams[0];
                 document.getElementById('remote-video-box').style.display = 'block';
             };
-
             peerConnection.onicecandidate = event => {
                 if (!event.candidate) return;
                 const sub = isCallee ? 'calleeCandidates' : 'callerCandidates';
-                callDocRef.collection(sub).add(event.candidate.toJSON()).catch(e => console.error(e));
-            };
-
-            peerConnection.onconnectionstatechange = () => {
-                console.log("Peer state:", peerConnection.connectionState);
+                callDocRef.collection(sub).add(event.candidate.toJSON()).catch(e => {});
             };
         }
 
         async function endCall() {
             document.getElementById('video-overlay').classList.remove('active');
             document.getElementById('remote-video-box').style.display = 'none';
-
             if (unsubscribeCall) { unsubscribeCall(); unsubscribeCall = null; }
             if (unsubscribeCallerCandidates) { unsubscribeCallerCandidates(); unsubscribeCallerCandidates = null; }
             if (unsubscribeCalleeCandidates) { unsubscribeCalleeCandidates(); unsubscribeCalleeCandidates = null; }
-
             if (peerConnection) { peerConnection.close(); peerConnection = null; }
             if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-
-            if (callRoomId) {
-                try { await db.collection('vox_calls').doc(callRoomId).delete(); } catch (e) {}
-                callRoomId = null;
-            }
+            if (callRoomId) { try { await db.collection('vox_calls').doc(callRoomId).delete(); } catch (e) {} callRoomId = null; }
         }
 
         /* ============================================================
-           MEDIA UPLOAD + AUDIO CONTROLS
+           UPLOAD & AUDIO CONTROLS
            ============================================================ */
         async function uploadFile() {
             const fileInput = document.getElementById('file-input');
             const file = fileInput.files[0];
             if (!file || !currentServerId || !currentChannel || currentChannelType !== 'text') return;
-
-            const status = document.getElementById('upload-status');
-            status.style.display = 'inline-block';
-
-            const formData = new FormData();
-            formData.append('reqtype', 'fileupload');
-            formData.append('fileToUpload', file);
-
+            const status = document.getElementById('upload-status'); status.style.display = 'inline-block';
+            const formData = new FormData(); formData.append('reqtype', 'fileupload'); formData.append('fileToUpload', file);
             try {
                 const response = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData });
-                if (!response.ok) throw new Error("Upload failed");
                 const fileUrl = (await response.text()).trim();
-                await db.collection('vox_messages').add({
-                    serverId: currentServerId,
-                    channel: currentChannel,
-                    sender: currentUser.name,
-                    text: "",
-                    mediaUrl: fileUrl,
-                    mediaType: file.type,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch (error) {
-                alert("Upload failed: " + error.message);
-            } finally {
-                status.style.display = 'none';
-                fileInput.value = "";
-            }
+                await db.collection('vox_messages').add({ serverId: currentServerId, channel: currentChannel, sender: currentUser.name, text: "", mediaUrl: fileUrl, mediaType: file.type, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            } catch (error) { alert("Upload failed: " + error.message); } finally { status.style.display = 'none'; fileInput.value = ""; }
         }
 
-        document.getElementById('chat-input').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') sendMessage();
-        });
-
+        document.getElementById('chat-input').addEventListener('keypress', function (e) { if (e.key === 'Enter') sendMessage(); });
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-        function toggleAudio(id) {
-            const audio = document.getElementById(id);
-            const btn = audio.parentElement.querySelector('.vox-audio-btn');
-            if (audio.paused) { audio.play(); btn.innerText = "⏸"; } else { audio.pause(); btn.innerText = "▶️"; }
-        }
-        function updateAudio(id) {
-            const audio = document.getElementById(id);
-            const fill = document.getElementById('fill_' + id);
-            const timeEl = document.getElementById('time_' + id);
-            if (audio.duration) {
-                fill.style.width = (audio.currentTime / audio.duration) * 100 + '%';
-                let mins = Math.floor(audio.currentTime / 60);
-                let secs = Math.floor(audio.currentTime % 60);
-                if (secs < 10) secs = '0' + secs;
-                timeEl.innerText = `${mins}:${secs}`;
-            }
-        }
-        function seekAudio(e, id) {
-            const audio = document.getElementById(id);
-            const rect = e.currentTarget.getBoundingClientRect();
-            if (audio.duration) audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
-        }
-        function resetAudio(id) {
-            const audio = document.getElementById(id);
-            audio.currentTime = 0;
-            audio.parentElement.querySelector('.vox-audio-btn').innerText = "▶️";
-            document.getElementById('fill_' + id).style.width = '0%';
-            document.getElementById('time_' + id).innerText = '0:00';
-        }
+        function toggleAudio(id) { const audio = document.getElementById(id); const btn = audio.parentElement.querySelector('.vox-audio-btn'); if (audio.paused) { audio.play(); btn.innerText = "⏸"; } else { audio.pause(); btn.innerText = "▶️"; } }
+        function updateAudio(id) { const audio = document.getElementById(id); const fill = document.getElementById('fill_' + id); const timeEl = document.getElementById('time_' + id); if (audio.duration) { fill.style.width = (audio.currentTime / audio.duration) * 100 + '%'; let mins = Math.floor(audio.currentTime / 60); let secs = Math.floor(audio.currentTime % 60); if (secs < 10) secs = '0' + secs; timeEl.innerText = `${mins}:${secs}`; } }
+        function seekAudio(e, id) { const audio = document.getElementById(id); const rect = e.currentTarget.getBoundingClientRect(); if (audio.duration) audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration; }
+        function resetAudio(id) { const audio = document.getElementById(id); audio.currentTime = 0; audio.parentElement.querySelector('.vox-audio-btn').innerText = "▶️"; document.getElementById('fill_' + id).style.width = '0%'; document.getElementById('time_' + id).innerText = '0:00'; }
     </script>
 </body>
 </html>
