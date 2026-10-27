@@ -254,7 +254,7 @@ async function openView(type, id) {
   } else if (type === 'group') {
     const g = groups.find(x => x.id === id);
     $('topTitle').textContent = '👥 ' + (g ? g.name : 'Group');
-    $('topBtns').innerHTML = `<button onclick="shareInvite('${id}')">🔗 Invite link</button>`;
+    $('topBtns').innerHTML = `<button onclick="shareInvite('${id}')">🔗 Invite link</button>` + (g && g.createdBy === me.uid ? ` <button class="danger" onclick="deleteGroup('${id}')">🗑️ Delete</button>` : '');
     $('composer').classList.remove('hidden');
     listenMessages();
   }
@@ -263,7 +263,12 @@ async function openView(type, id) {
 
 function selectChannel(cid) {
   const c = channels.find(x => x.id === cid); if (!c) return;
-  if (c.type === 'voice') { toast('Voice channels are coming soon! 🎙️'); return; }
+  if (c.type === 'voice') {
+    channel = c; stop('msgs');
+    $('topTitle').textContent = '🔊 ' + c.name; $('composer').classList.add('hidden');
+    $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join video call</button></div>`;
+    renderSide(); return;
+  }
   channel = c;
   $('topTitle').textContent = '# ' + c.name;
   $('composer').classList.remove('hidden');
@@ -284,7 +289,7 @@ function renderSide() {
   } else if (view.type === 'server') {
     const s = servers.find(x => x.id === view.id); if (!s) return;
     t.textContent = s.name;
-    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
+    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Bot webhook" onclick="setWebhook('${s.id}')">🤖</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
     l.innerHTML = channels.map(c => `<div class="item ${channel && channel.id === c.id ? 'on' : ''}" onclick="selectChannel('${c.id}')"><span>${c.type === 'voice' ? '🔊' : '#'} ${esc(c.name)}</span></div>`).join('');
   } else if (view.type === 'group') {
     const g = groups.find(x => x.id === view.id); if (!g) return;
@@ -317,9 +322,9 @@ function renderMsg(x) {
   let media = '';
   if (x.mediaUrl) {
     const u = esc(x.mediaUrl);
-    if (x.mediaType === 'image') media = `<img class="m" src="${u}">`;
-    else if (x.mediaType === 'video') media = `<video src="${u}" controls></video>`;
-    else if (x.mediaType === 'audio') media = `<audio src="${u}" controls></audio>`;
+    if ((x.mediaType || '').startsWith('image')) media = `<img class="m" src="${u}">`;
+    else if ((x.mediaType || '').startsWith('video')) media = `<video src="${u}" controls></video>`;
+    else if ((x.mediaType || '').startsWith('audio')) media = `<audio src="${u}" controls></audio>`;
     else media = `<div><a href="${u}" target="_blank" rel="noopener">📁 Download file</a></div>`;
   }
   const link = (x.text || '').match(/https?:\/\/[^\s<]+/);
@@ -384,7 +389,19 @@ async function send() {
 function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); }
 document.addEventListener('click', () => $('menu').classList.add('hidden'));
 function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
+// Your Cloudinary details (uploads for photos, videos, audio, files)
+const CLOUDINARY = {cloudName: 'x9rwrmqe', uploadPreset: 'vox_uploads'};
+async function cloudUpload(file) {
+  const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', CLOUDINARY.uploadPreset);
+  let r;
+  try { r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/auto/upload`, {method: 'POST', body: fd}); }
+  catch (e) { throw new Error('could not reach Cloudinary'); }
+  const j = await r.json();
+  if (!j.secure_url) throw new Error((j.error && j.error.message) || 'upload failed');
+  return j.secure_url;
+}
 async function catbox(file) {
+  if (CLOUDINARY.cloudName && CLOUDINARY.uploadPreset) return cloudUpload(file);
   const fd = new FormData(); fd.append('reqtype', 'fileupload'); fd.append('fileToUpload', file);
   let r;
   try { r = await fetch('https://catbox.moe/user/api.php', {method: 'POST', body: fd}); }
@@ -473,6 +490,12 @@ async function addChannel() {
   closeModal();
 }
 
+async function setWebhook(id) {
+  const s = servers.find(x => x.id === id);
+  const url = prompt('Bot webhook URL (leave empty to turn off):', (s && s.webhookUrl) || '');
+  if (url === null) return;
+  try { await db.collection('vox_servers').doc(id).update({webhookUrl: url.trim()}); toast('Webhook saved 🤖'); } catch (e) { dbErr(e); }
+}
 // BUG FIX 1: delete server + all channels + all messages
 async function deleteServer(id) {
   if (!confirm('Delete this server, all its channels and all its messages? This cannot be undone.')) return;
@@ -490,6 +513,16 @@ async function deleteServer(id) {
 }
 
 /* ---------- groups ---------- */
+async function deleteGroup(id) {
+  if (!confirm('Delete this group and all its messages? This cannot be undone.')) return;
+  try {
+    const refs = [];
+    (await db.collection('vox_messages').where('groupId', '==', id).get()).forEach(d => refs.push(d.ref));
+    refs.push(db.collection('vox_groups').doc(id));
+    for (let i = 0; i < refs.length; i += 400) { const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); }
+    openView('home'); toast('Group deleted ✅');
+  } catch (e) { toast('Delete failed: ' + (e.code || e.message)); }
+}
 async function createGroupModal() {
   const f = profile.friends || [];
   if (!f.length) return toast('Add some friends first!');
@@ -523,17 +556,26 @@ async function setupPC(ref, role) {
   callUnsubs.push(ref.collection(theirs).onSnapshot(s => s.docChanges().forEach(c => { if (c.type === 'added' && pc) pc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {}); })));
   $('callbox').classList.remove('hidden');
 }
-async function startCall(uid) {
+async function startCall(uid, roomRef) {
   try {
-    callRef = db.collection('vox_calls').doc();
+    callRef = roomRef || db.collection('vox_calls').doc();
     await setupPC(callRef, 'caller');
     const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-    await callRef.set({callerUid: me.uid, calleeUid: uid, offer: {type: offer.type, sdp: offer.sdp}});
+    await callRef.set({callerUid: me.uid, calleeUid: uid || null, offer: {type: offer.type, sdp: offer.sdp}});
     callUnsubs.push(callRef.onSnapshot(s => {
       const d = s.data(); if (d && d.answer && pc && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(d.answer));
       if (!s.exists) hangup(true);
     }));
   } catch (e) { toast('Call failed: ' + e.message); hangup(true); }
+}
+async function joinVoice() {
+  if (!channel || pc) return;
+  const ref = db.collection('vox_calls').doc(view.id + '_' + channel.id);
+  try {
+    const snap = await ref.get(); const d = snap.data();
+    if (snap.exists && d.offer && !d.answer && d.callerUid !== me.uid) await answerCall(ref, d);
+    else await startCall(null, ref);
+  } catch (e) { dbErr(e); }
 }
 function listenCalls() {
   stop('calls');
