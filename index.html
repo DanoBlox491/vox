@@ -57,6 +57,15 @@ input:focus,textarea:focus{border-color:var(--blue)}
 #menu{position:absolute;bottom:68px;left:18px;background:var(--p1);border:2px solid var(--p3);border-radius:12px;padding:6px;box-shadow:0 8px 30px #000a;z-index:5}
 #menu div{padding:10px 14px;border-radius:8px;cursor:pointer;white-space:nowrap}
 #menu div:hover{background:var(--p3)}
+.msg{position:relative}
+.msg .body{min-width:0;flex:1;word-break:break-word}
+.msg .acts{position:absolute;right:0;top:-8px;display:none;gap:2px;background:var(--p1);border:2px solid var(--p3);border-radius:8px;padding:2px}
+.msg:hover .acts{display:flex}
+.acts button{padding:3px 8px;font-size:13px;background:transparent}
+@media(hover:none){.msg .acts{display:flex;position:static;margin-top:4px;width:max-content}}
+.prev{display:block;max-width:380px;margin-top:8px;background:var(--p1);border-left:4px solid var(--blue);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--txt)}
+.prev img{width:100%;display:block;max-height:210px;object-fit:cover}
+.prev div{padding:8px 10px}.prev b{display:block;margin-bottom:2px}.prev span{color:var(--mut);font-size:13px;display:block}.prev small{color:var(--blue);font-size:12px}
 .empty{color:var(--mut);text-align:center;margin-top:20vh}
 /* modal */
 #modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:20}
@@ -139,7 +148,7 @@ const FIVE_DAYS = 5 * 24 * 60 * 60 * 1000;
 const DEFAULT_AV = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' fill='%23232839'/><circle cx='32' cy='24' r='12' fill='%2300b2ff'/><rect x='12' y='40' width='40' height='20' rx='10' fill='%2300b2ff'/></svg>";
 
 let me = null, profile = {}, servers = [], groups = [], view = {type: 'home'}, channels = [], channel = null;
-let unsubs = {}, userCache = {}, uploadAccept = '*/*';
+let unsubs = {}, userCache = {}, uploadAccept = '*/*', msgCache = {}, previewCache = {};
 
 function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -294,14 +303,16 @@ function listenMessages() {
   else return;
   const chId = channel ? channel.id : null;
   unsubs.msgs = q.onSnapshot(s => {
-    let m = s.docs.map(d => d.data());
+    let m = s.docs.map(d => ({id: d.id, ...d.data()}));
     if (view.type === 'server') m = m.filter(x => x.channel === chId);
     m.sort((a, b) => (a.timestamp?.seconds || 9e9) - (b.timestamp?.seconds || 9e9));
     const box = $('msgs');
     box.innerHTML = m.length ? m.map(renderMsg).join('') : '<div class="empty">Nothing here yet. Say hi! 👋</div>';
     box.scrollTop = box.scrollHeight;
+    m.forEach(x => msgCache[x.id] = x); loadPreviews();
   });
 }
+function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`); }
 function renderMsg(x) {
   let media = '';
   if (x.mediaUrl) {
@@ -311,11 +322,49 @@ function renderMsg(x) {
     else if (x.mediaType === 'audio') media = `<audio src="${u}" controls></audio>`;
     else media = `<div><a href="${u}" target="_blank" rel="noopener">📁 Download file</a></div>`;
   }
+  const link = (x.text || '').match(/https?:\/\/[^\s<]+/);
+  const lp = link ? `<div class="lp" data-url="${esc(link[0])}"></div>` : '';
+  const mine = x.senderUid ? x.senderUid === me.uid : x.sender === profile.displayName;
+  const acts = `<div class="acts"><button title="Copy" onclick="copyMsg('${x.id}')">📋 Copy</button>${mine ? `<button title="Delete" onclick="delMsg('${x.id}')">🗑️ Delete</button>` : ''}</div>`;
   const time = x.timestamp ? new Date(x.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
-  return `<div class="msg"><img class="avatar" src="${esc(x.senderPhoto) || DEFAULT_AV}"><div><span class="n">${esc(x.sender)}</span><span class="t">${time}</span><div>${esc(x.text)}</div>${media}</div></div>`;
+  return `<div class="msg"><img class="avatar" src="${esc(x.senderPhoto) || DEFAULT_AV}"><div class="body"><span class="n">${esc(x.sender)}</span><span class="t">${time}</span><div>${linkify(x.text)}</div>${lp}${media}</div>${acts}</div>`;
+}
+function copyMsg(id) {
+  const x = msgCache[id]; if (!x) return;
+  const t = x.text || x.mediaUrl || '';
+  navigator.clipboard.writeText(t).then(() => toast('Copied! 📋'), () => prompt('Copy this:', t));
+}
+async function delMsg(id) {
+  if (!confirm('Delete this message?')) return;
+  try { await db.collection('vox_messages').doc(id).delete(); toast('Message deleted 🗑️'); }
+  catch (e) { toast('Could not delete: ' + (e.code || e.message)); }
+}
+async function getPreview(url) {
+  if (previewCache[url] !== undefined) return previewCache[url];
+  let info = null;
+  try {
+    const r = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url));
+    const j = await r.json();
+    if (j.status === 'success') { const d = j.data; info = {title: d.title || '', desc: d.description || '', img: (d.image && d.image.url) || (d.logo && d.logo.url) || '', site: d.publisher || ''}; }
+  } catch (e) {}
+  const yt = url.match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);
+  if (yt) {
+    info = info || {title: 'YouTube video', desc: '', img: '', site: 'YouTube'};
+    info.img = `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
+  }
+  previewCache[url] = info; return info;
+}
+function loadPreviews() {
+  document.querySelectorAll('.lp:not([data-done])').forEach(async el => {
+    el.dataset.done = 1;
+    const info = await getPreview(el.dataset.url);
+    if (!info || !(info.title || info.img)) return;
+    el.innerHTML = `<a class="prev" href="${esc(el.dataset.url)}" target="_blank" rel="noopener">${info.img ? `<img src="${esc(info.img)}" alt="">` : ''}<div><small>${esc(info.site)}</small><b>${esc(info.title)}</b><span>${esc((info.desc || '').slice(0, 160))}</span></div></a>`;
+    const box = $('msgs'); if (el.closest('.msg') === box.lastElementChild) box.scrollTop = box.scrollHeight;
+  });
 }
 async function postMessage(extra) {
-  const base = {sender: profile.displayName || 'Voxer', senderPhoto: profile.photoURL || '', text: '', mediaUrl: '', mediaType: '', timestamp: firebase.firestore.FieldValue.serverTimestamp()};
+  const base = {senderUid: me.uid, sender: profile.displayName || 'Voxer', senderPhoto: profile.photoURL || '', text: '', mediaUrl: '', mediaType: '', timestamp: firebase.firestore.FieldValue.serverTimestamp()};
   if (view.type === 'server') { if (!channel) return toast('Pick a text channel first!'); base.serverId = view.id; base.channel = channel.id; }
   else if (view.type === 'group') base.groupId = view.id;
   else return;
@@ -337,11 +386,24 @@ document.addEventListener('click', () => $('menu').classList.add('hidden'));
 function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
 async function catbox(file) {
   const fd = new FormData(); fd.append('reqtype', 'fileupload'); fd.append('fileToUpload', file);
-  const r = await fetch('https://catbox.moe/user/api.php', {method: 'POST', body: fd});
-  const u = (await r.text()).trim(); if (!u.startsWith('http')) throw new Error(u); return u;
+  let r;
+  try { r = await fetch('https://catbox.moe/user/api.php', {method: 'POST', body: fd}); }
+  catch (e) { throw new Error('could not reach Catbox (it may be down or blocked by the browser)'); }
+  const u = (await r.text()).trim(); if (!u.startsWith('http')) throw new Error(u || 'Catbox sent no link'); return u;
 }
 async function upload(inp) {
   const f = inp.files[0]; inp.value = ''; if (!f) return;
+  sendFile(f);
+}
+// Paste a screenshot (Ctrl+V) anywhere in an open chat to upload it
+document.addEventListener('paste', e => {
+  if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return;
+  const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
+  if (!it) return;
+  const f = it.getAsFile(); if (!f) return;
+  e.preventDefault(); sendFile(f);
+});
+async function sendFile(f) {
   toast('Uploading… ⏳');
   try {
     const url = await catbox(f);
