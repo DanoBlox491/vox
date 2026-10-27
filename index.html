@@ -202,9 +202,6 @@
             <div class="chat-header">
                 <span style="color: var(--muted); font-size: 20px;" id="channel-icon">#</span>
                 <span id="active-channel-name">select-a-channel</span>
-                <div style="margin-left: auto;">
-                    <button class="btn" style="width: auto; padding: 6px 12px; font-size: 12px; background: var(--green); margin: 0;" onclick="startCall()">📹 Start Video Call</button>
-                </div>
             </div>
             <div class="messages-container" id="messages-container">
                 <p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a server and channel to start chatting.</p>
@@ -453,6 +450,13 @@
             currentServerName = name;
             document.getElementById('server-name').innerText = name;
             document.getElementById('webhook-url').value = webhook || "";
+            
+            // Reset channel view when switching servers
+            currentChannel = null;
+            document.getElementById('active-channel-name').innerText = "select-a-channel";
+            document.getElementById('channel-icon').innerText = "#";
+            document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 20px;">Select a channel to start chatting.</p>`;
+
             listenToServers();
             loadChannels();
         }
@@ -481,7 +485,7 @@
                     if (data.type === 'voice') {
                         item.classList.add('voice-channel');
                         item.textContent = '🔊 ' + data.name;
-                        item.onclick = () => startCall();
+                        item.onclick = () => selectChannel(data.name, 'voice', item);
                         document.getElementById('voice-channels').appendChild(item);
                     } else {
                         if (currentChannel === data.name && currentChannelType === 'text') {
@@ -529,8 +533,18 @@
             if (element) element.classList.add('active');
 
             if (unsubscribeMessages) unsubscribeMessages();
-            if (type === 'text') listenToMessages();
-            else document.getElementById('messages-container').innerHTML = `<p style="color: var(--muted); text-align: center;">Join the voice channel to start talking.</p>`;
+            
+            if (type === 'text') {
+                listenToMessages();
+            } else {
+                // Voice channel view
+                document.getElementById('messages-container').innerHTML = `
+                    <div style="text-align: center; margin-top: 50px;">
+                        <p style="color: var(--muted); font-size: 16px; margin-bottom: 20px;">You are in the voice channel: <strong>${escapeHtml(channelName)}</strong></p>
+                        <button class="btn" style="width: auto; padding: 12px 30px; background: var(--green); font-size: 16px;" onclick="startCall()">📹 Join Video Call</button>
+                    </div>
+                `;
+            }
         }
 
         /* ============================================================
@@ -654,7 +668,7 @@
         async function sendMessage() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if (!text || !currentServerId || !currentChannel) return;
+            if (!text || !currentServerId || !currentChannel || currentChannelType !== 'text') return;
             input.value = "";
 
             try {
@@ -683,11 +697,11 @@
         }
 
         /* ============================================================
-           WEBRTC — Voice/Video Calling (fixed offer/answer + ICE exchange)
+           WEBRTC — Voice/Video Calling
            ============================================================ */
         async function startCall() {
             if (!currentServerId || !currentChannel) {
-                return alert("Pick a channel first!");
+                return alert("Pick a voice channel first!");
             }
 
             callRoomId = currentServerId + '_' + currentChannel;
@@ -719,7 +733,11 @@
 
             unsubscribeCall = callDocRef.onSnapshot(async snapshot => {
                 const data = snapshot.data();
-                if (!data) return;
+                if (!data) {
+                    // Caller hung up / doc deleted
+                    endCall(); 
+                    return;
+                }
                 if (data.answer && peerConnection && !peerConnection.currentRemoteDescription) {
                     try {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
@@ -756,6 +774,13 @@
                         peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(() => {});
                     }
                 });
+            });
+            
+            // Listen for caller leaving
+            unsubscribeCall = callDocRef.onSnapshot(snapshot => {
+                if (!snapshot.exists) {
+                    endCall();
+                }
             });
 
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -812,7 +837,7 @@
         async function uploadFile() {
             const fileInput = document.getElementById('file-input');
             const file = fileInput.files[0];
-            if (!file || !currentServerId || !currentChannel) return;
+            if (!file || !currentServerId || !currentChannel || currentChannelType !== 'text') return;
 
             const status = document.getElementById('upload-status');
             status.style.display = 'inline-block';
