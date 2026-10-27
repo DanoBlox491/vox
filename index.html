@@ -154,6 +154,9 @@ input:focus,textarea:focus{border-color:var(--blue)}
 </div>
 
 <script>
+/* 🤖 YOUR RENDER BOT URL */
+const BOT_API_URL = 'https://vox-bot-04l6.onrender.com/api/bot';
+
 const firebaseConfig = {
   apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
   authDomain: "vox-chat-979fd.firebaseapp.com",
@@ -194,7 +197,7 @@ async function signup() {
 }
 let googleBusy = false;
 async function google() {
-  if (googleBusy) return; // stops a second popup from cancelling the first
+  if (googleBusy) return;
   googleBusy = true; $('lErr').textContent = '';
   try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
   catch (e) {
@@ -214,7 +217,7 @@ auth.onAuthStateChanged(async user => {
   me = user;
   $('lErr').textContent = ''; $('sErr').textContent = '';
   const ref = db.collection('vox_users').doc(user.uid);
-  $('landing').classList.add('hidden'); $('app').classList.remove('hidden'); // show the app first
+  $('landing').classList.add('hidden'); $('app').classList.remove('hidden');
   $('meName').textContent = user.displayName || 'You'; $('meAv').src = user.photoURL || DEFAULT_AV;
   try {
     const snap = await ref.get();
@@ -445,6 +448,23 @@ async function postMessage(extra) {
   else if (view.type === 'group') base.groupId = view.id;
   else return;
   await db.collection('vox_messages').add({...base, ...extra});
+  
+  // 🤖 BOT INTEGRATION: Send message to Render backend
+  if (extra.text && BOT_API_URL) {
+    fetch(BOT_API_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        text: extra.text,
+        sender: base.sender,
+        groupId: base.groupId || null,
+        serverId: base.serverId || null,
+        channel: base.channel || null
+      })
+    }).catch(err => console.log("Bot API error:", err));
+  }
+
+  // Old Discord webhook logic
   if (view.type === 'server' && extra.text) {
     const s = servers.find(x => x.id === view.id);
     if (s && s.webhookUrl) fetch(s.webhookUrl, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({content: `${base.sender}: ${extra.text}`})}).catch(() => {});
@@ -456,11 +476,10 @@ async function send() {
   try { await postMessage({text: v}); } catch (e) { toast('Could not send: ' + e.message); }
 }
 
-/* ---------- BUG FIX 3: upload menu ---------- */
+/* ---------- UPLOAD MENU ---------- */
 function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); }
 document.addEventListener('click', () => $('menu').classList.add('hidden'));
 function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
-// Your Cloudinary details (uploads for photos, videos, audio, files)
 const CLOUDINARY = {cloudName: 'x9rwrmqe', uploadPreset: 'vox_uploads'};
 async function cloudUpload(file) {
   const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', CLOUDINARY.uploadPreset);
@@ -483,7 +502,6 @@ async function upload(inp) {
   const f = inp.files[0]; inp.value = ''; if (!f) return;
   sendFile(f);
 }
-// Paste a screenshot (Ctrl+V) anywhere in an open chat to upload it
 document.addEventListener('paste', e => {
   if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return;
   const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
@@ -491,44 +509,24 @@ document.addEventListener('paste', e => {
   const f = it.getAsFile(); if (!f) return;
   e.preventDefault(); sendFile(f);
 });
-
 async function sendFile(f) {
-  // 🛑 Check size first (max 25MB on Cloudinary free tier)
-  if (f.size > 25 * 1024 * 1024) {
-    return toast('File is too big! Max 25MB on the free plan.');
-  }
-
-  // ⏳ Add Optimistic UI Loading Bubble
+  if (f.size > 25 * 1024 * 1024) return toast('File is too big! Max 25MB on the free plan.');
   const tempId = 'temp_upload_' + Date.now();
   const box = $('msgs');
   if (box) {
     const tempMsg = document.createElement('div');
-    tempMsg.className = 'msg';
-    tempMsg.id = tempId;
+    tempMsg.className = 'msg'; tempMsg.id = tempId;
     tempMsg.innerHTML = `
-      <div class="avatar" style="display:flex;align-items:center;justify-content:center;background:var(--p1);border:2px solid var(--blue);">
-        <div class="spinner"></div>
-      </div>
-      <div class="body">
-        <span class="n">Uploading...</span>
-        <div style="color:var(--mut);font-size:13px;margin-top:4px;">Processing <b>${esc(f.name)}</b></div>
-      </div>
-    `;
-    box.appendChild(tempMsg);
-    box.scrollTop = box.scrollHeight;
+      <div class="avatar" style="display:flex;align-items:center;justify-content:center;background:var(--p1);border:2px solid var(--blue);"><div class="spinner"></div></div>
+      <div class="body"><span class="n">Uploading...</span><div style="color:var(--mut);font-size:13px;margin-top:4px;">Processing <b>${esc(f.name)}</b></div></div>`;
+    box.appendChild(tempMsg); box.scrollTop = box.scrollHeight;
   }
-
   try {
     const url = await catbox(f);
     const type = f.type.startsWith('image') ? 'image' : f.type.startsWith('video') ? 'video' : f.type.startsWith('audio') ? 'audio' : 'file';
     await postMessage({mediaUrl: url, mediaType: type, text: type === 'file' ? f.name : ''});
-  } catch (e) { 
-    toast('Upload failed: ' + e.message); 
-  } finally { 
-    // 🧹 Remove temp bubble
-    const el = document.getElementById(tempId);
-    if (el) el.remove();
-  }
+  } catch (e) { toast('Upload failed: ' + e.message); } 
+  finally { const el = document.getElementById(tempId); if (el) el.remove(); }
 }
 
 /* ---------- modals ---------- */
@@ -580,7 +578,7 @@ async function createServer() {
   const name = $('svName').value.trim(); if (!name) return toast('Give your server a name!');
   const ref = await db.collection('vox_servers').add({name, owner: me.uid, webhookUrl: $('svHook').value.trim(), createdAt: firebase.firestore.FieldValue.serverTimestamp()});
   await db.collection('vox_channels').add({serverId: ref.id, name: 'general', type: 'text', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal(); openView('server', ref.id); // channels listener auto-selects #general
+  closeModal(); openView('server', ref.id);
 }
 function addChannelModal() {
   modal(`<h3>New channel</h3><input id="chName" placeholder="channel-name"><div class="row"><button id="tText" class="pri" onclick="this.dataset.s=1;this.nextElementSibling.dataset.s=0;this.classList.add('pri');this.nextElementSibling.classList.remove('pri')" data-s="1"># Text</button><button onclick="this.dataset.s=1;this.previousElementSibling.dataset.s=0;this.classList.add('pri');this.previousElementSibling.classList.remove('pri')" data-s="0">🔊 Voice</button></div><div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addChannel()">Create</button></div>`);
@@ -598,7 +596,6 @@ async function setWebhook(id) {
   if (url === null) return;
   try { await db.collection('vox_servers').doc(id).update({webhookUrl: url.trim()}); toast('Webhook saved 🤖'); } catch (e) { dbErr(e); }
 }
-// BUG FIX 1: delete server + all channels + all messages
 async function deleteServer(id) {
   if (!confirm('Delete this server, all its channels and all its messages? This cannot be undone.')) return;
   try {
