@@ -49,7 +49,8 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 /* 🔴 SIDEBAR ITEM & UNREAD BADGE */
 .item{padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--mut);display:flex;align-items:center;gap:8px;justify-content:space-between;transition:.2s;position:relative;}
 .item:hover{background:var(--p2);color:var(--txt);box-shadow:0 0 10px #00b2ff22}.item.on{background:var(--p3);color:#fff;border-left:3px solid var(--blue);box-shadow:0 0 15px #00b2ff44}
-.unread-dot { width: 10px; height: 10px; background: var(--pink); border-radius: 50%; box-shadow: 0 0 10px var(--pink); display: inline-block; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.unread-dot { width: 10px; height: 10px; background: var(--pink); border-radius: 50%; box-shadow: 0 0 10px var(--pink); display: inline-block; flex-shrink: 0; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.ico .unread-dot { position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; border: 2px solid var(--bg); }
 @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
 
 .avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--p3);flex-shrink:0;cursor:pointer;transition:.2s}
@@ -191,7 +192,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
   <p style="text-align:center;margin-top:14px">
     <button class="pri" onclick="shareScreen()" id="share-screen-btn" style="display:none;">🖥️ Share Screen</button>
     <button class="danger" onclick="hangup()">End call</button>
-  </p>
+  </p></div>
 </div>
 
 <script>
@@ -222,34 +223,46 @@ let typingTimer = null;
 let typingUnsub = null;
 
 /* 🔴 UNREAD TRACKER */
-let unreadChannels = {}; 
+let unreadChannels = {};
 let unreadCount = 0;
 let originalTitle = "Vox";
 
-/* 🔊 AUDIO UNLOCKER (Browsers block audio until user clicks) */
-let audioCtx = null;
-['click', 'keydown', 'mousemove'].forEach(e => document.addEventListener(e, () => {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-}));
-
+/* ============================================================
+   🔊 PING SOUND
+   A tiny WAV file is generated in code and played with a normal
+   <audio> element. Browsers only allow sound after the person has
+   clicked or typed on the page once, so we "unlock" it on the first click.
+   ============================================================ */
+function makePingWav() {
+  const rate = 22050, n = Math.floor(rate * 0.45);
+  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) {
+    const t = i / rate, f = t < 0.12 ? 880 : 1320;
+    v.setInt16(44 + i * 2, Math.sin(2 * Math.PI * f * t) * Math.exp(-6 * t) * 0.6 * 32767, true);
+  }
+  return URL.createObjectURL(new Blob([buf], {type: 'audio/wav'}));
+}
+const pingAudio = new Audio(makePingWav());
+pingAudio.preload = 'auto';
+let audioUnlocked = false;
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  pingAudio.muted = true;
+  const done = () => { pingAudio.pause(); pingAudio.currentTime = 0; pingAudio.muted = false; };
+  const p = pingAudio.play();
+  if (p && p.then) p.then(done).catch(() => { pingAudio.muted = false; audioUnlocked = false; }); else done();
+  if ("Notification" in window && Notification.permission === 'default') Notification.requestPermission();
+}
+['click', 'keydown', 'touchstart'].forEach(e => document.addEventListener(e, unlockAudio));
 function playPing() {
-    if (!audioCtx) return; // Audio not unlocked yet
-    try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
-    } catch(e) { }
+  try { pingAudio.muted = false; pingAudio.currentTime = 0; const p = pingAudio.play(); if (p && p.catch) p.catch(err => console.warn('Ping blocked until you click the page once:', err)); }
+  catch (e) { console.warn(e); }
 }
 
 async function loadAllEmojis() {
@@ -270,19 +283,74 @@ function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.t
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function stop(k) { if (unsubs[k]) { unsubs[k](); unsubs[k] = null; } }
 
-if ("Notification" in window) Notification.requestPermission();
-
+/* ============================================================
+   🔴 NOTIFICATIONS (red dots + tab title + ping)
+   One listener watches NEW messages from every room you are part of
+   (your groups, your DMs, and servers you own or have opened), so
+   dots appear even when you are looking at a different chat.
+   ============================================================ */
 function updateTabBadge() {
     document.title = unreadCount > 0 ? `(${unreadCount}) 🔴 ${originalTitle}` : originalTitle;
 }
-document.addEventListener("visibilitychange", () => { 
-    if (!document.hidden) { 
-        unreadCount = 0; 
-        unreadChannels = {}; 
-        updateTabBadge(); 
-        renderSide(); // Clear dots when user returns
-    } 
-});
+function recount() {
+    unreadCount = Object.values(unreadChannels).reduce((a, b) => a + (b > 0 ? b : 0), 0);
+    updateTabBadge();
+}
+function refreshUnread() { recount(); renderRail(); renderSide(); }
+function currentKey() {
+    if (view.type === 'group' && view.id) return `group_${view.id}`;
+    if (view.type === 'dm' && view.id) return getRoomId();
+    if (view.type === 'server' && view.id && channel) return `server_${view.id}_${channel.id}`;
+    return null;
+}
+function clearCurrentUnread() { const k = currentKey(); if (k && unreadChannels[k]) { unreadChannels[k] = 0; refreshUnread(); } }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) clearCurrentUnread(); });
+window.addEventListener("focus", clearCurrentUnread);
+
+function markVisited(id) {
+    try { const a = JSON.parse(localStorage.getItem('vox_visited_servers') || '[]'); if (!a.includes(id)) { a.push(id); localStorage.setItem('vox_visited_servers', JSON.stringify(a)); } } catch (e) {}
+}
+function isTrackedServer(id) {
+    const s = servers.find(x => x.id === id);
+    if (s && s.owner === me.uid) return true;
+    try { return JSON.parse(localStorage.getItem('vox_visited_servers') || '[]').includes(id); } catch (e) { return false; }
+}
+function startNotifier() {
+    stop('notif');
+    let ready = false;
+    const since = firebase.firestore.Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+    unsubs.notif = db.collection('vox_messages').where('timestamp', '>', since).onSnapshot(s => {
+        if (!ready) { ready = true; return; } // ignore the old messages that load first
+        s.docChanges().forEach(ch => { if (ch.type === 'added') handleIncoming(ch.doc.data()); });
+    }, e => console.warn('Notifier error:', e));
+}
+function handleIncoming(data) {
+    if (!me || !data || data.senderUid === me.uid || data.senderUid === 'bot' || data.senderUid === 'discord_import') return;
+    let key, isCurrent = false;
+    if (data.groupId) {
+        if (!groups.find(g => g.id === data.groupId)) return;
+        key = `group_${data.groupId}`;
+        isCurrent = view.type === 'group' && view.id === data.groupId;
+    } else if (data.dmId) {
+        if (!data.dmId.split('_').includes(me.uid)) return;
+        key = data.dmId;
+        isCurrent = view.type === 'dm' && getRoomId() === data.dmId;
+    } else if (data.serverId) {
+        if (!isTrackedServer(data.serverId)) return;
+        key = `server_${data.serverId}_${data.channel}`;
+        isCurrent = view.type === 'server' && view.id === data.serverId && channel && channel.id === data.channel;
+    } else return;
+
+    const away = document.hidden || !document.hasFocus();
+    if (isCurrent && !away) return; // you are already looking at it
+
+    unreadChannels[key] = (unreadChannels[key] || 0) + 1;
+    refreshUnread();
+    playPing();
+    if (away && "Notification" in window && Notification.permission === "granted") {
+        try { new Notification(`New message from ${data.sender}`, { body: data.text || "Sent an attachment", icon: data.senderPhoto || DEFAULT_AV }); } catch (e) {}
+    }
+}
 
 const EMOJIS = ['😀','😂','🤣','😊','😍','😎','🔥','🚀','👑','💀','👋','👍','👎','🙏','💪','🎉','💯','😭','😡','🤔','🤖','💩','👻','🎮','❤️'];
 const emojiMenu = $('emoji-menu');
@@ -373,7 +441,7 @@ function logout() { auth.signOut(); closeModal(); }
 function dbErr(e) { console.error(e); toast('Database error: ' + (e.code || e.message)); }
 
 auth.onAuthStateChanged(async user => {
-  if (!user) { me = null; Object.keys(unsubs).forEach(stop); $('app').classList.add('hidden'); $('landing').classList.remove('hidden'); return; }
+  if (!user) { me = null; Object.keys(unsubs).forEach(stop); unreadChannels = {}; recount(); $('app').classList.add('hidden'); $('landing').classList.remove('hidden'); return; }
   const last = +localStorage.getItem('vox_last_active') || Date.now();
   if (Date.now() - last > FIVE_DAYS) { localStorage.removeItem('vox_last_active'); auth.signOut(); return; }
   localStorage.setItem('vox_last_active', Date.now());
@@ -404,6 +472,7 @@ auth.onAuthStateChanged(async user => {
   unsubs.servers = db.collection('vox_servers').onSnapshot(s => { servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
   stop('groups');
   unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => { groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
+  unreadChannels = {}; recount(); startNotifier();
   handleJoin(); listenCalls();
 });
 
@@ -417,11 +486,12 @@ async function handleJoin() {
   history.replaceState({}, '', location.pathname);
 }
 function renderMe() { $('meName').textContent = profile.displayName || 'You'; $('meAv').src = profile.photoURL || DEFAULT_AV; }
+function hasUnread(prefix) { return Object.keys(unreadChannels).some(k => k.startsWith(prefix) && unreadChannels[k] > 0); }
 function renderRail() {
-  const r = $('rail');
-  let h = `<div class="ico ${view.type === 'home' ? 'on' : ''}" title="Home" onclick="openView('home')">🏠</div>`;
-  servers.forEach(s => h += `<div class="ico ${view.type === 'server' && view.id === s.id ? 'on' : ''}" title="${esc(s.name)}" onclick="openView('server','${s.id}')">${esc((s.name || '?')[0].toUpperCase())}</div>`);
-  groups.forEach(g => h += `<div class="ico grp ${view.type === 'group' && view.id === g.id ? 'on' : ''}" title="${esc(g.name)}" onclick="openView('group','${g.id}')">${esc((g.name || '?')[0].toUpperCase())}</div>`);
+  const r = $('rail'), dot = '<span class="unread-dot"></span>';
+  let h = `<div class="ico ${view.type === 'home' || view.type === 'dm' ? 'on' : ''}" title="Home" onclick="openView('home')">🏠${hasUnread('dm_') ? dot : ''}</div>`;
+  servers.forEach(s => h += `<div class="ico ${view.type === 'server' && view.id === s.id ? 'on' : ''}" title="${esc(s.name)}" onclick="openView('server','${s.id}')">${esc((s.name || '?')[0].toUpperCase())}${hasUnread('server_' + s.id + '_') ? dot : ''}</div>`);
+  groups.forEach(g => h += `<div class="ico grp ${view.type === 'group' && view.id === g.id ? 'on' : ''}" title="${esc(g.name)}" onclick="openView('group','${g.id}')">${esc((g.name || '?')[0].toUpperCase())}${hasUnread('group_' + g.id) ? dot : ''}</div>`);
   h += `<div class="ico" title="Create server" onclick="createServerModal()">＋</div><div class="ico grp" title="Create group" onclick="createGroupModal()">👥</div>`;
   r.innerHTML = h;
 }
@@ -434,6 +504,7 @@ async function openView(type, id) {
   $('topBtns').innerHTML = '';
   
   if (type === 'server') {
+    markVisited(id);
     unsubs.chan = db.collection('vox_channels').where('serverId', '==', id).onSnapshot(s => {
       channels = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
       if (view.type === 'server' && view.id === id && (!channel || !channels.find(c => c.id === channel.id))) {
@@ -454,11 +525,9 @@ async function openView(type, id) {
     $('topTitle').textContent = '💬 ' + (friend ? friend.displayName : 'Direct Message');
     $('composer').classList.remove('hidden');
     listenMessages(); listenTyping();
-    const dmId = [me.uid, id].sort().join('_');
-    unreadChannels[`dm_${dmId}`] = 0; // Clear dot
+    unreadChannels[getRoomId()] = 0; // Clear dot
   }
-  renderRail(); renderSide();
-  unreadCount = 0; updateTabBadge();
+  recount(); renderRail(); renderSide();
 }
 function selectChannel(cid) {
   const c = channels.find(x => x.id === cid); if (!c) return;
@@ -469,14 +538,11 @@ function selectChannel(cid) {
     renderSide(); return;
   }
   channel = c;
+  unreadChannels[`server_${view.id}_${cid}`] = 0; // Clear dot for this channel
   $('topTitle').textContent = '# ' + c.name;
   $('composer').classList.remove('hidden');
-  listenMessages(); listenTyping(); renderSide();
-  
-  // Clear dot for this channel
-  unreadChannels[`server_${view.id}_${cid}`] = 0;
-  unreadCount = 0; 
-  updateTabBadge();
+  listenMessages(); listenTyping();
+  recount(); renderRail(); renderSide();
 }
 function renderSide() {
   const l = $('list'), t = $('sideTitle'), b = $('sideBtns');
@@ -521,38 +587,6 @@ function listenMessages() {
   const chId = channel ? channel.id : null;
   
   unsubs.msgs = q.onSnapshot(s => {
-    s.docChanges().forEach(change => {
-      if (change.type === "added") {
-        const data = change.doc.data();
-        if (data.senderUid !== me.uid && data.senderUid !== 'bot' && data.senderUid !== 'discord_import') {
-          const isCurrentRoom = (view.type === 'server' && data.channel === chId) || (view.type === 'group' && data.groupId === view.id) || (view.type === 'dm' && data.dmId === getRoomId());
-          
-          if (document.hidden || !isCurrentRoom) {
-              unreadCount++; 
-              updateTabBadge(); 
-              playPing(); // 🔊 Play Sound!
-              
-              // Show visual dot on the sidebar item
-              if (view.type === 'server') {
-                  const roomKey = `server_${view.id}_${data.channel}`;
-                  unreadChannels[roomKey] = (unreadChannels[roomKey] || 0) + 1;
-                  renderSide();
-              } else if (view.type === 'group') {
-                  const roomKey = `group_${view.id}`;
-                  unreadChannels[roomKey] = (unreadChannels[roomKey] || 0) + 1;
-              } else if (view.type === 'dm') {
-                  const roomKey = data.dmId;
-                  unreadChannels[roomKey] = (unreadChannels[roomKey] || 0) + 1;
-                  renderSide();
-              }
-          }
-          
-          if (document.hidden && Notification.permission === "granted") {
-            new Notification(`New message from ${data.sender}`, { body: data.text || "Sent an attachment", icon: data.senderPhoto || DEFAULT_AV });
-          }
-        }
-      }
-    });
     let m = s.docs.map(d => ({id: d.id, ...d.data()}));
     if (view.type === 'server') m = m.filter(x => x.channel === chId);
     m.sort((a, b) => (a.timestamp?.seconds || 9e9) - (b.timestamp?.seconds || 9e9));
