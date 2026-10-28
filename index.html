@@ -2,15 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Vox</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0d14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vox">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230b0d14' stroke='%2300b2ff' stroke-width='4'/%3E%3Cpath d='M30 35 L50 65 L70 35' fill='none' stroke='%2300b2ff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='50' cy='50' r='8' fill='%23ff2e93'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <style>
-:root{--bg:#0b0d14;--p1:#12151f;--p2:#191d2b;--p3:#232839;--blue:#00b2ff;--pink:#ff2e93;--txt:#e8ecf5;--mut:#8a93ad}
+:root{--bg:#0b0d14;--p1:#12151f;--p2:#191d2b;--p3:#232839;--blue:#00b2ff;--pink:#ff2e93;--txt:#e8ecf5;--mut:#8a93ad;--red:#d6334a}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Rubik,sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden}
 button{font-family:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;font-weight:700;color:#fff;background:var(--p3);transition:.2s}
@@ -19,14 +25,17 @@ button.pri{background:var(--blue);color:#001a2b;box-shadow:0 0 18px #00b2ff66}
 button.pri:hover{box-shadow:0 0 25px #00b2ffaa}
 button.pink{background:var(--pink);box-shadow:0 0 18px #ff2e9355}
 button.pink:hover{box-shadow:0 0 25px #ff2e93aa}
-button.danger{background:#d6334a;box-shadow:0 0 15px #d6334a66}
-input,textarea{font-family:inherit;width:100%;padding:11px 13px;border-radius:10px;border:2px solid var(--p3);background:var(--p1);color:var(--txt);outline:0;margin-bottom:10px;transition:.2s}
-input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff33}
+button.danger{background:var(--red);box-shadow:0 0 15px #d6334a66}
+button.success{background:#3ddc84;color:#032;box-shadow:0 0 15px #3ddc8466}
+input,textarea,select{font-family:inherit;width:100%;padding:11px 13px;border-radius:10px;border:2px solid var(--p3);background:var(--p1);color:var(--txt);outline:0;margin-bottom:10px;transition:.2s}
+input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff33}
 .hidden{display:none!important}
+
 /* 🎨 CUSTOM LOGO STYLES */
 .logo-container { display: flex; align-items: center; gap: 12px; font-size: 32px; font-weight: 900; color: var(--blue); text-shadow: 0 0 20px #00b2ff66; margin-bottom: 20px; }
 .logo-svg { width: 48px; height: 48px; filter: drop-shadow(0 0 12px #00b2ff88); transition: transform 0.3s; }
 .logo-svg:hover { transform: scale(1.05) rotate(-5deg); }
+
 /* landing */
 #landing{display:grid;grid-template-columns:1fr 1fr;height:100vh}
 .side{display:flex;flex-direction:column;justify-content:center;padding:6vw;position:relative}
@@ -36,42 +45,37 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 .side p.sub{color:var(--mut);margin-bottom:22px}
 .side button{width:100%;margin-bottom:10px}
 .err{color:#ff6b81;min-height:20px;font-size:14px}
+
 /* app */
 #app{display:grid;grid-template-columns:72px 240px 1fr;height:100vh}
 #rail{background:var(--bg);display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0;overflow-y:auto}
-.ico{position:relative;width:48px;height:48px;border-radius:24px;background:var(--p3);display:grid;place-items:center;font-weight:900;cursor:pointer;transition:.15s;overflow:visible;flex-shrink:0;box-shadow:0 0 0 transparent}
+.ico{position:relative;width:48px;height:48px;border-radius:24px;background:var(--p3);display:grid;place-items:center;font-weight:900;cursor:pointer;transition:.15s;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 transparent}
+.ico img { width: 100%; height: 100%; object-fit: cover; }
 .ico:hover,.ico.on{border-radius:14px;background:var(--blue);color:#001a2b;box-shadow:0 0 15px #00b2ff88}
 .ico.grp{background:#2b3a2f}.ico.grp.on{background:#3ddc84;color:#032;box-shadow:0 0 15px #3ddc8488}
 #side2{background:var(--p1);display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--p3)}
 #side2 header{padding:14px;font-weight:900;border-bottom:2px solid var(--p2);display:flex;justify-content:space-between;align-items:center;gap:6px}
 #list{flex:1;overflow-y:auto;padding:8px}
-#side2 header{flex-wrap:wrap}
-#sideBtns{display:flex;gap:4px;flex-wrap:wrap}
-#sideBtns button{padding:6px 9px;font-size:13px}
-
-/* 🔴 SIDEBAR ITEM & UNREAD BADGE */
 .item{padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--mut);display:flex;align-items:center;gap:8px;justify-content:space-between;transition:.2s;position:relative;}
 .item:hover{background:var(--p2);color:var(--txt);box-shadow:0 0 10px #00b2ff22}.item.on{background:var(--p3);color:#fff;border-left:3px solid var(--blue);box-shadow:0 0 15px #00b2ff44}
-.unread-dot { width: 10px; height: 10px; background: var(--pink); border-radius: 50%; box-shadow: 0 0 10px var(--pink); display: inline-block; flex-shrink: 0; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.ico .unread-dot { position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; border: 2px solid var(--bg); }
+.unread-dot { width: 10px; height: 10px; background: var(--pink); border-radius: 50%; box-shadow: 0 0 10px var(--pink); display: inline-block; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-
 .avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--p3);flex-shrink:0;cursor:pointer;transition:.2s}
 .avatar:hover{box-shadow:0 0 10px #00b2ffaa;transform:scale(1.05)}
 #me{padding:10px;background:var(--p2);display:flex;align-items:center;gap:8px;cursor:pointer;transition:.2s}
 #me:hover{background:var(--p3);box-shadow:0 0 15px #00b2ff33}
 #me b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--p2)}
-#top{padding:14px 18px;font-weight:900;border-bottom:2px solid var(--p3);display:flex;justify-content:space-between;align-items:center;gap:8px;box-shadow:0 5px 15px rgba(0,0,0,0.3);z-index:5}
+#top{padding:14px 18px;font-weight:900;border-bottom:2px solid var(--p3);display:flex;justify-content:space-between;align-items:center;gap:8px;box-shadow:0 5px 15px rgba(0,0,0,0.3);z-index:5;flex-wrap:wrap;}
 #msgs{flex:1;overflow-y:auto;padding:16px 18px}
 .msg{display:flex;gap:10px;margin-bottom:14px;animation: fadeIn 0.3s ease-out}
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 .msg .n{font-weight:700;color:#fff;text-shadow:0 0 10px #00b2ff66;cursor:pointer;transition:.2s;display:inline-block}
 .msg .n:hover{color:var(--blue);text-shadow:0 0 15px #00b2ffaa}
 .msg .t{color:var(--mut);font-size:12px;margin-left:6px}
+.msg .status { font-size: 11px; color: var(--pink); font-weight: 600; margin-left: 6px; text-shadow: 0 0 5px #ff2e9366; }
 .msg img.m,.msg video{max-width:320px;max-height:260px;border-radius:10px;margin-top:6px;display:block;box-shadow:0 0 15px rgba(0,0,0,0.5)}
 .msg a{color:var(--blue);text-shadow:0 0 5px #00b2ff66}
-
 #typing-indicator { position: absolute; bottom: 60px; left: 25px; font-size: 12px; font-weight: 600; color: var(--blue); text-shadow: 0 0 8px #00b2ff88; font-style: italic; }
 #composer{padding:14px 18px;display:flex;gap:8px;position:relative;align-items:center;border-top:1px solid var(--p3)}
 #composer input{margin:0;border-radius:10px}
@@ -85,10 +89,31 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 #emoji-menu div:hover{background:var(--p3);transform:scale(1.1)}
 .msg{position:relative}
 .msg .body{min-width:0;flex:1;word-break:break-word}
-.msg .acts{position:absolute;right:0;top:-8px;display:none;gap:2px;background:var(--p1);border:2px solid var(--p3);border-radius:8px;padding:2px;box-shadow:0 0 10px #000}
+.msg .acts{position:absolute;right:0;top:-8px;display:none;gap:2px;background:var(--p1);border:2px solid var(--p3);border-radius:8px;padding:2px;box-shadow:0 0 10px #000;z-index:2}
 .msg:hover .acts{display:flex}
 .acts button{padding:3px 8px;font-size:13px;background:transparent}
 @media(hover:none){.msg .acts{display:flex;position:static;margin-top:4px;width:max-content}}
+
+/* 😀 REACTIONS & EDIT STYLES */
+.reactions-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.reaction-pill { background: var(--p3); border: 1px solid transparent; padding: 2px 6px; border-radius: 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: 0.2s; }
+.reaction-pill:hover { background: #35373c; }
+.reaction-pill.mine { border-color: var(--blue); background: rgba(0, 178, 255, 0.15); }
+.reaction-picker { position: absolute; top: -40px; right: 100px; background: var(--p1); border: 2px solid var(--blue); border-radius: 20px; padding: 6px 12px; display: flex; gap: 8px; box-shadow: 0 5px 20px #000a; z-index: 10; animation: fadeIn 0.2s; }
+.reaction-picker span { cursor: pointer; font-size: 20px; transition: transform 0.1s; }
+.reaction-picker span:hover { transform: scale(1.3); }
+
+/* 🔍 SEARCH & PINNED STYLES */
+#search-bar { background: var(--bg); border: 1px solid var(--p3); border-radius: 20px; padding: 6px 12px; color: white; font-size: 13px; width: 200px; margin: 0; }
+#search-bar:focus { border-color: var(--blue); width: 250px; }
+.pin-btn { background: transparent; font-size: 18px; padding: 0 4px; }
+.pin-btn.pinned { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
+
+/* 🎙️ CALL CONTROLS */
+.call-controls { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+.call-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: 0.2s; }
+.call-btn.muted { background: var(--red); color: white; box-shadow: 0 0 15px var(--red); }
+
 .prev{display:block;max-width:380px;margin-top:8px;background:var(--p1);border-left:4px solid var(--blue);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--txt);transition:.2s}
 .prev:hover{box-shadow:0 0 15px #00b2ff44}
 .prev img{width:100%;display:block;max-height:210px;object-fit:cover}
@@ -164,7 +189,16 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
     <div id="me" onclick="openProfile()"><img class="avatar" id="meAv"><b id="meName"></b><span>⚙️</span></div>
   </div>
   <div id="main">
-    <div id="top"><span id="topTitle">Pick something on the left</span><span id="topBtns"></span></div>
+    <div id="top">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="topTitle">Pick something on the left</span>
+      </div>
+      <div id="top-search" class="hidden" style="display:flex; gap:8px; align-items:center;">
+        <input id="search-bar" placeholder="🔍 Search messages..." oninput="handleSearch()">
+        <button onclick="togglePinned()" id="pin-toggle-btn" class="pin-btn" title="Show Pinned Only">📌</button>
+      </div>
+      <span id="topBtns"></span>
+    </div>
     <div id="msgs"><div class="empty">No chat open yet. Pick a server, group or friend. 🔥</div></div>
     <div id="typing-indicator" class="hidden"></div>
     <div id="composer" class="hidden">
@@ -190,12 +224,17 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
   <button class="vnav l" id="vprev" onclick="vnav(-1)">‹</button><button class="vnav r" id="vnext" onclick="vnav(1)">›</button>
 </div>
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
+
 <div id="callbox" class="hidden">
-  <div><div class="vids"><video id="localV" autoplay muted playsinline></video><video id="remoteV" autoplay playsinline></video></div>
-  <p style="text-align:center;margin-top:14px">
-    <button class="pri" onclick="shareScreen()" id="share-screen-btn" style="display:none;">🖥️ Share Screen</button>
-    <button class="danger" onclick="hangup()">End call</button>
-  </p></div>
+  <div>
+    <div class="vids"><video id="localV" autoplay muted playsinline></video><video id="remoteV" autoplay playsinline></video></div>
+    <div class="call-controls">
+      <button class="call-btn" onclick="toggleMute()" id="mute-btn" title="Mute/Unmute">🎤</button>
+      <button class="call-btn" onclick="toggleDeafen()" id="deafen-btn" title="Deafen/Undeafen">🎧</button>
+      <button class="pri" onclick="shareScreen()" id="share-screen-btn" style="display:none; height:50px; padding:0 20px;">🖥️ Share Screen</button>
+      <button class="danger call-btn" onclick="hangup()" title="End Call">❌</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -224,48 +263,31 @@ let currentSuggestions = [];
 let MASTER_EMOJI_DICT = {};
 let typingTimer = null;
 let typingUnsub = null;
-
-/* 🔴 UNREAD TRACKER */
-let unreadChannels = {};
+let unreadChannels = {}; 
 let unreadCount = 0;
 let originalTitle = "Vox";
+let currentMessages = []; // For local filtering
+let showPinnedOnly = false;
+let isMuted = false, isDeafened = false;
 
-/* ============================================================
-   🔊 PING SOUND
-   A tiny WAV file is generated in code and played with a normal
-   <audio> element. Browsers only allow sound after the person has
-   clicked or typed on the page once, so we "unlock" it on the first click.
-   ============================================================ */
-function makePingWav() {
-  const rate = 22050, n = Math.floor(rate * 0.45);
-  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
-  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
-  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
-  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-  w(36, 'data'); v.setUint32(40, n * 2, true);
-  for (let i = 0; i < n; i++) {
-    const t = i / rate, f = t < 0.12 ? 880 : 1320;
-    v.setInt16(44 + i * 2, Math.sin(2 * Math.PI * f * t) * Math.exp(-6 * t) * 0.6 * 32767, true);
-  }
-  return URL.createObjectURL(new Blob([buf], {type: 'audio/wav'}));
-}
-const pingAudio = new Audio(makePingWav());
-pingAudio.preload = 'auto';
-let audioUnlocked = false;
-function unlockAudio() {
-  if (audioUnlocked) return;
-  audioUnlocked = true;
-  pingAudio.muted = true;
-  const done = () => { pingAudio.pause(); pingAudio.currentTime = 0; pingAudio.muted = false; };
-  const p = pingAudio.play();
-  if (p && p.then) p.then(done).catch(() => { pingAudio.muted = false; audioUnlocked = false; }); else done();
-  if ("Notification" in window && Notification.permission === 'default') Notification.requestPermission();
-}
-['click', 'keydown', 'touchstart'].forEach(e => document.addEventListener(e, unlockAudio));
+let audioCtx = null;
+['click', 'keydown', 'mousemove'].forEach(e => document.addEventListener(e, () => {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}));
 function playPing() {
-  try { pingAudio.muted = false; pingAudio.currentTime = 0; const p = pingAudio.play(); if (p && p.catch) p.catch(err => console.warn('Ping blocked until you click the page once:', err)); }
-  catch (e) { console.warn(e); }
+    if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    } catch(e) { }
 }
 
 async function loadAllEmojis() {
@@ -286,74 +308,11 @@ function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.t
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function stop(k) { if (unsubs[k]) { unsubs[k](); unsubs[k] = null; } }
 
-/* ============================================================
-   🔴 NOTIFICATIONS (red dots + tab title + ping)
-   One listener watches NEW messages from every room you are part of
-   (your groups, your DMs, and servers you own or have opened), so
-   dots appear even when you are looking at a different chat.
-   ============================================================ */
-function updateTabBadge() {
-    document.title = unreadCount > 0 ? `(${unreadCount}) 🔴 ${originalTitle}` : originalTitle;
-}
-function recount() {
-    unreadCount = Object.values(unreadChannels).reduce((a, b) => a + (b > 0 ? b : 0), 0);
-    updateTabBadge();
-}
-function refreshUnread() { recount(); renderRail(); renderSide(); }
-function currentKey() {
-    if (view.type === 'group' && view.id) return `group_${view.id}`;
-    if (view.type === 'dm' && view.id) return getRoomId();
-    if (view.type === 'server' && view.id && channel) return `server_${view.id}_${channel.id}`;
-    return null;
-}
-function clearCurrentUnread() { const k = currentKey(); if (k && unreadChannels[k]) { unreadChannels[k] = 0; refreshUnread(); } }
-document.addEventListener("visibilitychange", () => { if (!document.hidden) clearCurrentUnread(); });
-window.addEventListener("focus", clearCurrentUnread);
-
-function markVisited(id) {
-    try { const a = JSON.parse(localStorage.getItem('vox_visited_servers') || '[]'); if (!a.includes(id)) { a.push(id); localStorage.setItem('vox_visited_servers', JSON.stringify(a)); } } catch (e) {}
-}
-function isTrackedServer(id) {
-    const s = servers.find(x => x.id === id);
-    if (s && s.owner === me.uid) return true;
-    try { return JSON.parse(localStorage.getItem('vox_visited_servers') || '[]').includes(id); } catch (e) { return false; }
-}
-function startNotifier() {
-    stop('notif');
-    let ready = false;
-    const since = firebase.firestore.Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
-    unsubs.notif = db.collection('vox_messages').where('timestamp', '>', since).onSnapshot(s => {
-        if (!ready) { ready = true; return; } // ignore the old messages that load first
-        s.docChanges().forEach(ch => { if (ch.type === 'added') handleIncoming(ch.doc.data()); });
-    }, e => console.warn('Notifier error:', e));
-}
-function handleIncoming(data) {
-    if (!me || !data || data.senderUid === me.uid) return; // only skip your own messages (bots and Discord messages DO notify)
-    let key, isCurrent = false;
-    if (data.groupId) {
-        if (!groups.find(g => g.id === data.groupId)) return;
-        key = `group_${data.groupId}`;
-        isCurrent = view.type === 'group' && view.id === data.groupId;
-    } else if (data.dmId) {
-        if (!data.dmId.split('_').includes(me.uid)) return;
-        key = data.dmId;
-        isCurrent = view.type === 'dm' && getRoomId() === data.dmId;
-    } else if (data.serverId) {
-        if (!isTrackedServer(data.serverId)) return;
-        key = `server_${data.serverId}_${data.channel}`;
-        isCurrent = view.type === 'server' && view.id === data.serverId && channel && channel.id === data.channel;
-    } else return;
-
-    const away = document.hidden || !document.hasFocus();
-    if (isCurrent && !away) return; // you are already looking at it
-
-    unreadChannels[key] = (unreadChannels[key] || 0) + 1;
-    refreshUnread();
-    playPing();
-    if (away && "Notification" in window && Notification.permission === "granted") {
-        try { new Notification(`New message from ${data.sender}`, { body: data.text || "Sent an attachment", icon: data.senderPhoto || DEFAULT_AV }); } catch (e) {}
-    }
-}
+if ("Notification" in window) Notification.requestPermission();
+function updateTabBadge() { document.title = unreadCount > 0 ? `(${unreadCount}) 🔴 ${originalTitle}` : originalTitle; }
+document.addEventListener("visibilitychange", () => { 
+    if (!document.hidden) { unreadCount = 0; unreadChannels = {}; updateTabBadge(); renderSide(); } 
+});
 
 const EMOJIS = ['😀','😂','🤣','😊','😍','😎','🔥','🚀','👑','💀','👋','👍','👎','🙏','💪','🎉','💯','😭','😡','🤔','🤖','💩','👻','🎮','❤️'];
 const emojiMenu = $('emoji-menu');
@@ -430,7 +389,7 @@ async function signup() {
   try {
     const c = await auth.createUserWithEmailAndPassword($('sEmail').value.trim(), $('sPass').value);
     const defaultUser = $('sName').value.trim() || 'New Voxer';
-    await db.collection('vox_users').doc(c.user.uid).set({ displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), photoURL: '', bio: '', socials: {yt: '', discord: ''}, friends: [] });
+    await db.collection('vox_users').doc(c.user.uid).set({ displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), photoURL: '', bio: '', status: "Online", socials: {yt: '', discord: ''}, friends: [] });
   } catch (e) { $('sErr').textContent = e.message; }
 }
 let googleBusy = false;
@@ -444,7 +403,7 @@ function logout() { auth.signOut(); closeModal(); }
 function dbErr(e) { console.error(e); toast('Database error: ' + (e.code || e.message)); }
 
 auth.onAuthStateChanged(async user => {
-  if (!user) { me = null; Object.keys(unsubs).forEach(stop); unreadChannels = {}; recount(); $('app').classList.add('hidden'); $('landing').classList.remove('hidden'); return; }
+  if (!user) { me = null; Object.keys(unsubs).forEach(stop); $('app').classList.add('hidden'); $('landing').classList.remove('hidden'); return; }
   const last = +localStorage.getItem('vox_last_active') || Date.now();
   if (Date.now() - last > FIVE_DAYS) { localStorage.removeItem('vox_last_active'); auth.signOut(); return; }
   localStorage.setItem('vox_last_active', Date.now());
@@ -457,7 +416,7 @@ auth.onAuthStateChanged(async user => {
     const snap = await ref.get();
     if (!snap.exists) {
       const defaultUser = user.displayName || 'New Voxer';
-      await ref.set({displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), photoURL: user.photoURL || '', bio: '', socials: {yt: '', discord: ''}, friends: []});
+      await ref.set({displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), photoURL: user.photoURL || '', bio: '', status: "Online", socials: {yt: '', discord: ''}, friends: []});
     } else {
       const data = snap.data();
       if (!data.username) {
@@ -475,7 +434,6 @@ auth.onAuthStateChanged(async user => {
   unsubs.servers = db.collection('vox_servers').onSnapshot(s => { servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
   stop('groups');
   unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => { groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
-  unreadChannels = {}; recount(); startNotifier();
   handleJoin(); listenCalls();
 });
 
@@ -489,25 +447,30 @@ async function handleJoin() {
   history.replaceState({}, '', location.pathname);
 }
 function renderMe() { $('meName').textContent = profile.displayName || 'You'; $('meAv').src = profile.photoURL || DEFAULT_AV; }
-function hasUnread(prefix) { return Object.keys(unreadChannels).some(k => k.startsWith(prefix) && unreadChannels[k] > 0); }
+
 function renderRail() {
-  const r = $('rail'), dot = '<span class="unread-dot"></span>';
-  let h = `<div class="ico ${view.type === 'home' || view.type === 'dm' ? 'on' : ''}" title="Home" onclick="openView('home')">🏠${hasUnread('dm_') ? dot : ''}</div>`;
-  servers.forEach(s => h += `<div class="ico ${view.type === 'server' && view.id === s.id ? 'on' : ''}" title="${esc(s.name)}" onclick="openView('server','${s.id}')">${esc((s.name || '?')[0].toUpperCase())}${hasUnread('server_' + s.id + '_') ? dot : ''}</div>`);
-  groups.forEach(g => h += `<div class="ico grp ${view.type === 'group' && view.id === g.id ? 'on' : ''}" title="${esc(g.name)}" onclick="openView('group','${g.id}')">${esc((g.name || '?')[0].toUpperCase())}${hasUnread('group_' + g.id) ? dot : ''}</div>`);
+  const r = $('rail');
+  let h = `<div class="ico ${view.type === 'home' ? 'on' : ''}" title="Home" onclick="openView('home')">🏠</div>`;
+  servers.forEach(s => {
+    const inner = s.iconUrl ? `<img src="${esc(s.iconUrl)}">` : esc((s.name || '?')[0].toUpperCase());
+    h += `<div class="ico ${view.type === 'server' && view.id === s.id ? 'on' : ''}" title="${esc(s.name)}" onclick="openView('server','${s.id}')">${inner}</div>`;
+  });
+  groups.forEach(g => h += `<div class="ico grp ${view.type === 'group' && view.id === g.id ? 'on' : ''}" title="${esc(g.name)}" onclick="openView('group','${g.id}')">${esc((g.name || '?')[0].toUpperCase())}</div>`);
   h += `<div class="ico" title="Create server" onclick="createServerModal()">＋</div><div class="ico grp" title="Create group" onclick="createGroupModal()">👥</div>`;
   r.innerHTML = h;
 }
+
 async function openView(type, id) {
-  view = {type, id}; channel = null; channels = [];
+  view = {type, id}; channel = null; channels = []; currentSearch = ""; showPinnedOnly = false;
+  $('search-bar').value = ""; $('pin-toggle-btn').classList.remove('pinned');
   stop('chan'); stop('msgs'); if (typingUnsub) typingUnsub();
-  $('composer').classList.add('hidden'); $('typing-indicator').classList.add('hidden');
+  $('composer').classList.add('hidden'); $('typing-indicator').classList.add('hidden'); $('top-search').classList.add('hidden');
   $('msgs').innerHTML = '<div class="empty">No chat open yet. 🔥</div>';
   $('topTitle').textContent = type === 'home' ? 'Friends' : (type === 'dm' ? 'Direct Message' : '');
   $('topBtns').innerHTML = '';
   
   if (type === 'server') {
-    markVisited(id);
+    $('top-search').classList.remove('hidden');
     unsubs.chan = db.collection('vox_channels').where('serverId', '==', id).onSnapshot(s => {
       channels = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
       if (view.type === 'server' && view.id === id && (!channel || !channels.find(c => c.id === channel.id))) {
@@ -517,36 +480,51 @@ async function openView(type, id) {
       renderSide();
     });
   } else if (type === 'group') {
+    $('top-search').classList.remove('hidden');
     const g = groups.find(x => x.id === id);
     $('topTitle').textContent = '👥 ' + (g ? g.name : 'Group');
     $('topBtns').innerHTML = `<button onclick="shareInvite('${id}')">🔗 Invite link</button>` + (g && g.createdBy === me.uid ? ` <button class="danger" onclick="deleteGroup('${id}')">🗑️ Delete</button>` : '');
     $('composer').classList.remove('hidden');
     listenMessages(); listenTyping();
-    unreadChannels[`group_${id}`] = 0; // Clear dot
+    unreadChannels[`group_${id}`] = 0;
   } else if (type === 'dm') {
+    $('top-search').classList.remove('hidden');
     const friend = userCache[id];
     $('topTitle').textContent = '💬 ' + (friend ? friend.displayName : 'Direct Message');
     $('composer').classList.remove('hidden');
     listenMessages(); listenTyping();
-    unreadChannels[getRoomId()] = 0; // Clear dot
+    const dmId = [me.uid, id].sort().join('_');
+    unreadChannels[`dm_${dmId}`] = 0;
   }
-  recount(); renderRail(); renderSide();
+  renderRail(); renderSide();
+  unreadCount = 0; updateTabBadge();
 }
+
 function selectChannel(cid) {
   const c = channels.find(x => x.id === cid); if (!c) return;
   if (c.type === 'voice') {
-    channel = c; stop('msgs'); if (typingUnsub) typingUnsub(); $('typing-indicator').classList.add('hidden');
+    channel = c; stop('msgs'); if (typingUnsub) typingUnsub(); $('typing-indicator').classList.add('hidden'); $('top-search').classList.add('hidden');
     $('topTitle').textContent = '🔊 ' + c.name; $('composer').classList.add('hidden');
     $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join video call</button></div>`;
     renderSide(); return;
   }
-  channel = c;
-  unreadChannels[`server_${view.id}_${cid}`] = 0; // Clear dot for this channel
+  channel = c; $('search-bar').value = ""; showPinnedOnly = false; $('pin-toggle-btn').classList.remove('pinned');
+  $('top-search').classList.remove('hidden');
   $('topTitle').textContent = '# ' + c.name;
   $('composer').classList.remove('hidden');
-  listenMessages(); listenTyping();
-  recount(); renderRail(); renderSide();
+  listenMessages(); listenTyping(); renderSide();
+  unreadChannels[`server_${view.id}_${cid}`] = 0;
+  unreadCount = 0; updateTabBadge();
 }
+
+function isServerAdmin(serverId) {
+    const s = servers.find(x => x.id === serverId);
+    if (!s) return false;
+    if (s.owner === me.uid) return true;
+    if (s.roles && s.roles[me.uid] === 'admin') return true;
+    return false;
+}
+
 function renderSide() {
   const l = $('list'), t = $('sideTitle'), b = $('sideBtns');
   if (view.type === 'home') {
@@ -565,7 +543,12 @@ function renderSide() {
   } else if (view.type === 'server') {
     const s = servers.find(x => x.id === view.id); if (!s) return;
     t.textContent = s.name;
-    b.innerHTML = s.owner === me.uid ? `<button onclick="addChannelModal()">＋</button><button title="Webhook" onclick="openWebhookModal('${s.id}')">🤖</button><button title="Import Bot" onclick="importBotModal('${s.id}')">🔌</button><button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '';
+    
+    b.innerHTML = `<button title="Server Settings" onclick="openServerSettings('${s.id}')">⚙️</button>` + 
+                  (isServerAdmin(s.id) ? `<button title="Create Channel" onclick="addChannelModal()">＋</button>` : '') + 
+                  `<button title="Webhook" onclick="openWebhookModal('${s.id}')">🤖</button><button title="Import Bot" onclick="importBotModal('${s.id}')">🔌</button>` + 
+                  (s.owner === me.uid ? `<button class="danger" onclick="deleteServer('${s.id}')">🗑️</button>` : '');
+                  
     l.innerHTML = channels.map(c => {
       const dot = (unreadChannels[`server_${view.id}_${c.id}`] > 0 && (!channel || channel.id !== c.id)) ? `<span class="unread-dot"></span>` : '';
       return `<div class="item ${channel && channel.id === c.id ? 'on' : ''}" onclick="selectChannel('${c.id}')"><span>${c.type === 'voice' ? '🔊' : '#'} ${esc(c.name)}</span>${dot}</div>`;
@@ -580,6 +563,7 @@ function renderSide() {
     l.innerHTML = `<div class="item on"><span>💬 ${esc((userCache[view.id] || {}).displayName || 'Chat')}</span></div>`;
   }
 }
+
 function listenMessages() {
   stop('msgs');
   let q = db.collection('vox_messages');
@@ -590,25 +574,73 @@ function listenMessages() {
   const chId = channel ? channel.id : null;
   
   unsubs.msgs = q.onSnapshot(s => {
-    let m = s.docs.map(d => ({id: d.id, ...d.data()}));
-    if (view.type === 'server') m = m.filter(x => x.channel === chId);
+    s.docChanges().forEach(change => {
+      if (change.type === "added") {
+        const data = change.doc.data();
+        if (data.senderUid !== me.uid && data.senderUid !== 'bot' && data.senderUid !== 'discord_import') {
+          const isCurrentRoom = (view.type === 'server' && data.channel === chId) || (view.type === 'group' && data.groupId === view.id) || (view.type === 'dm' && data.dmId === getRoomId());
+          if (document.hidden || !isCurrentRoom) {
+              unreadCount++; updateTabBadge(); playPing();
+              if (view.type === 'server') { unreadChannels[`server_${view.id}_${data.channel}`] = (unreadChannels[`server_${view.id}_${data.channel}`] || 0) + 1; renderSide(); }
+              else if (view.type === 'group') { unreadChannels[`group_${view.id}`] = (unreadChannels[`group_${view.id}`] || 0) + 1; }
+              else if (view.type === 'dm') { unreadChannels[data.dmId] = (unreadChannels[data.dmId] || 0) + 1; renderSide(); }
+          }
+          if (document.hidden && Notification.permission === "granted") {
+            new Notification(`New message from ${data.sender}`, { body: data.text || "Sent an attachment", icon: data.senderPhoto || DEFAULT_AV });
+          }
+        }
+      }
+    });
+    
+    if (!document.querySelector('input[data-editing="true"]')) {
+        let m = s.docs.map(d => ({id: d.id, ...d.data()}));
+        if (view.type === 'server') m = m.filter(x => x.channel === chId);
+        currentMessages = m; // Store for search
+        applyFiltersAndRender();
+    }
+  });
+}
+
+function handleSearch() {
+    showPinnedOnly = false; $('pin-toggle-btn').classList.remove('pinned');
+    applyFiltersAndRender();
+}
+function togglePinned() {
+    showPinnedOnly = !showPinnedOnly;
+    $('pin-toggle-btn').classList.toggle('pinned', showPinnedOnly);
+    applyFiltersAndRender();
+}
+function applyFiltersAndRender() {
+    const query = $('search-bar').value.toLowerCase();
+    let m = currentMessages;
+    
+    if (query) m = m.filter(x => (x.text || "").toLowerCase().includes(query));
+    if (showPinnedOnly) m = m.filter(x => x.pinned);
+    
     m.sort((a, b) => (a.timestamp?.seconds || 9e9) - (b.timestamp?.seconds || 9e9));
     const box = $('msgs');
     const tempUpload = box.querySelector('[id^="temp_upload_"]');
+    
     if(m.length) {
         box.innerHTML = m.map(renderMsg).join('');
         if (tempUpload) box.appendChild(tempUpload);
     } else {
-        if(!tempUpload) box.innerHTML = '<div class="empty">Nothing here yet. Say hi! 👋</div>';
+        if(!tempUpload) box.innerHTML = '<div class="empty">No messages found. 👻</div>';
     }
-    box.scrollTop = box.scrollHeight;
+    
+    // Keep scroll at bottom
+    if (!query && !showPinnedOnly) {
+        box.scrollTop = box.scrollHeight;
+    }
+    
     m.forEach(x => msgCache[x.id] = x); loadPreviews();
     const cur = vList[vIdx];
     vList = m.filter(x => x.mediaUrl && ['image', 'video', 'pdf'].includes(mediaKind(x))).map(x => x.id);
     vIdx = Math.max(0, vList.indexOf(cur));
-  });
 }
+
 function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`); }
+
 function renderMsg(x) {
   let media = '';
   if (x.mediaUrl) {
@@ -622,12 +654,113 @@ function renderMsg(x) {
   const link = (x.text || '').match(/https?:\/\/[^\s<]+/);
   const lp = link ? `<div class="lp" data-url="${esc(link[0])}"></div>` : '';
   const mine = x.senderUid ? x.senderUid === me.uid : (x.sender === profile.displayName || x.sender === me.displayName);
-  const acts = `<div class="acts"><button title="Copy" onclick="copyMsg('${x.id}')">📋 Copy</button>${mine ? `<button title="Delete" onclick="delMsg('${x.id}')">🗑️ Delete</button>` : ''}</div>`;
-  const time = x.timestamp ? new Date(x.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
   const isBot = x.senderUid === 'bot' || x.senderUid === 'discord_import' || x.senderUid === 'external_bot';
+  
+  const senderData = userCache[x.senderUid] || {};
+  const statusHtml = senderData.status && senderData.status !== "Online" ? `<span class="status">(${esc(senderData.status)})</span>` : '';
+  
+  let actsHtml = `<div class="acts"><button title="Copy" onclick="copyMsg('${x.id}')">📋 Copy</button>
+                  <button title="React" onclick="showReactionPicker('${x.id}')">😀 React</button>
+                  <button title="${x.pinned ? 'Unpin' : 'Pin'}" onclick="togglePin('${x.id}')">📌 ${x.pinned ? 'Unpin' : 'Pin'}</button>`;
+  if (mine) actsHtml += `<button title="Edit" onclick="editMsg('${x.id}')">✏️ Edit</button><button title="Delete" onclick="delMsg('${x.id}')">🗑️ Delete</button>`;
+  actsHtml += `</div>`;
+
+  let reactionsHtml = '';
+  if (x.reactions) {
+      reactionsHtml = `<div class="reactions-container">`;
+      for (const [emoji, users] of Object.entries(x.reactions)) {
+          if (users.length > 0) {
+              const isMine = users.includes(me.uid);
+              reactionsHtml += `<div class="reaction-pill ${isMine ? 'mine' : ''}" onclick="toggleReaction('${x.id}', '${emoji}')">${emoji} ${users.length}</div>`;
+          }
+      }
+      reactionsHtml += `</div>`;
+  }
+
+  const time = x.timestamp ? new Date(x.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
   const clickAttr = isBot ? '' : `onclick="viewOtherProfile('${x.senderUid}')"`;
-  return `<div class="msg"><img class="avatar" ${clickAttr} src="${esc(x.senderPhoto) || DEFAULT_AV}"><div class="body"><span class="n" ${clickAttr}>${esc(x.sender)}</span><span class="t">${time}</span><div>${linkify(x.text)}</div>${lp}${media}</div>${acts}</div>`;
+  
+  const isEditing = document.querySelector(`input[data-editing-id="${x.id}"]`);
+  let textHtml = isEditing ? `<div style="display:flex;gap:8px;margin-top:4px;"><input type="text" id="edit_input_${x.id}" value="${esc(x.text)}" style="margin:0;padding:4px 8px;border-radius:4px;background:var(--p3);border:1px solid var(--blue);color:white;width:100%;" onkeydown="if(event.key==='Enter')saveEdit('${x.id}')"><button class="pri" style="padding:4px 8px;" onclick="saveEdit('${x.id}')">Save</button><button style="padding:4px 8px;" onclick="cancelEdit('${x.id}')">Cancel</button></div>` : `<div>${x.pinned ? '<span class="pin-icon">📌</span>' : ''}${linkify(x.text)}</div>`;
+  if (isEditing) setTimeout(() => { const inp = $(`edit_input_${x.id}`); if(inp){inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);} }, 10);
+
+  return `<div class="msg" id="msg_${x.id}">
+    <img class="avatar" ${clickAttr} src="${esc(x.senderPhoto) || DEFAULT_AV}">
+    <div class="body">
+      <span class="n" ${clickAttr}>${esc(x.sender)}</span>${statusHtml}<span class="t">${time}</span>
+      ${x.edited ? '<span class="t">(edited)</span>' : ''}
+      ${textHtml}${lp}${media}${reactionsHtml}
+    </div>
+    ${actsHtml}
+  </div>`;
 }
+
+async function togglePin(msgId) {
+    const msgRef = db.collection('vox_messages').doc(msgId);
+    try {
+        const doc = await msgRef.get();
+        if (!doc.exists) return;
+        await msgRef.update({ pinned: !doc.data().pinned });
+        toast(doc.data().pinned ? 'Message unpinned.' : 'Message pinned! 📌');
+    } catch(e) { toast('Failed to pin.'); }
+}
+
+/* 🚨 REACTIONS LOGIC */
+function showReactionPicker(msgId) {
+    const existing = document.querySelector('.reaction-picker');
+    if (existing) existing.remove();
+    const msgEl = $(`msg_${msgId}`);
+    const picker = document.createElement('div');
+    picker.className = 'reaction-picker';
+    picker.innerHTML = `<span onclick="toggleReaction('${msgId}', '🔥')">🔥</span><span onclick="toggleReaction('${msgId}', '😂')">😂</span><span onclick="toggleReaction('${msgId}', '💀')">💀</span><span onclick="toggleReaction('${msgId}', '👍')">👍</span><span onclick="toggleReaction('${msgId}', '❤️')">❤️</span>`;
+    msgEl.querySelector('.body').appendChild(picker);
+    setTimeout(() => document.addEventListener('click', closePicker), 50);
+}
+function closePicker(e) {
+    if (e && (e.target.closest('.reaction-picker') || e.target.closest('.acts'))) return;
+    document.querySelectorAll('.reaction-picker').forEach(p => p.remove());
+    document.removeEventListener('click', closePicker);
+}
+async function toggleReaction(msgId, emoji) {
+    closePicker();
+    const msgRef = db.collection('vox_messages').doc(msgId);
+    try {
+        const doc = await msgRef.get();
+        if (!doc.exists) return;
+        const reactions = doc.data().reactions || {};
+        if (!reactions[emoji]) reactions[emoji] = [];
+        if (reactions[emoji].includes(me.uid)) reactions[emoji] = reactions[emoji].filter(uid => uid !== me.uid);
+        else reactions[emoji].push(me.uid);
+        await msgRef.update({ reactions });
+    } catch (e) { toast("Failed to react."); }
+}
+
+/* ✏️ EDIT MESSAGE LOGIC */
+function editMsg(msgId) {
+    const input = document.createElement('input');
+    input.setAttribute('data-editing', 'true'); input.setAttribute('data-editing-id', msgId);
+    input.style.display = 'none'; document.body.appendChild(input);
+    const msgEl = $(`msg_${msgId}`);
+    msgEl.outerHTML = renderMsg(msgCache[msgId]);
+}
+function cancelEdit(msgId) {
+    const input = document.querySelector(`input[data-editing-id="${msgId}"]`);
+    if (input) input.remove();
+    const msgEl = $(`msg_${msgId}`);
+    if (msgEl) msgEl.outerHTML = renderMsg(msgCache[msgId]);
+}
+async function saveEdit(msgId) {
+    const input = document.getElementById(`edit_input_${msgId}`);
+    if (!input) return;
+    const newText = input.value.trim();
+    if (!newText) return;
+    try {
+        await db.collection('vox_messages').doc(msgId).update({ text: newText, edited: true });
+        const fakeInput = document.querySelector(`input[data-editing-id="${msgId}"]`);
+        if (fakeInput) fakeInput.remove();
+    } catch (e) { toast('Could not edit message.'); }
+}
+
 async function viewOtherProfile(uid) {
   if (!uid || uid === 'bot' || uid === 'discord_import' || uid === 'external_bot') return;
   if (!userCache[uid]) { try { const s = await db.collection('vox_users').doc(uid).get(); userCache[uid] = s.data() || {}; } catch (e) { return toast('Could not load profile.'); } }
@@ -641,6 +774,7 @@ async function viewOtherProfile(uid) {
         <span style="color:var(--blue);font-weight:700;">@${esc(u.username || 'nousername')}</span>
         <button onclick="copyUsername('${esc(u.username || '')}')" style="padding:4px 8px;font-size:12px;background:var(--p3);">📋 Copy</button>
       </div>
+      ${u.status ? `<p style="color:var(--pink);font-weight:700;margin-bottom:8px;">${esc(u.status)}</p>` : ''}
       ${u.bio ? `<p style="color:var(--txt);font-size:14px;background:var(--p2);padding:10px;border-radius:8px;margin-bottom:12px;">"${esc(u.bio)}"</p>` : ''}
       ${s.yt || s.discord ? `<div style="text-align:left;background:var(--p2);padding:10px;border-radius:8px;margin-bottom:12px;font-size:13px;">
         ${s.yt ? `<div style="margin-bottom:4px;">📺 <a href="${esc(s.yt)}" target="_blank" style="color:var(--blue);text-decoration:none;">YouTube</a></div>` : ''}
@@ -654,6 +788,7 @@ async function viewOtherProfile(uid) {
     </div>
   `);
 }
+
 function copyUsername(uname) { if(!uname) return; navigator.clipboard.writeText(uname).then(() => toast('Username copied! 📋'), () => prompt('Copy this:', uname)); }
 async function quickAddFriend(uid, name) {
   try { await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)}); toast(`Added ${name} as a friend! 🎉`); renderSide(); } catch (e) { toast('Error adding friend.'); }
@@ -699,6 +834,7 @@ function loadPreviews() {
     const box = $('msgs'); if (el.closest('.msg') === box.lastElementChild) box.scrollTop = box.scrollHeight;
   });
 }
+
 async function postMessage(extra) {
   const base = {senderUid: me.uid, sender: profile.displayName || 'Voxer', senderPhoto: profile.photoURL || '', text: '', mediaUrl: '', mediaType: '', timestamp: firebase.firestore.FieldValue.serverTimestamp()};
   if (view.type === 'server') { if (!channel) return toast('Pick a text channel first!'); base.serverId = view.id; base.channel = channel.id; }
@@ -724,6 +860,7 @@ async function send() {
   const v = $('text').value.trim(); if (!v) return; $('text').value = ''; closeEmojiAutocomplete();
   try { await postMessage({text: v}); } catch (e) { toast('Could not send: ' + e.message); }
 }
+
 function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); $('emoji-menu').classList.add('hidden'); }
 function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
 const CLOUDINARY = {cloudName: 'x9rwrmqe', uploadPreset: 'vox_uploads'};
@@ -740,6 +877,7 @@ async function catbox(file) {
 }
 async function upload(inp) { const f = inp.files[0]; inp.value = ''; if (!f) return; sendFile(f); }
 document.addEventListener('paste', e => { if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return; const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/')); if (!it) return; const f = it.getAsFile(); if (!f) return; e.preventDefault(); sendFile(f); });
+
 async function sendFile(f) {
   if (f.size > 25 * 1024 * 1024) return toast('File is too big! Max 25MB on the free plan.');
   const tempId = 'temp_upload_' + Date.now(); const box = $('msgs');
@@ -753,12 +891,23 @@ async function sendFile(f) {
     await postMessage({mediaUrl: url, mediaType: type, text: type === 'file' ? f.name : ''});
   } catch (e) { toast('Upload failed: ' + e.message); } finally { const el = document.getElementById(tempId); if (el) el.remove(); }
 }
+
 function modal(html) { $('modalBox').innerHTML = html; $('modal').classList.remove('hidden'); }
 function closeModal() { $('modal').classList.add('hidden'); }
 $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
 function openProfile() {
   const s = profile.socials || {};
-  modal(`<h3>Your profile</h3><p style="text-align:center"><img class="avatar" id="pAv" style="width:80px;height:80px;box-shadow:0 0 20px #00b2ff88;" src="${profile.photoURL || DEFAULT_AV}"></p><input type="file" id="pFile" accept="image/*" onchange="uploadAvatar(this)" style="border:0;padding:6px 0"><input id="pName" placeholder="Display name" value="${esc(profile.displayName)}"><input id="pUser" placeholder="Username (for friends to add you)" value="${esc(profile.username || '')}"><textarea id="pBio" rows="2" placeholder="Bio">${esc(profile.bio)}</textarea><input id="pYt" placeholder="YouTube link" value="${esc(s.yt)}"><input id="pDc" placeholder="Discord username" value="${esc(s.discord)}"><div class="row"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="logout()">Log out</button></div>`);
+  modal(`<h3>Your profile</h3>
+    <p style="text-align:center"><img class="avatar" id="pAv" style="width:80px;height:80px;box-shadow:0 0 20px #00b2ff88;" src="${profile.photoURL || DEFAULT_AV}"></p>
+    <input type="file" id="pFile" accept="image/*" onchange="uploadAvatar(this)" style="border:0;padding:6px 0">
+    <input id="pName" placeholder="Display name" value="${esc(profile.displayName)}">
+    <input id="pUser" placeholder="Username (for friends to add you)" value="${esc(profile.username || '')}">
+    <input id="pStatus" placeholder="Status (e.g., Playing Roblox)" value="${esc(profile.status || 'Online')}" maxlength="30">
+    <textarea id="pBio" rows="2" placeholder="Bio">${esc(profile.bio)}</textarea>
+    <input id="pYt" placeholder="YouTube link" value="${esc(s.yt)}">
+    <input id="pDc" placeholder="Discord username" value="${esc(s.discord)}">
+    <div class="row"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="logout()">Log out</button></div>`);
 }
 let newPhoto = null;
 async function uploadAvatar(i) {
@@ -766,32 +915,103 @@ async function uploadAvatar(i) {
   try { newPhoto = await catbox(f); $('pAv').src = newPhoto; toast('Photo ready, hit Save! 📸'); } catch (e) { toast('Upload failed'); }
 }
 async function saveProfile() {
-  const d = {displayName: $('pName').value.trim() || 'Voxer', username: $('pUser').value.trim().toLowerCase().replace(/\s+/g, '_'), bio: $('pBio').value, socials: {yt: $('pYt').value, discord: $('pDc').value}};
+  const d = {displayName: $('pName').value.trim() || 'Voxer', username: $('pUser').value.trim().toLowerCase().replace(/\s+/g, '_'), status: $('pStatus').value.trim() || 'Online', bio: $('pBio').value, socials: {yt: $('pYt').value, discord: $('pDc').value}};
   if (newPhoto) d.photoURL = newPhoto;
   if (d.username) { const check = await db.collection('vox_users').where('username', '==', d.username).get(); if (!check.empty && check.docs[0].id !== me.uid) return toast('That username is already taken!'); }
   await db.collection('vox_users').doc(me.uid).update(d); newPhoto = null; closeModal(); toast('Saved ✅');
 }
+
 function addFriendModal() { modal(`<h3>Add a friend</h3><input id="fId" placeholder="Enter their exact Username"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addFriend()">Add</button></div>`); }
 async function addFriend() {
   const username = $('fId').value.trim().toLowerCase().replace(/\s+/g, '_'); if (!username) return toast('Type a username!');
   try { const s = await db.collection('vox_users').where('username', '==', username).get(); if (s.empty) return toast('No user found with that username.'); const friendUid = s.docs[0].id; if (friendUid === me.uid) return toast("You can't add yourself! 😂"); await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(friendUid)}); closeModal(); toast('Friend added! 🎉'); } catch(e) { toast('Error adding friend.'); }
 }
+
+/* 🛡️ SERVER SETTINGS (Roles & Kicks) */
+async function openServerSettings(serverId) {
+    const s = servers.find(x => x.id === serverId); if (!s) return;
+    const members = s.members || [];
+    const roles = s.roles || {};
+    
+    modal(`<h3>Server Settings ⚙️</h3><p style="color:var(--mut);font-size:13px;margin-bottom:12px;">Manage who can create channels and kick users.</p>
+    <div id="member-list" style="max-height:250px;overflow-y:auto;margin-bottom:16px;">
+        <p style="text-align:center;color:var(--mut);">Loading members...</p>
+    </div>
+    <button onclick="closeModal()">Close</button>`);
+    
+    const list = $('member-list'); list.innerHTML = '';
+    for (const uid of members) {
+        if (!userCache[uid]) { const doc = await db.collection('vox_users').doc(uid).get(); userCache[uid] = doc.data() || {}; }
+        const u = userCache[uid];
+        const isOwner = (uid === s.owner);
+        const isAdmin = (roles[uid] === 'admin' || isOwner);
+        
+        const row = document.createElement('div');
+        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:var(--p2); padding:8px; border-radius:8px; margin-bottom:4px;";
+        row.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px;">
+                <img src="${u.photoURL || DEFAULT_AV}" style="width:24px;height:24px;border-radius:50%;">
+                <span style="font-size:14px;">${esc(u.displayName)} ${isOwner ? '👑' : (isAdmin ? '🛡️' : '')}</span>
+            </div>
+            <div style="display:flex; gap:4px;">
+                ${(!isOwner && s.owner === me.uid) ? `<button class="pri" style="padding:2px 6px;font-size:10px;" onclick="toggleAdmin('${serverId}','${uid}')">${isAdmin ? 'Demote' : 'Make Admin'}</button>` : ''}
+                ${(!isOwner && isServerAdmin(serverId)) ? `<button class="danger" style="padding:2px 6px;font-size:10px;" onclick="kickUser('${serverId}','${uid}')">Kick</button>` : ''}
+            </div>`;
+        list.appendChild(row);
+    }
+}
+async function toggleAdmin(serverId, uid) {
+    const s = servers.find(x => x.id === serverId);
+    const roles = s.roles || {};
+    if (roles[uid] === 'admin') delete roles[uid];
+    else roles[uid] = 'admin';
+    await db.collection('vox_servers').doc(serverId).update({ roles: roles });
+    closeModal(); toast('Roles updated! 🛡️');
+}
+async function kickUser(serverId, uid) {
+    if(!confirm('Kick this user?')) return;
+    await db.collection('vox_servers').doc(serverId).update({ members: firebase.firestore.FieldValue.arrayRemove(uid) });
+    await db.collection('vox_servers').doc(serverId).update({ [`roles.${uid}`]: firebase.firestore.FieldValue.delete() });
+    closeModal(); toast('User kicked! 🥾');
+}
+
 function openWebhookModal(serverId) {
   const s = servers.find(x => x.id === serverId);
   modal(`<h3>Two-Way Discord Bridge 🤖</h3><p style="color:var(--mut);font-size:13px;margin-bottom:12px;">To send Vox messages to Discord, paste a Discord Webhook URL below.</p><div class="input-group"><label>Discord Webhook URL</label><input id="webhookUrlInput" placeholder="https://discord.com/api/webhooks/..." value="${esc((s && s.webhookUrl) || '')}"></div><div style="background:var(--p2); padding:10px; border-radius:8px; font-size:12px; color:var(--mut); margin-bottom:15px;"><b>How to get this:</b> Go to your Discord channel -> Edit Channel -> Integrations -> Webhooks -> New Webhook -> Copy Webhook URL.</div><div class="row" style="margin-top:16px;"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="saveWebhook('${serverId}')">Save Webhook</button></div>`);
 }
 async function saveWebhook(id) { const url = $('webhookUrlInput').value.trim(); try { await db.collection('vox_servers').doc(id).update({webhookUrl: url}); toast('Webhook saved! 🤖'); closeModal(); } catch (e) { dbErr(e); } }
+
 function importBotModal(serverId) { modal(`<h3>Import Discord Bot 🔌</h3><p style="color:var(--mut);font-size:13px;margin-bottom:12px;">Paste a Discord Bot Token below. Vox will bridge that bot into this server!</p><input id="importToken" placeholder="Discord Bot Token (e.g. OTMx...)" type="password"><input id="importDiscordChannel" placeholder="Discord Channel ID to listen to"><input id="importVoxChannel" placeholder="Vox Channel ID (e.g. mXz7LMB1...)"><div class="row" style="margin-top:16px;"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="importDiscordBot('${serverId}')">Bridge Bot</button></div>`); }
 async function importDiscordBot(serverId) {
   const token = $('importToken').value.trim(); const voxChannel = $('importVoxChannel').value.trim();
   if (!token || !voxChannel) return toast('Please fill in the token and Vox Channel ID.'); toast('Connecting bot to Discord... ⏳');
   try { const res = await fetch('https://vox-bot-04l6.onrender.com/api/import-discord-bot', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ botToken: token, voxServerId: serverId, voxChannelId: voxChannel }) }); const text = await res.text(); if (res.ok) { toast('Bot imported successfully! 🎉'); closeModal(); } else { toast('Failed: ' + text); } } catch (e) { toast('Network error: could not reach Render.'); }
 }
-function createServerModal() { modal(`<h3>Create a server</h3><input id="svName" placeholder="Server name"><div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`); }
-async function createServer() { const name = $('svName').value.trim(); if (!name) return toast('Give your server a name!'); const ref = await db.collection('vox_servers').add({name, owner: me.uid, webhookUrl: "", createdAt: firebase.firestore.FieldValue.serverTimestamp()}); await db.collection('vox_channels').add({serverId: ref.id, name: 'general', type: 'text', createdAt: firebase.firestore.FieldValue.serverTimestamp()}); closeModal(); openView('server', ref.id); }
+
+let newServerIconUrl = null;
+function createServerModal() {
+  newServerIconUrl = null;
+  modal(`<h3>Create a server</h3>
+    <div class="input-group"><label>Server Name</label><input id="svName" placeholder="My Awesome Server"></div>
+    <div class="input-group"><label>Server Icon (Optional)</label><input type="file" id="svIconFile" accept="image/*" onchange="uploadServerIcon(this)"></div>
+    <div class="row"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createServer()">Create</button></div>`);
+}
+async function uploadServerIcon(inp) {
+  const f = inp.files[0]; if (!f) return;
+  toast('Uploading icon... ⏳');
+  try { newServerIconUrl = await catbox(f); toast('Icon ready! 📸'); } catch (e) { toast('Upload failed'); }
+}
+async function createServer() {
+  const name = $('svName').value.trim(); if (!name) return toast('Give your server a name!');
+  const ref = await db.collection('vox_servers').add({name, owner: me.uid, webhookUrl: "", iconUrl: newServerIconUrl || "", members: [me.uid], createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+  await db.collection('vox_channels').add({serverId: ref.id, name: 'general', type: 'text', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+  closeModal(); openView('server', ref.id);
+}
+
 function addChannelModal() { modal(`<h3>New channel</h3><input id="chName" placeholder="channel-name"><div class="row"><button id="tText" class="pri" onclick="this.dataset.s=1;this.nextElementSibling.dataset.s=0;this.classList.add('pri');this.nextElementSibling.classList.remove('pri')" data-s="1"># Text</button><button onclick="this.dataset.s=1;this.previousElementSibling.dataset.s=0;this.classList.add('pri');this.previousElementSibling.classList.remove('pri')" data-s="0">🔊 Voice</button></div><div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="addChannel()">Create</button></div>`); }
 async function addChannel() { const name = $('chName').value.trim().toLowerCase().replace(/\s+/g, '-'); if (!name) return; const type = $('tText').dataset.s === '1' ? 'text' : 'voice'; await db.collection('vox_channels').add({serverId: view.id, name, type, createdAt: firebase.firestore.FieldValue.serverTimestamp()}); closeModal(); }
 async function deleteServer(id) { if (!confirm('Delete this server? This cannot be undone.')) return; try { toast('Deleting… 🗑️'); const refs = []; (await db.collection('vox_messages').where('serverId', '==', id).get()).forEach(d => refs.push(d.ref)); (await db.collection('vox_channels').where('serverId', '==', id).get()).forEach(d => refs.push(d.ref)); refs.push(db.collection('vox_servers').doc(id)); for (let i = 0; i < refs.length; i += 400) { const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); } openView('home'); toast('Server deleted ✅'); } catch (e) { toast('Delete failed: ' + e.message); } }
+
 async function deleteGroup(id) { if (!confirm('Delete this group?')) return; try { const refs = []; (await db.collection('vox_messages').where('groupId', '==', id).get()).forEach(d => refs.push(d.ref)); refs.push(db.collection('vox_groups').doc(id)); for (let i = 0; i < refs.length; i += 400) { const b = db.batch(); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); } openView('home'); toast('Group deleted ✅'); } catch (e) { toast('Delete failed: ' + (e.code || e.message)); } }
 async function createGroupModal() { const f = profile.friends || []; if (!f.length) return toast('Add some friends first!'); for (const u of f) if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {}; } modal(`<h3>Create a group</h3><input id="gName" placeholder="Group name">${f.map(u => `<label class="item"><span>${esc((userCache[u] || {}).displayName || u)}</span><input type="checkbox" class="gm" value="${u}" style="width:auto;margin:0"></label>`).join('')}<div class="row" style="margin-top:12px"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="createGroup()">Create</button></div>`); }
 async function createGroup() { const name = $('gName').value.trim(); if (!name) return toast('Name your group!'); const members = [me.uid, ...[...document.querySelectorAll('.gm:checked')].map(c => c.value)]; const ref = await db.collection('vox_groups').add({name, members, createdBy: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()}); closeModal(); openView('group', ref.id); }
@@ -846,6 +1066,24 @@ async function setupPC(ref, role) {
   $('callbox').classList.remove('hidden');
   $('share-screen-btn').style.display = 'block'; 
 }
+
+async function toggleMute() {
+    if (!localStream) return;
+    const track = localStream.getAudioTracks()[0];
+    if (track) {
+        track.enabled = !track.enabled;
+        isMuted = !track.enabled;
+        $('mute-btn').classList.toggle('muted', isMuted);
+        $('mute-btn').innerText = isMuted ? '🔇' : '🎤';
+    } else { toast("No mic found!"); }
+}
+function toggleDeafen() {
+    isDeafened = !isDeafened;
+    $('remoteV').muted = isDeafened;
+    $('deafen-btn').classList.toggle('muted', isDeafened);
+    $('deafen-btn').innerText = isDeafened ? '🔇' : '🎧';
+}
+
 async function shareScreen() {
   try {
     const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
@@ -892,8 +1130,20 @@ async function hangup(remote) {
   if (pc) { pc.close(); pc = null; }
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
   $('callbox').classList.add('hidden'); $('localV').srcObject = null; $('remoteV').srcObject = null; $('share-screen-btn').style.display = 'none';
+  isMuted = false; isDeafened = false; $('mute-btn').classList.remove('muted'); $('deafen-btn').classList.remove('muted'); $('mute-btn').innerText = '🎤'; $('deafen-btn').innerText = '🎧';
   if (callRef && !remote) { const r = callRef; callRef = null; try { await r.delete(); } catch (e) {} }
   callRef = null;
+}
+
+/* 🚀 REGISTER SERVICE WORKER FOR PWA */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(registration => {
+      console.log('SW registered: ', registration);
+    }).catch(registrationError => {
+      console.log('SW registration failed: ', registrationError);
+    });
+  });
 }
 </script>
 </body>
