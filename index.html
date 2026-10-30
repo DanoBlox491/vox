@@ -63,12 +63,17 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 .ico .unread-dot { position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; border: 2px solid var(--bg); }
 @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
 
-.avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--p3);flex-shrink:0;cursor:pointer;transition:.2s}
+.avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--p3);flex-shrink:0;cursor:pointer;transition:.2s;position:relative;}
 .avatar:hover{box-shadow:0 0 10px #00b2ffaa;transform:scale(1.05)}
+.status-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--p1); }
+.status-dot.online { background: #3ddc84; box-shadow: 0 0 8px #3ddc84; }
+.status-dot.away { background: #ffb800; box-shadow: 0 0 8px #ffb800; }
+.status-dot.offline { background: #8a93ad; }
+
 #me{padding:10px;background:var(--p2);display:flex;align-items:center;gap:8px;cursor:pointer;transition:.2s}
 #me:hover{background:var(--p3);box-shadow:0 0 15px #00b2ff33}
 #me b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--p2)}
+#main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--p2);position:relative;}
 #top{padding:14px 18px;font-weight:900;border-bottom:2px solid var(--p3);display:flex;justify-content:space-between;align-items:center;gap:8px;box-shadow:0 5px 15px rgba(0,0,0,0.3);z-index:5}
 #msgs{flex:1;overflow-y:auto;padding:16px 18px}
 .msg{display:flex;gap:10px;margin-bottom:14px;animation: fadeIn 0.3s ease-out}
@@ -128,6 +133,12 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
 #drawerBack{display:none}
 #topTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #installBtn{padding:4px 9px}
+
+/* 🚨 OFFLINE BANNER */
+#missed-banner { background: linear-gradient(90deg, var(--pink), #ff6b8b); color: white; padding: 10px 18px; text-align: center; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(255,46,147,0.4); animation: fadeIn 0.3s; display: none; }
+#missed-banner:hover { filter: brightness(1.1); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
 @media(max-width:1100px){#app{grid-template-columns:72px 210px 1fr}}
 @media(max-width:760px){
  #landing{grid-template-columns:1fr;overflow-y:auto;grid-auto-rows:min-content;align-content:start}
@@ -194,6 +205,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 15px #00b2ff3
     <div id="me" onclick="openProfile()"><img class="avatar" id="meAv"><b id="meName"></b><button id="installBtn" class="pri hidden" onclick="installApp(event)">📲 Install</button><span>⚙️</span></div>
   </div>
   <div id="main">
+    <div id="missed-banner" onclick="showMissedModal()">🔴 You missed <span id="missed-count">0</span> messages! Click to view.</div>
     <div id="top"><span style="display:flex;align-items:center;gap:8px;min-width:0"><button id="menuBtn" onclick="toggleDrawer()">☰</button><span id="topTitle">Pick something on the left</span></span><span id="topBtns"></span></div>
     <div id="msgs"><div class="empty">No chat open yet. Pick a server, group or friend. 🔥</div></div>
     <div id="typing-indicator" class="hidden"></div>
@@ -263,6 +275,133 @@ let editingMsgId = null;
 let unreadChannels = {};
 let unreadCount = 0;
 let originalTitle = "Vox";
+
+/* ============================================================
+   🟢 PRESENCE SYSTEM
+   ============================================================ */
+let presenceUnsubs = {}; // To listen to other users' presence
+let myPresenceUnsub = null;
+let myPresenceRef = null;
+
+function updateMyPresence(status) {
+    if (!me) return;
+    db.collection('vox_presence').doc(me.uid).set({ status: status, lastChanged: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+}
+
+['focus', 'blur', 'beforeunload'].forEach(e => {
+    window.addEventListener(e, () => {
+        if (e === 'beforeunload') updateMyPresence('offline');
+        else if (e === 'focus') updateMyPresence('online');
+        else if (e === 'blur') updateMyPresence('away');
+    });
+});
+
+// Watch presence of friends in sidebar
+function watchPresence(uid) {
+    if (presenceUnsubs[uid]) return;
+    presenceUnsubs[uid] = db.collection('vox_presence').doc(uid).onSnapshot(doc => {
+        let status = 'offline';
+        if (doc.exists) {
+            const data = doc.data();
+            const lastChanged = data.lastChanged ? data.lastChanged.toDate().getTime() : 0;
+            // If last changed was more than 2 minutes ago, assume offline (prevents ghost online)
+            if (Date.now() - lastChanged > 120000) status = 'offline';
+            else status = data.status;
+        }
+        // Update UI in sidebar
+        const dot = $(`presence_${uid}`);
+        if (dot) {
+            dot.className = `status-dot ${status}`;
+        }
+        // Update UI in profile modal if it's open for this user
+        const modalDot = $(`profile-presence-dot`);
+        const modalText = $(`profile-presence-text`);
+        if (modalDot && viewOtherProfile.currentUid === uid) {
+            modalDot.className = `status-dot ${status}`;
+            modalText.innerText = status === 'online' ? 'Online' : status === 'away' ? 'Another Window' : 'Offline';
+        }
+    });
+}
+
+/* ============================================================
+   🔔 OFFLINE MISSED MESSAGES
+   ============================================================ */
+let missedMessages = [];
+function checkMissedMessages() {
+    const lastSeen = Number(localStorage.getItem('vox_last_seen')) || (Date.now() - 86400000);
+    const lastSeenDate = new Date(lastSeen);
+    
+    db.collection('vox_messages').where('timestamp', '>', lastSeenDate).get().then(snap => {
+        missedMessages = [];
+        snap.forEach(doc => {
+            const data = doc.data();
+            if (data.senderUid === me.uid) return; // Skip my own messages
+            
+            let type, id, name;
+            if (data.groupId) {
+                const g = groups.find(x => x.id === data.groupId);
+                if (!g) return;
+                type = 'group'; id = data.groupId; name = '👥 ' + g.name;
+            } else if (data.dmId) {
+                const friendUid = data.dmId.split('_').find(u => u !== me.uid);
+                if (!friendUid) return;
+                type = 'dm'; id = friendUid; name = '💬 ' + (userCache[friendUid]?.displayName || 'DM');
+            } else if (data.serverId) {
+                const s = servers.find(x => x.id === data.serverId);
+                if (!s) return;
+                type = 'server'; id = data.serverId; name = '🏠 ' + s.name + ' > #' + data.channel;
+            }
+            
+            missedMessages.push({ type, id, name, channel: data.channel, text: data.text || 'Media', sender: data.sender });
+        });
+        
+        if (missedMessages.length > 0) {
+            $('missed-count').innerText = missedMessages.length;
+            $('missed-banner').style.display = 'block';
+        }
+    }).catch(e => console.warn("Could not fetch missed messages", e));
+    
+    // Update last seen
+    localStorage.setItem('vox_last_seen', Date.now().toString());
+}
+
+function showMissedModal() {
+    if (missedMessages.length === 0) return;
+    let html = `<h3>Missed Messages 🔴</h3><div style="max-height:300px;overflow-y:auto;margin-bottom:16px;">`;
+    
+    // Group by room
+    const rooms = {};
+    missedMessages.forEach(m => {
+        const key = m.type + '_' + m.id + '_' + (m.channel || '');
+        if (!rooms[key]) rooms[key] = { name: m.name, type: m.type, id: m.id, channel: m.channel, count: 0 };
+        rooms[key].count++;
+    });
+    
+    for (const key in rooms) {
+        const r = rooms[key];
+        html += `<div class="item" onclick="jumpToMissed('${r.type}', '${r.id}', '${r.channel}')" style="background:var(--p3); margin-bottom:8px; cursor:pointer;">
+            <span>${r.name}</span>
+            <span class="unread-dot">${r.count}</span>
+        </div>`;
+    }
+    
+    html += `</div><button onclick="closeModal(); $('missed-banner').style.display='none'; missedMessages=[];" class="pri">Clear</button>`;
+    modal(html);
+}
+
+function jumpToMissed(type, id, channelName) {
+    closeModal(); $('missed-banner').style.display='none'; missedMessages=[];
+    if (type === 'group') openView('group', id);
+    else if (type === 'dm') openView('dm', id);
+    else if (type === 'server') {
+        openView('server', id);
+        // Wait for channels to load then select
+        setTimeout(() => {
+            const ch = channels.find(c => c.name === channelName);
+            if (ch) selectChannel(ch.id);
+        }, 500);
+    }
+}
 
 /* ============================================================
    🔊 PING SOUND (YOUR EXACT CODE - UNTOUCHED)
@@ -468,7 +607,10 @@ async function google() {
   catch (e) { if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') return; $('lErr').textContent = e.message; }
   finally { googleBusy = false; }
 }
-function logout() { auth.signOut(); closeModal(); }
+function logout() { 
+    if(me) updateMyPresence('offline');
+    auth.signOut(); closeModal(); 
+}
 function dbErr(e) { console.error(e); toast('Database error: ' + (e.code || e.message)); }
 
 auth.onAuthStateChanged(async user => {
@@ -497,15 +639,22 @@ auth.onAuthStateChanged(async user => {
     }
   } catch (e) { dbErr(e); }
   
+  updateMyPresence('online'); // 🟢 Set online
+
   stop('me');
   unsubs.me = ref.onSnapshot(s => { profile = s.data() || {}; userCache[user.uid] = profile; renderMe(); if (view.type === 'home') renderSide(); }, dbErr);
   stop('servers');
   unsubs.servers = db.collection('vox_servers').onSnapshot(s => { servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
   stop('groups');
   unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => { groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
+  
   unreadChannels = {}; recount(); startNotifier();
   if (isMobile()) setDrawer(true);
+  
   handleJoin(); listenCalls();
+  
+  // Check missed messages after everything is loaded
+  setTimeout(checkMissedMessages, 2000);
 });
 
 async function handleJoin() {
@@ -587,12 +736,15 @@ function renderSide() {
     l.innerHTML = f.length ? f.map(u => {
       const dmId = [me.uid, u].sort().join('_');
       const dot = (unreadChannels[`dm_${dmId}`] > 0) ? `<span class="unread-dot"></span>` : '';
-      return `<div class="item ${view.type==='dm' && view.id===u ? 'on' : ''}" onclick="openView('dm', '${u}')"><span id="fr_${u}" style="display:flex;gap:8px;align-items:center"><img class="avatar" src="${DEFAULT_AV}"><span>…</span></span>${dot}<button onclick="event.stopPropagation(); startCall('${u}')">📹</button></div>`;
+      // Add watchPresence for each friend
+      watchPresence(u);
+      return `<div class="item ${view.type==='dm' && view.id===u ? 'on' : ''}" onclick="openView('dm', '${u}')"><span id="fr_${u}" style="display:flex;gap:8px;align-items:center"><div style="position:relative"><img class="avatar" src="${DEFAULT_AV}"><div id="presence_${u}" class="status-dot offline"></div></div><span>…</span></span>${dot}<button onclick="event.stopPropagation(); startCall('${u}')">📹</button></div>`;
     }).join('')
       : '<div class="empty" style="margin-top:30px">No friends yet. Share your Username from ⚙️ settings!</div>';
     f.forEach(async u => {
       if (!userCache[u]) { const s = await db.collection('vox_users').doc(u).get(); userCache[u] = s.data() || {displayName: 'Unknown'}; }
-      const el = $('fr_' + u); if (el) el.innerHTML = `<img class="avatar" src="${userCache[u].photoURL || DEFAULT_AV}"><span>${esc(userCache[u].displayName)}</span>`;
+      const el = $('fr_' + u); if (el) el.querySelector('span').innerText = userCache[u].displayName;
+      const av = el.querySelector('img'); if (av) av.src = userCache[u].photoURL || DEFAULT_AV;
     });
   } else if (view.type === 'server') {
     const s = servers.find(x => x.id === view.id); if (!s) return;
@@ -718,14 +870,24 @@ function cancelEdit() {
 }
 
 async function viewOtherProfile(uid) {
+  viewOtherProfile.currentUid = uid; // Store for presence tracking
   if (!uid || uid === 'bot' || uid === 'discord_import' || uid === 'external_bot') return;
   if (!userCache[uid]) { try { const s = await db.collection('vox_users').doc(uid).get(); userCache[uid] = s.data() || {}; } catch (e) { return toast('Could not load profile.'); } }
   const u = userCache[uid]; if (!u) return;
   const s = u.socials || {};
+  
+  // Check initial presence
+  let pStatus = 'offline';
+  try { const p = await db.collection('vox_presence').doc(uid).get(); if(p.exists) pStatus = p.data().status; } catch(e){}
+  
   modal(`
     <div style="text-align:center;padding-bottom:10px;">
-      <img class="avatar" style="width:80px;height:80px;margin:0 auto;border:3px solid var(--blue);box-shadow:0 0 20px #00b2ff88;" src="${u.photoURL || DEFAULT_AV}">
+      <div style="position:relative;width:80px;height:80px;margin:0 auto;">
+        <img class="avatar" style="width:80px;height:80px;border:3px solid var(--blue);box-shadow:0 0 20px #00b2ff88;" src="${u.photoURL || DEFAULT_AV}">
+        <div id="profile-presence-dot" class="status-dot ${pStatus}" style="width:16px;height:16px;bottom:0;right:0;border-width:3px;"></div>
+      </div>
       <h3 style="margin-top:10px;font-size:24px;">${esc(u.displayName || 'Unknown User')}</h3>
+      <p id="profile-presence-text" style="color:var(--mut);font-size:13px;margin-bottom:8px;">${pStatus === 'online' ? 'Online' : pStatus === 'away' ? 'Another Window' : 'Offline'}</p>
       <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:12px;">
         <span style="color:var(--blue);font-weight:700;">@${esc(u.username || 'nousername')}</span>
         <button onclick="copyUsername('${esc(u.username || '')}')" style="padding:4px 8px;font-size:12px;background:var(--p3);">📋 Copy</button>
@@ -742,7 +904,12 @@ async function viewOtherProfile(uid) {
       </div>
     </div>
   `);
+  
+  // Listen for live presence updates while modal is open
+  watchPresence(uid);
+  viewOtherProfile.currentUid = uid;
 }
+
 function copyUsername(uname) { if(!uname) return; navigator.clipboard.writeText(uname).then(() => toast('Username copied! 📋'), () => prompt('Copy this:', uname)); }
 async function quickAddFriend(uid, name) {
   try { await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)}); toast(`Added ${name} as a friend! 🎉`); renderSide(); } catch (e) { toast('Error adding friend.'); }
@@ -843,7 +1010,7 @@ async function sendFile(f) {
   } catch (e) { toast('Upload failed: ' + e.message); } finally { const el = document.getElementById(tempId); if (el) el.remove(); }
 }
 function modal(html) { $('modalBox').innerHTML = html; $('modal').classList.remove('hidden'); }
-function closeModal() { $('modal').classList.add('hidden'); }
+function closeModal() { $('modal').classList.add('hidden'); viewOtherProfile.currentUid = null; }
 $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
 function openProfile() {
   const s = profile.socials || {};
