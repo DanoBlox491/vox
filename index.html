@@ -17,7 +17,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <style>
-/* CSS REMAINS EXACTLY THE SAME */
 :root{
   --bg:#0a0e1a; --p1:#0f1422; --p2:#151b2e; --p3:#1d2538; --p4:#252d44;
   --blue:#00d4ff; --blue-glow:#00d4ff44; --pink:#ff2e93; --pink-glow:#ff2e9344;
@@ -349,15 +348,15 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <script>
 const $ = id => document.getElementById(id), esc = s => (s+'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-// FIX 1: Correctly formatted firebaseConfig object
+// 🔥 FIXED: Correct firebaseConfig for vox-chat-979fd
 const firebaseConfig = {
-  apiKey: "AIzaSyDpudB5HJVs9dj6bGxD5KmJ0WJxOo0tMTI",
-  authDomain: "voxchat-25673.firebaseapp.com",
-  projectId: "voxchat-25673",
-  storageBucket: "voxchat-25673.firebasestorage.app",
-  messagingSenderId: "698916598430",
-  appId: "1:698916598430:web:8a4e7bf01df4db819cb851",
-  measurementId: "G-D3R59GL4ML"
+  apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
+  authDomain: "vox-chat-979fd.firebaseapp.com",
+  projectId: "vox-chat-979fd",
+  storageBucket: "vox-chat-979fd.firebasestorage.app",
+  messagingSenderId: "49260313546",
+  appId: "1:49260313546:web:63a50e8b0f30c8989bed33",
+  measurementId: "G-M7CZN9NER3"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -405,8 +404,6 @@ async function signup() {
     if (!snap.empty) { $('sErr').textContent = 'Username already taken'; return; }
     
     const userCred = await auth.createUserWithEmailAndPassword(e, p);
-    
-    // FIX 2: Save the email in the database so we can login by username later
     await db.collection('vox_users').doc(userCred.user.uid).set({
       displayName: u,
       username: u.toLowerCase(),
@@ -421,7 +418,7 @@ async function signup() {
 }
 
 async function login() {
-  const u = $('lUsername').value.trim(), p = $('lPass').value;
+  const u = $('lUsername').value.trim(), p = $('lPass').value.trim();
   $('lErr').textContent = '';
   
   if (!u || !p) { $('lErr').textContent = 'Fill all fields'; return; }
@@ -432,16 +429,20 @@ async function login() {
       const snap = await db.collection('vox_users').where('username', '==', u.toLowerCase()).limit(1).get();
       if (snap.empty) { $('lErr').textContent = 'Username not found'; return; }
       
-      // FIX 2: Fetch the real email we saved earlier
-      email = snap.docs[0].data().email;
-      if (!email) { $('lErr').textContent = 'Please log in with your Email address instead.'; return; }
+      const userData = snap.docs[0].data();
+      if (userData.email) {
+        email = userData.email;
+      } else {
+        $('lErr').textContent = 'This is an old account. Please log in using your Email address or the Google button.';
+        return; 
+      }
     }
     
     await auth.signInWithEmailAndPassword(email, p);
     toast('Welcome back! 🔥');
   } catch (err) {
-    if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-      $('lErr').textContent = 'Invalid credentials';
+    if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      $('lErr').textContent = 'Invalid credentials. If you signed up with Google, please click "Continue with Google".';
     } else {
       $('lErr').textContent = err.message;
     }
@@ -469,7 +470,6 @@ async function loginWithGoogle() {
         counter++;
       }
       
-      // FIX 2: Save email for Google users too
       await ref.set({
         displayName: user.displayName || 'Voxer',
         username: username,
@@ -536,7 +536,6 @@ const MASTER_EMOJI_DICT = {"smile":"😊","grin":"😁","joy":"😂","heart":"�
 
 let autocompleteActive = false, currentSuggestions = [], autocompleteIndex = 0, uploadAccept = '';
 
-// FIX 3: Add debounce to typing indicator so we don't spam the database
 let typingDebounce = null;
 function handleInput() {
   const v = $('text').value, cursor = $('text').selectionStart;
@@ -727,7 +726,6 @@ function listenMessages() {
   }, dbErr);
 }
 
-// FIX 4: Use insertAdjacentHTML to prevent re-rendering the whole chat
 function appendMsg(m) {
   const box = $('msgs'), wasBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 100;
   const u = userCache[m.senderUid] || {displayName: m.sender || 'Unknown', photoURL: m.senderPhoto || ''};
