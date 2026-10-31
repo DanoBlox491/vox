@@ -1269,15 +1269,15 @@ input.error{
 <script>
 const $ = id => document.getElementById(id), esc = s => (s+'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-// CORRECT VOX-CHAT-979FD FIREBASE CONFIG
+// CORRECT VOX-CHAT-979FD FIREBASE CONFIG (FROM YOUR FIREBASE CONSOLE)
 const firebaseConfig = {
-  apiKey: "AIzaSyCv7yJ0b5NEG8EhT7AijzHXR3EqndmkVfM",
+  apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
   authDomain: "vox-chat-979fd.firebaseapp.com",
   projectId: "vox-chat-979fd",
   storageBucket: "vox-chat-979fd.firebasestorage.app",
-  messagingSenderId: "294810694880",
-  appId: "1:294810694880:web:6f3e7d3e5c0b5e4e5e4e5e",
-  measurementId: "G-XXXXXXXXXX"
+  messagingSenderId: "49260313546",
+  appId: "1:49260313546:web:63a50e8b0f30c8989bed33",
+  measurementId: "G-M7CZN9NER3"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -1353,23 +1353,9 @@ async function login() {
       const snap = await db.collection('vox_users').where('username', '==', u.toLowerCase()).limit(1).get();
       if (snap.empty) { $('lErr').textContent = 'Username not found'; return; }
       
-      // Find the actual email from Firebase Auth
-      const userData = snap.docs[0].data();
-      const uid = snap.docs[0].id;
-      
-      // Try to get the user's email from auth
-      try {
-        const userRecord = await auth.currentUser;
-        if (userRecord && userRecord.uid === uid) {
-          email = userRecord.email;
-        } else {
-          $('lErr').textContent = 'Could not find account. Try using your email.';
-          return;
-        }
-      } catch {
-        $('lErr').textContent = 'Could not find account. Try using your email.';
-        return;
-      }
+      // Username login not directly supported - ask for email
+      $('lErr').textContent = 'Please use your email to log in';
+      return;
     }
     
     await auth.signInWithEmailAndPassword(email, p);
@@ -1590,7 +1576,6 @@ async function openView(type, id) {
     listenMessages(); listenTyping();
     unreadChannels[`group_${id}`] = 0;
   } else if (type === 'dm') {
-    // Load friend data if not in cache
     if (!userCache[id]) {
       try {
         const snap = await db.collection('vox_users').doc(id).get();
@@ -1677,7 +1662,6 @@ function listenMessages() {
 async function appendMsg(m) {
   const box = $('msgs'), wasBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 100;
   
-  // Load user data if not in cache
   if (!userCache[m.senderUid]) {
     try {
       const snap = await db.collection('vox_users').doc(m.senderUid).get();
@@ -1755,7 +1739,6 @@ async function send() {
 function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); $('emoji-menu').classList.add('hidden'); }
 function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
 
-// Cloudinary Config - DO NOT TOUCH
 const CLOUDINARY = {cloudName: 'x9rwrmqe', uploadPreset: 'vox_uploads'};
 async function cloudUpload(file) {
   const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', CLOUDINARY.uploadPreset);
@@ -1887,7 +1870,6 @@ async function addFriend() {
 }
 
 async function viewProfile(uid) {
-  // Load user data if not in cache
   if (!userCache[uid]) {
     try {
       const snap = await db.collection('vox_users').doc(uid).get();
