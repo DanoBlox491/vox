@@ -208,7 +208,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <h2>Sign Up</h2>
 <input id="sEmail" type="email" placeholder="Email" autocomplete="email">
 <input id="sUsername" type="text" placeholder="Username" autocomplete="username" oninput="checkUsername(this.value,'sUsernameMsg')">
-<div id="sUsernameMsg" class="success hidden"></div>
+<div id="sUsernameMsg" class="err hidden"></div>
 <input id="sPass" type="password" placeholder="Password" autocomplete="new-password">
 <input id="sConfirmPass" type="password" placeholder="Confirm Password" autocomplete="new-password">
 <div class="err" id="sErr"></div>
@@ -285,12 +285,18 @@ function dbErr(e){
   }
 }
 
-// Debounced username check
+// Strict Username Validation (No random numbers, no illegal characters)
 let usernameCheckTimeout;
 async function checkUsername(username,msgId){
   clearTimeout(usernameCheckTimeout);
   const msgEl=$(msgId);
-  if(!username||username.length<3){msgEl.classList.add('hidden');return}
+  if(!username){msgEl.classList.add('hidden');return}
+  if(username.length<3||!/^[a-z0-9_]+$/.test(username)){
+    msgEl.textContent='✗ Username invalid';
+    msgEl.className='err';
+    msgEl.classList.remove('hidden');
+    return;
+  }
   usernameCheckTimeout=setTimeout(async()=>{
     try{
       const snap=await db.collection('vox_users').where('username','==',username.toLowerCase()).limit(1).get();
@@ -304,25 +310,24 @@ async function checkUsername(username,msgId){
         msgEl.classList.remove('hidden');
       }
     }catch(e){msgEl.classList.add('hidden')}
-  },500);
+  },350);
 }
 
-// Auth handlers
+// Sign up
 async function signup(){
-  const e=$('sEmail').value.trim(),u=$('sUsername').value.trim(),p=$('sPass').value,cp=$('sConfirmPass').value;
+  const e=$('sEmail').value.trim(),u=$('sUsername').value.trim().toLowerCase(),p=$('sPass').value,cp=$('sConfirmPass').value;
   $('sErr').textContent='';
   if(!e||!u||!p||!cp){$('sErr').textContent='Fill all fields';return}
-  if(u.length<3){$('sErr').textContent='Username must be at least 3 characters';return}
-  if(!/^[a-z0-9_]+$/.test(u)){$('sErr').textContent='Username can only contain lowercase letters, numbers, and underscores';return}
+  if(u.length<3||!/^[a-z0-9_]+$/.test(u)){$('sErr').textContent='Username invalid';return}
   if(p!==cp){$('sErr').textContent='Passwords do not match';return}
   if(p.length<6){$('sErr').textContent='Password must be at least 6 characters';return}
   try{
-    const snap=await db.collection('vox_users').where('username','==',u.toLowerCase()).limit(1).get();
+    const snap=await db.collection('vox_users').where('username','==',u).limit(1).get();
     if(!snap.empty){$('sErr').textContent='Username already taken';return}
     const userCred=await auth.createUserWithEmailAndPassword(e,p);
     await db.collection('vox_users').doc(userCred.user.uid).set({
       displayName:u,
-      username:u.toLowerCase(),
+      username:u,
       email:e,
       photoURL:'',
       bio:'',
@@ -333,6 +338,7 @@ async function signup(){
   }catch(err){$('sErr').textContent=err.message}
 }
 
+// Log in
 async function login(){
   const u=$('lUsername').value.trim(),p=$('lPass').value;
   $('lErr').textContent='';
@@ -341,12 +347,15 @@ async function login(){
     let email=u;
     if(!u.includes('@')){
       const snap=await db.collection('vox_users').where('username','==',u.toLowerCase()).limit(1).get();
-      if(snap.empty){$('lErr').textContent='Username not found';return}
+      if(snap.empty){
+        $('lErr').textContent='Username invalid';
+        return;
+      }
       const data=snap.docs[0].data();
       if(data.email){
         email=data.email;
       }else{
-        $('lErr').textContent='No email attached to this username. Please use email.';
+        $('lErr').textContent='Username invalid';
         return;
       }
     }
@@ -354,13 +363,14 @@ async function login(){
     toast('Welcome back! 🔥');
   }catch(err){
     if(err.code==='auth/user-not-found'||err.code==='auth/wrong-password'||err.code==='auth/invalid-credential'){
-      $('lErr').textContent='Invalid username/email or password';
+      $('lErr').textContent='Username invalid';
     }else{
       $('lErr').textContent=err.message;
     }
   }
 }
 
+// Google Sign-in: Prompt for Custom Username instead of generating random numbers!
 async function loginWithGoogle(){
   try{
     const provider=new firebase.auth.GoogleAuthProvider();
@@ -369,33 +379,60 @@ async function loginWithGoogle(){
     const ref=db.collection('vox_users').doc(user.uid);
     const snap=await ref.get();
     if(!snap.exists){
-      let baseName=(user.displayName||'user').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
-      if(!baseName)baseName='user';
-      let username=baseName;
-      let counter=1;
-      while(true){
-        const check=await db.collection('vox_users').where('username','==',username).limit(1).get();
-        if(check.empty)break;
-        username=`${baseName}_${counter}`;
-        counter++;
-      }
-      await ref.set({
-        displayName:user.displayName||'Voxer',
-        username:username,
-        email:user.email||'',
-        photoURL:user.photoURL||'',
-        bio:'',
-        socials:{yt:'',discord:''},
-        friends:[]
-      });
+      openGoogleUsernameModal(user);
+    }else{
+      toast('Welcome to Vox! 🚀');
     }
-    toast('Welcome to Vox! 🚀');
   }catch(err){
-    toast('Could not sign in with Google: '+err.message);
+    toast('Google sign-in error: '+err.message);
   }
 }
 
-// UI utilities
+function openGoogleUsernameModal(user){
+  $('modal').innerHTML=`
+    <div class="modal-inner">
+      <h3>Choose Your Username</h3>
+      <p style="color:var(--txt-dim);margin-bottom:14px;font-size:14px;">Please pick a custom unique username for your account:</p>
+      <input id="gUsername" placeholder="Username (letters, numbers, _)" oninput="checkUsername(this.value, 'gUserMsg')">
+      <div id="gUserMsg" class="err hidden"></div>
+      <div class="modal-actions">
+        <button class="pri" onclick="submitGoogleUsername('${user.uid}', '${esc(user.email||'')}', '${esc(user.displayName||'')}', '${esc(user.photoURL||'')}')">Complete Sign Up</button>
+      </div>
+    </div>`;
+  $('modal').classList.remove('hidden');
+}
+
+async function submitGoogleUsername(uid, email, displayName, photoURL){
+  const u=$('gUsername').value.trim().toLowerCase();
+  const errEl=$('gUserMsg');
+  if(!u||u.length<3||!/^[a-z0-9_]+$/.test(u)){
+    errEl.textContent='✗ Username invalid';
+    errEl.className='err';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const snap=await db.collection('vox_users').where('username','==',u).limit(1).get();
+  if(!snap.empty){
+    errEl.textContent='✗ Username already taken';
+    errEl.className='err';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  await db.collection('vox_users').doc(uid).set({
+    displayName:displayName||u,
+    username:u,
+    email:email,
+    photoURL:photoURL||'',
+    bio:'',
+    socials:{yt:'',discord:''},
+    friends:[]
+  });
+  closeModal();
+  toast('Welcome to Vox! 🚀');
+  openView('home');
+}
+
+// UI
 function renderMe(){
   const a=$('me').querySelector('.avatar'),b=$('me').querySelector('b');
   a.src=profile.photoURL||'';b.textContent=profile.displayName||'Voxer';
@@ -404,14 +441,14 @@ function isMobile(){return window.innerWidth<=900}
 function setDrawer(open){if(isMobile())$('side2').classList.toggle('open',open)}
 document.addEventListener('click',e=>{if(!e.target.closest('#composer')){$('menu').classList.add('hidden');$('emoji-menu').classList.add('hidden');closeEmojiAutocomplete()}});
 
-// Presence management
+// Presence
 function updateMyPresence(s){if(!me)return;db.collection('vox_presence').doc(me.uid).set({status:s,lastChanged:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).catch(()=>{})}
 let lastActivity=Date.now();
 setInterval(()=>{if(Date.now()-lastActivity>300000&&me)updateMyPresence('away')},60000);
 ['mousedown','keydown','touchstart'].forEach(e=>document.addEventListener(e,()=>{lastActivity=Date.now();if(me)updateMyPresence('online')}));
 window.addEventListener('beforeunload',()=>{if(me)updateMyPresence('offline')});
 
-// Notification system - FIXED: No composite inequality query bomb!
+// Notifier
 let lastMsgTime=Date.now();
 function startNotifier(){
   stop('notifier');
@@ -428,7 +465,7 @@ function startNotifier(){
         }
       });
     }, err => {
-      console.warn("Background notification notice (non-fatal):", err.message);
+      console.warn("Background notification notice:", err.message);
     });
 }
 
@@ -466,7 +503,6 @@ function handleInput(){
     if(currentSuggestions.length>0){autocompleteActive=true;autocompleteIndex=0;renderEmojiAutocomplete();$('emoji-autocomplete').classList.remove('hidden')}else closeEmojiAutocomplete();
   }else closeEmojiAutocomplete();
   
-  // Safe Typing indicator: never calls empty document path!
   clearTimeout(typingTimeout);
   const roomKey = getRoomKey();
   if(!roomKey) return;
@@ -511,7 +547,7 @@ function handleKeyDown(e){
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}
 }
 
-// Authentication state observer
+// Auth State Observer
 auth.onAuthStateChanged(async user=>{
   if(!user){
     me=null;Object.keys(unsubs).forEach(stop);unreadChannels={};recount();
@@ -528,24 +564,8 @@ auth.onAuthStateChanged(async user=>{
   try{
     const snap=await ref.get();
     if(!snap.exists){
-      const defaultUser=user.displayName||'New Voxer';
-      await ref.set({
-        displayName:defaultUser,
-        username:defaultUser.toLowerCase().replace(/\s+/g,'_'),
-        email:user.email||'',
-        photoURL:user.photoURL||'',
-        bio:'',
-        socials:{yt:'',discord:''},
-        friends:[]
-      });
-    }else{
-      const data=snap.data();
-      if(!data.username){
-        let baseName=(data.displayName||user.displayName||'voxer').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
-        if(!baseName)baseName='voxer';
-        const uniqueUsername=`${baseName}_${user.uid.slice(0,4)}`;
-        await ref.update({username:uniqueUsername});
-      }
+      openGoogleUsernameModal(user);
+      return;
     }
   }catch(e){dbErr(e)}
   
@@ -553,7 +573,7 @@ auth.onAuthStateChanged(async user=>{
   stop('me');
   unsubs.me=ref.onSnapshot(s=>{profile=s.data()||{};userCache[user.uid]=profile;renderMe();if(view.type==='home')renderSide()},dbErr);
   stop('servers');
-  unsubs.servers=db.collection('vox_servers').onSnapshot(s=>{servers=s.docs.map(d=>({id:d.id,...d.data()}));renderRail()},dbErr);
+  unsubs.servers=db.collection('vox_servers').onSnapshot(s=>{servers=s.docs.map(d=>({id:d.id,...d.data()}));renderRail();if(view.type==='server')renderSide();},dbErr);
   stop('groups');
   unsubs.groups=db.collection('vox_groups').where('members','array-contains',user.uid).onSnapshot(s=>{groups=s.docs.map(d=>({id:d.id,...d.data()}));renderRail()},dbErr);
   
@@ -581,6 +601,10 @@ async function openView(type,id){
   
   if(type==='server'){
     markVisited(id);
+    const s = servers.find(x => x.id === id);
+    $('topTitle').textContent = s ? s.name : 'Server';
+    $('topBtns').innerHTML = `<button onclick="openServerInviteModal('${id}')">🔗 Invite</button>`;
+    
     unsubs.chan=db.collection('vox_channels').where('serverId','==',id).onSnapshot(s=>{
       channels=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
       if(view.type==='server'&&view.id===id&&(!channel||!channels.find(c=>c.id===channel.id))){
@@ -652,7 +676,7 @@ async function renderSide(){
   }else if(view.type==='server'){
     const s=servers.find(x=>x.id===view.id);
     $('sideTitle').textContent=s?s.name:'Server';
-    $('sideBtns').innerHTML=(s&&s.owner===me.uid?'<button onclick="addChannelModal()">➕ Channel</button>':'')+`<button onclick="serverSettings('${view.id}')">⚙️</button>`;
+    $('sideBtns').innerHTML=`<button onclick="openServerInviteModal('${view.id}')">🔗</button>`+(s&&s.owner===me.uid?'<button onclick="addChannelModal()">➕ Channel</button>':'')+`<button onclick="serverSettings('${view.id}')">⚙️</button>`;
     channels.forEach(c=>{
       const icon=c.type==='voice'?'🔊':'#';
       const roomKey=`server_${view.id}_${c.id}`,unread=unreadChannels[roomKey]||0,dot=unread>0?'<span class="unread-dot"></span>':'';
@@ -661,7 +685,91 @@ async function renderSide(){
   }
 }
 
-// BULLETPROOF MESSAGE LISTENER WITH AUTO-FALLBACK (NO DATABASE ERROR CRASHES!)
+// Server Invite Modal with Friend Picker & Link
+function openServerInviteModal(sid){
+  const s=servers.find(x=>x.id===sid);
+  if(!s)return;
+  const link=`${location.origin}${location.pathname}?server=${sid}`;
+  const friendUids=profile.friends||[];
+  
+  let friendsHtml='';
+  if(friendUids.length===0){
+    friendsHtml='<div style="color:var(--txt-dim);padding:14px 0;text-align:center;font-weight:600;">No friends</div>';
+  }else{
+    friendsHtml='<div style="max-height:180px;overflow-y:auto;margin-top:10px;">';
+    friendUids.forEach(fuid=>{
+      const u=userCache[fuid]||{displayName:'Friend',photoURL:''};
+      friendsHtml+=`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--p3);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img class="avatar" src="${u.photoURL||''}" style="width:32px;height:32px;">
+            <span style="font-size:14px;font-weight:600;">${esc(u.displayName)}</span>
+          </div>
+          <button id="invBtn_${fuid}" style="width:auto;padding:6px 14px;font-size:12px;" class="pri" onclick="sendServerInviteToFriend('${sid}','${s.name}','${fuid}')">Invite</button>
+        </div>`;
+    });
+    friendsHtml+='</div>';
+  }
+
+  $('modal').innerHTML=`
+    <div class="modal-inner">
+      <h3>Invite to ${esc(s.name)}</h3>
+      <p style="font-size:13px;color:var(--txt-dim);margin-bottom:8px;">Share this server link:</p>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <input id="serverInviteInput" value="${link}" readonly style="margin:0;">
+        <button class="pri" style="width:auto;padding:0 18px;" onclick="copyServerLink('${link}')">Copy</button>
+      </div>
+      <h4 style="font-size:15px;margin-top:12px;color:var(--txt);">Or invite your friends:</h4>
+      ${friendsHtml}
+      <div class="modal-actions" style="margin-top:18px;">
+        <button onclick="closeModal()">Close</button>
+      </div>
+    </div>`;
+  $('modal').classList.remove('hidden');
+}
+
+function copyServerLink(link){
+  navigator.clipboard.writeText(link).then(()=>toast('Invite link copied!')).catch(()=>prompt('Copy link:',link));
+}
+
+async function sendServerInviteToFriend(sid,serverName,friendUid){
+  const btn=$(`invBtn_${friendUid}`);
+  const link=`${location.origin}${location.pathname}?server=${sid}`;
+  const dmId=getRoomId(friendUid);
+  try{
+    await db.collection('vox_messages').add({
+      senderUid:me.uid,
+      sender:profile.displayName||'Voxer',
+      senderPhoto:profile.photoURL||'',
+      timestamp:firebase.firestore.FieldValue.serverTimestamp(),
+      dmId:dmId,
+      roomId:dmId,
+      text:`Hey! Join my server **${serverName}**: ${link}`
+    });
+    if(btn){
+      btn.textContent='Sent ✓';
+      btn.disabled=true;
+      btn.style.opacity='0.6';
+    }
+    toast('Invite sent to friend!');
+  }catch(e){
+    toast('Error sending invite: '+e.message);
+  }
+}
+
+// Handle Server Invite URL links
+if(location.search.includes('server=')){
+  const sid=new URLSearchParams(location.search).get('server');
+  auth.onAuthStateChanged(u=>{
+    if(u&&sid){
+      history.replaceState(null,'',location.pathname);
+      toast('Opening server 🚀');
+      openView('server',sid);
+    }
+  });
+}
+
+// Fallback message listener
 function listenMessages(){
   stop('msgs');msgCache={};
   $('msgs').innerHTML='<div class="spinner"></div>';
@@ -678,9 +786,7 @@ function listenMessages(){
     }else if(view.type==='dm'){
       q = q.where('dmId','==',getRoomId(view.id));
     }
-    
     if(useOrder){
-      // Query newest 50 messages
       return q.orderBy('timestamp','desc').limit(50);
     }else{
       return q.limit(50);
@@ -691,15 +797,11 @@ function listenMessages(){
     unsubs.msgs = buildQuery(useOrder).onSnapshot(s => {
       $('msgs').innerHTML = '';
       let docs = s.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      
       if(useOrder){
-        // Chronological order: oldest on top, newest on bottom
         docs.reverse();
       }else{
-        // Client-side fallback sorting if Firestore index is missing!
         docs.sort((a,b) => ((a.timestamp?.seconds||0) - (b.timestamp?.seconds||0)));
       }
-      
       docs.forEach(m => {
         msgCache[m.id] = m;
         appendMsg(m);
@@ -708,8 +810,7 @@ function listenMessages(){
       checkMissedBanner();
     }, err => {
       if(useOrder && err.message && err.message.includes('requires an index')){
-        console.warn("Notice: Firestore index not detected for this room query. Falling back to zero-config client sorting mode!", err.message);
-        // Automatically recover and run smoothly without index!
+        console.warn("Falling back to client sorting mode:", err.message);
         startListen(false);
       }else{
         dbErr(err);
@@ -720,7 +821,6 @@ function listenMessages(){
   startListen(true);
 }
 
-// High performance append (zero DOM destruction)
 async function appendMsg(m){
   const box=$('msgs'),wasBottom=box.scrollHeight-box.scrollTop<=box.clientHeight+100;
   
@@ -783,7 +883,6 @@ function listenTyping(){
   },()=>{});
 }
 
-// Scroll tracker
 let hasScrolledUp=false;
 const msgsEl=$('msgs');
 if(msgsEl){
@@ -794,7 +893,6 @@ if(msgsEl){
 }
 function checkMissedBanner(){if(hasScrolledUp)$('missedBanner').classList.remove('hidden')}
 
-// Post message with Discord webhook support
 async function postMessage(data){
   const payload={
     senderUid:me.uid,
@@ -807,8 +905,6 @@ async function postMessage(data){
     payload.serverId=view.id;
     payload.channel=channel.id;
     payload.roomId=`server_${view.id}_${channel.id}`;
-    
-    // Relay to Discord Webhook if configured
     const s = servers.find(x => x.id === view.id);
     if(s && s.webhookUrl){
       try{
@@ -844,7 +940,6 @@ async function send(){
   try{await postMessage({text:v})}catch(e){toast('Could not send: '+e.message)}
 }
 
-// Cloudinary upload pipeline
 function toggleMenu(e){e.stopPropagation();$('menu').classList.toggle('hidden');$('emoji-menu').classList.add('hidden')}
 function pick(accept){uploadAccept=accept;const f=$('file');f.accept=accept;$('menu').classList.add('hidden');f.click()}
 const CLOUDINARY={cloudName:'x9rwrmqe',uploadPreset:'vox_uploads'};
@@ -895,7 +990,6 @@ async function deleteMsg(id){
   if(el) el.remove();
 }
 
-// Server creation and settings
 function createServerModal(){
   $('modal').innerHTML=`<div class="modal-inner"><h3>Create Server</h3><input id="serverName" placeholder="Server name"><div class="modal-actions"><button class="pri" onclick="createServer()">Create</button><button onclick="closeModal()">Cancel</button></div></div>`;
   $('modal').classList.remove('hidden');
@@ -934,7 +1028,6 @@ async function addChannel(){
   closeModal();toast('Channel added');
 }
 
-// Group creation and invites
 function createGroupModal(){
   $('modal').innerHTML=`<div class="modal-inner"><h3>Create Group</h3><input id="groupName" placeholder="Group name"><div class="modal-actions"><button class="pri" onclick="createGroup()">Create</button><button onclick="closeModal()">Cancel</button></div></div>`;
   $('modal').classList.remove('hidden');
@@ -959,7 +1052,6 @@ if(location.search.includes('join=')){
   });
 }
 
-// Friend system
 function addFriendModal(){
   $('modal').innerHTML=`<div class="modal-inner"><h3>Add Friend</h3><input id="friendUid" placeholder="Friend's User ID"><div class="modal-actions"><button class="pri" onclick="addFriend()">Add</button><button onclick="closeModal()">Cancel</button></div></div>`;
   $('modal').classList.remove('hidden');
@@ -1014,7 +1106,7 @@ async function saveProfile(){
 }
 function closeModal(){$('modal').classList.add('hidden');$('modal').innerHTML=''}
 
-// WebRTC Voice/Video
+// WebRTC
 let localStream,remoteStream,pc,callDoc;
 async function joinVoice(){
   if(!channel||channel.type!=='voice')return;
