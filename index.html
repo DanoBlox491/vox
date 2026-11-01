@@ -348,7 +348,6 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <script>
 const $ = id => document.getElementById(id);
 
-/* ✅ FIX: escape & " ' as well — safe inside attributes */
 function esc(s) {
   return (s === null || s === undefined ? '' : s + '')
     .replace(/&/g, '&amp;')
@@ -358,12 +357,39 @@ function esc(s) {
     .replace(/'/g, '&#39;');
 }
 
-/* ✅ FIX: block javascript:/data: URLs in src/href */
 function safeUrl(u) {
   return (typeof u === 'string' && /^https?:\/\//i.test(u.trim())) ? u.trim() : '';
 }
 
-/* 🔥 FIXED: Correct firebaseConfig for vox-chat-979fd */
+/* ===== AUDIO NOTIFICATION ===== */
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) audioCtx = new AudioContext();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+document.addEventListener('click', initAudio, { once: true });
+document.addEventListener('keydown', initAudio, { once: true });
+
+function playPing() {
+  initAudio();
+  if (!audioCtx || audioCtx.state === 'suspended') return; // Browser blocked it
+  const osc = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+  gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+  osc.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.3);
+}
+/* =============================== */
+
 const firebaseConfig = {
   apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
   authDomain: "vox-chat-979fd.firebaseapp.com",
@@ -386,7 +412,6 @@ const FIVE_DAYS = 5*24*60*60*1000;
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
 
-/* ✅ FIX: surface missing-index errors instead of a generic message */
 function dbErr(e) {
   console.error(e);
   const m = (e && e.message) || '';
@@ -445,7 +470,6 @@ async function signup() {
 
 async function login() {
   const u = $('lUsername').value.trim();
-  /* ✅ FIX: never trim the password — it was trimmed here but not at signup */
   const p = $('lPass').value;
   $('lErr').textContent = '';
 
@@ -530,13 +554,12 @@ window.addEventListener('beforeunload', () => { if (me) updateMyPresence('offlin
 
 let lastMsgTime = Date.now();
 
-/* ✅ FIX: notifier is stored in unsubs so logout actually stops it */
 function startNotifier() {
   stop('notifier');
   unsubs.notifier = db.collection('vox_messages').where('senderUid', '!=', me.uid).onSnapshot(s => {
     s.docChanges().forEach(c => {
       if (c.type === 'added') {
-        const m = c.doc.data();
+        const m = { id: c.doc.id, ...c.doc.data() };
         if (m.timestamp && m.timestamp.seconds * 1000 > lastMsgTime) handleIncoming(m);
       }
     });
@@ -547,11 +570,33 @@ function startNotifier() {
 function handleIncoming(m) {
   const roomId = m.serverId ? `server_${m.serverId}_${m.channel}` : m.groupId ? `group_${m.groupId}` : getRoomId(m.senderUid);
   const currentRoom = view.type === 'server' && channel ? `server_${view.id}_${channel.id}` : view.type === 'group' ? `group_${view.id}` : view.type === 'dm' ? getRoomId(view.id) : null;
+  
   if (roomId !== currentRoom) {
     unreadChannels[roomId] = (unreadChannels[roomId] || 0) + 1;
     recount(); renderRail(); renderSide();
+    
+    // 1. Play the Ping Sound
+    playPing();
+
+    // 2. In-app toast notification
+    toast(`💬 ${m.sender || 'New message'}: ${m.text || 'Sent a file'}`);
+
+    // 3. OS Notification with Click to Route
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(m.sender || 'New message', {body: m.text || 'Sent a file', icon: safeUrl(m.senderPhoto)});
+      const notif = new Notification(m.sender || 'New message', {
+        body: m.text || 'Sent a file', 
+        icon: safeUrl(m.senderPhoto),
+        tag: roomId // Groups multiple messages from the same room into one notification
+      });
+
+      // The magic that leads you to the message
+      notif.onclick = () => {
+        window.focus();
+        if (m.serverId) openView('server', m.serverId, m.channel);
+        else if (m.groupId) openView('group', m.groupId);
+        else if (m.senderUid) openView('dm', m.senderUid);
+        notif.close();
+      };
     }
   }
 }
@@ -559,12 +604,11 @@ function handleIncoming(m) {
 function recount() {
   const badge = Object.values(unreadChannels).reduce((a,b) => a+b, 0);
   if (navigator.setAppBadge) navigator.setAppBadge(badge).catch(() => {});
-  document.title = badge > 0 ? `(${badge}) Vox` : 'Vox';
+  document.title = badge > 0 ? `(${badge}) Vox` : 'Vox'; // Updates browser tab with red dot (number)
 }
 function hasUnread(prefix) { return Object.keys(unreadChannels).some(k => k.startsWith(prefix) && unreadChannels[k] > 0); }
 function markVisited(id) { Object.keys(unreadChannels).forEach(k => { if (k.startsWith('server_' + id)) unreadChannels[k] = 0; }); recount(); }
 
-/* ✅ FIX: this is the DM room key generator — callers must pass a uid */
 function getRoomId(uid) {
   if (!me || !uid) return '';
   return uid < me.uid ? `dm_${uid}_${me.uid}` : `dm_${me.uid}_${uid}`;
@@ -572,7 +616,6 @@ function getRoomId(uid) {
 
 const MASTER_EMOJI_DICT = {"smile":"😊","grin":"😁","joy":"😂","heart":"❤️","fire":"🔥","star":"⭐","thumbsup":"👍","thumbsdown":"👎","clap":"👏","eyes":"👀","100":"💯","rocket":"🚀","crown":"👑","skull":"💀","wave":"👋","tada":"🎉","thinking":"🤔","cool":"😎","cry":"😢","angry":"😠","laugh":"🤣","love":"😍","wink":"😉","tongue":"😛","nervous":"😅","heart_eyes":"😍","smirk":"😏","neutral":"😐","confused":"😕","money":"🤑","sick":"🤢","robot":"🤖","alien":"👽","ghost":"👻","cat":"🐱","dog":"🐶","pizza":"🍕","beer":"🍺","coffee":"☕","cake":"🍰","rainbow":"🌈","sun":"☀️","moon":"🌙","zap":"⚡","boom":"💥","sparkles":"✨","check":"✅","x":"❌","warning":"⚠️","ban":"🚫","music":"🎵","bell":"🔔","gift":"🎁","trophy":"🏆","medal":"🏅","key":"🔑","lock":"🔒","unlock":"🔓","link":"🔗","phone":"📱","computer":"💻","gear":"⚙️","hammer":"🔨","wrench":"🔧","mag":"🔍","bulb":"💡","book":"📖","moneybag":"💰","gem":"💎","bomb":"💣","hourglass":"⏳","alarm":"⏰","calendar":"📅","chart":"📈","email":"📧","inbox":"📥","package":"📦","pen":"✏️","pin":"📌","clip":"📎","scissors":"✂️","bookmark":"🔖","folder":"📁","page":"📄","newspaper":"📰","green_heart":"💚","yellow_heart":"💛","blue_heart":"💙","purple_heart":"💜","broken_heart":"💔","heart_exclamation":"❣️","two_hearts":"💕","sparkling_heart":"💖","heartpulse":"💗","heartbeat":"💓","revolving_hearts":"💞","cupid":"💘"};
 
-/* ✅ FIX: one precompiled regex instead of looping 120 keys per message */
 const EMOJI_KEYS = Object.keys(MASTER_EMOJI_DICT).sort((a,b) => b.length - a.length);
 const EMOJI_RE = new RegExp(':' + EMOJI_KEYS.join('|') + ':', 'g');
 
@@ -584,8 +627,6 @@ function formatBody(text) {
 }
 
 let autocompleteActive = false, currentSuggestions = [], autocompleteIndex = 0;
-
-/* ✅ FIX: capture the room key at keystroke time */
 let typingDebounce = null, typingRoomKey = '';
 function handleInput() {
   const v = $('text').value, cursor = $('text').selectionStart;
@@ -675,7 +716,6 @@ auth.onAuthStateChanged(async user => {
   updateMyPresence('online');
   stop('me');
 
-  /* ✅ FIX: hydrate friend profiles so names/avatars aren't "Unknown" after reload */
   unsubs.me = ref.onSnapshot(async s => {
     profile = s.data() || {};
     userCache[user.uid] = profile;
@@ -687,7 +727,7 @@ auth.onAuthStateChanged(async user => {
         try {
           const d = await db.collection('vox_users').doc(u).get();
           if (d.exists) userCache[u] = d.data();
-        } catch (e) { /* ignore single-user fetch failures */ }
+        } catch (e) { }
       }));
     }
 
@@ -714,7 +754,7 @@ function renderRail() {
   r.innerHTML = h;
 }
 
-async function openView(type, id) {
+async function openView(type, id, targetChannelId) {
   view = {type, id}; channel = null; channels = [];
   stop('chan'); stop('msgs'); if (typingUnsub) { typingUnsub(); typingUnsub = null; }
   $('composer').classList.add('hidden'); $('typing-indicator').classList.add('hidden');
@@ -726,9 +766,14 @@ async function openView(type, id) {
     markVisited(id);
     unsubs.chan = db.collection('vox_channels').where('serverId', '==', id).onSnapshot(s => {
       channels = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-      if (view.type === 'server' && view.id === id && (!channel || !channels.find(c => c.id === channel.id))) {
-        const first = channels.find(c => c.type === 'text');
-        if (first) { selectChannel(first.id, true); return; }
+      
+      if (view.type === 'server' && view.id === id) {
+        if (targetChannelId && channels.find(c => c.id === targetChannelId)) {
+           if (!channel || channel.id !== targetChannelId) selectChannel(targetChannelId, true);
+        } else if (!channel || !channels.find(c => c.id === channel.id)) {
+           const first = channels.find(c => c.type === 'text');
+           if (first) { selectChannel(first.id, true); return; }
+        }
       }
       renderSide();
     }, dbErr);
@@ -744,7 +789,6 @@ async function openView(type, id) {
     $('topTitle').textContent = '💬 ' + (friend ? friend.displayName : 'Direct Message');
     $('composer').classList.remove('hidden');
     listenMessages(); listenTyping();
-    /* ✅ FIX: pass the uid — this was clearing the wrong (undefined) key */
     unreadChannels[getRoomId(id)] = 0;
   }
   if (isMobile()) setDrawer(type === 'home' || type === 'server');
@@ -770,10 +814,8 @@ function selectChannel(cid, auto) {
 function renderSide() {
   const l = $('list'); l.innerHTML = '';
   $('sideTitle').textContent = '';
-  /* ✅ FIX: always reset the header buttons so they don't leak between views */
   $('sideBtns').innerHTML = '';
 
-  /* ✅ FIX: render the friends list in DM view too (was blank before) */
   if (view.type === 'home' || view.type === 'dm') {
     $('sideTitle').textContent = 'Friends';
     $('sideBtns').innerHTML = '<button class="pri" onclick="addFriendModal()">➕ Add</button>';
@@ -799,7 +841,6 @@ function listenMessages() {
   let q = db.collection('vox_messages').orderBy('timestamp', 'desc').limit(50);
   if (view.type === 'server' && channel) q = q.where('serverId', '==', view.id).where('channel', '==', channel.id);
   else if (view.type === 'group') q = q.where('groupId', '==', view.id);
-  /* ✅ FIX: pass view.id — was querying dm_<me>_undefined */
   else if (view.type === 'dm') q = q.where('dmId', '==', getRoomId(view.id));
 
   unsubs.msgs = q.onSnapshot(s => {
@@ -877,7 +918,6 @@ async function postMessage(data) {
   const payload = {senderUid: me.uid, sender: profile.displayName || 'Voxer', senderPhoto: profile.photoURL || '', timestamp: firebase.firestore.FieldValue.serverTimestamp(), ...data};
   if (view.type === 'server' && channel) { payload.serverId = view.id; payload.channel = channel.id; }
   else if (view.type === 'group') payload.groupId = view.id;
-  /* ✅ FIX: pass view.id — was writing dm_<me>_undefined so the other person never saw it */
   else if (view.type === 'dm') payload.dmId = getRoomId(view.id);
   else return;
   await db.collection('vox_messages').add(payload);
@@ -924,7 +964,6 @@ renderMenu();
 
 function toggleEmojiMenu(e) { e.stopPropagation(); $('emoji-menu').classList.toggle('hidden'); $('menu').classList.add('hidden'); }
 function renderEmojiMenu() {
-  /* ✅ FIX: show 40 common emoji instead of only 10 */
   const common = ['smile','joy','heart','fire','thumbsup','cry','laugh','eyes','rocket','skull','tada','cool','love','wink','thinking','clap','100','crown','star','wave','sparkles','gem','trophy','gift','coffee','pizza','cake','beer','music','zap','boom','check','x','warning','ghost','robot','alien','cat','dog','rainbow'];
   $('emoji-menu').innerHTML = common.map(k => `<div onclick="insertEmojiDirect('${MASTER_EMOJI_DICT[k]}')">${MASTER_EMOJI_DICT[k]}</div>`).join('');
 }
@@ -1040,7 +1079,6 @@ function addFriendModal() {
   $('modal').classList.remove('hidden');
 }
 
-/* ✅ FIX: guarded — update() on a non-existent doc used to throw silently */
 async function addFriend() {
   const uid = $('friendUid').value.trim(); if (!uid) return toast('Enter UID');
   if (uid === me.uid) return toast('Cannot add yourself');
@@ -1138,11 +1176,9 @@ async function joinCall(docId) {
   await ref.update({answer: {type: answer.type, sdp: answer.sdp}, calleeUid: me.uid});
   pc.onicecandidate = e => { if (e.candidate) ref.update({calleeCandidates: firebase.firestore.FieldValue.arrayUnion(e.candidate.toJSON())}).catch(()=>{}); };
   if (d.callerCandidates) d.callerCandidates.forEach(c => pc.addIceCandidate(new RTCIceCandidate(c)));
-  /* ✅ FIX: remember which call doc we joined so we can clean it up */
   callDoc = docId;
 }
 
-/* ✅ FIX: delete the stale call doc on leave, otherwise the next person joins a dead call */
 async function leaveVoice() {
   if (localStream) localStream.getTracks().forEach(t => t.stop());
   if (pc) { try { pc.close(); } catch(e){} }
