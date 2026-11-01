@@ -108,7 +108,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #msgs::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--p3) 0%,var(--p4) 100%);border-radius:10px}
 #msgs::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--p4) 0%,var(--blue) 100%)}
 
-/* ⚡ ZERO ANIMATION: Instant 60fps message rendering! */
+/* ⚡ ZERO DELAY, INSTANT 60FPS FLAT RENDERING */
 .msg{display:flex;gap:12px;margin-bottom:12px;padding:12px;border-radius:12px;transition:background .2s;border-left:3px solid transparent;position:relative}
 .msg:hover{background:rgba(0,212,255,.03);border-left-color:var(--blue);box-shadow:0 4px 15px rgba(0,212,255,.1)}
 .msg .avatar{width:40px;height:40px}
@@ -122,7 +122,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 .msg a:hover{border-bottom-color:var(--blue);text-shadow:0 0 10px var(--blue-glow)}
 #typing-indicator{position:absolute;bottom:72px;left:30px;font-size:12px;font-weight:600;color:var(--blue);text-shadow:0 0 10px var(--blue-glow);font-style:italic}
 
-/* Clean, Sleek Composer */
+/* Sleek Composer Bar */
 #composer{padding:18px 24px;display:flex;gap:10px;align-items:center;border-top:1px solid var(--p3);background:linear-gradient(135deg,rgba(15,20,34,.95) 0%,rgba(10,14,26,.95) 100%);backdrop-filter:blur(20px);box-shadow:0 -4px 20px rgba(0,0,0,.3)}
 #composer input{margin:0;border-radius:12px;font-size:15px;flex:1}
 #plus,#emoji-btn{width:48px;height:48px;font-size:22px;background:linear-gradient(135deg,var(--p3) 0%,var(--p4) 100%);display:flex;justify-content:center;align-items:center;border-radius:12px;cursor:pointer;transition:all .3s cubic-bezier(.68,-.55,.265,1.55);border:2px solid transparent;flex-shrink:0}
@@ -296,10 +296,10 @@ const $=id=>document.getElementById(id),esc=s=>(s+'').replace(/</g,'&lt;').repla
 const firebaseConfig={apiKey:"AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",authDomain:"vox-chat-979fd.firebaseapp.com",projectId:"vox-chat-979fd",storageBucket:"vox-chat-979fd.firebasestorage.app",messagingSenderId:"49260313546",appId:"1:49260313546:web:63a50e8b0f30c8989bed33",measurementId:"G-M7CZN9NER3"};
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(),db=firebase.firestore();
-let me=null,profile={},view={type:'home'},channel=null,channels=[],servers=[],groups=[],userCache={},msgCache={},unsubs={},stop=k=>{if(unsubs[k]){unsubs[k]();delete unsubs[k]}},unreadChannels={},typingUnsub=null,typingTimeout=null;
+let me=null,profile={},view={type:'home'},channel=null,channels=[],servers=[],groups=[],userCache={},msgCache={},unsubs={},stop=k=>{if(unsubs[k]){unsubs[k]();delete unsubs[k]}},unreadChannels={},typingUnsub=null;
 const FIVE_DAYS=5*24*60*60*1000;
 
-// 🔔 DISCORD-IDENTICAL NOTIFICATION SOUND (Synthesized via Web Audio API)
+// 🔔 DISCORD CHIME SYNTHESIS (Web Audio API)
 let audioCtx=null;
 function initAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }
 ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, initAudio, {once:true}));
@@ -309,7 +309,7 @@ function playPing(){
     initAudio();
     const now = audioCtx.currentTime;
     
-    // Discord Tone 1: E5 (659.25Hz) with quick bell envelope
+    // Discord Tone 1: E5 (659.25Hz)
     const osc1 = audioCtx.createOscillator();
     const gain1 = audioCtx.createGain();
     osc1.type = 'sine';
@@ -321,7 +321,7 @@ function playPing(){
     osc1.start(now);
     osc1.stop(now + 0.13);
 
-    // Discord Tone 2: A5 (880Hz) warm chime response
+    // Discord Tone 2: A5 (880Hz)
     const osc2 = audioCtx.createOscillator();
     const gain2 = audioCtx.createGain();
     osc2.type = 'sine';
@@ -345,7 +345,6 @@ function dbErr(e){
   }
 }
 
-// Clear unread badge as soon as the user focuses back on the tab
 window.addEventListener('focus', () => {
   const currentRoom = getRoomKey();
   if (currentRoom && unreadChannels[currentRoom]) {
@@ -515,14 +514,12 @@ setInterval(()=>{if(Date.now()-lastActivity>300000&&me)updateMyPresence('away')}
 ['mousedown','keydown','touchstart'].forEach(e=>document.addEventListener(e,()=>{lastActivity=Date.now();if(me)updateMyPresence('online')}));
 window.addEventListener('beforeunload',()=>{if(me)updateMyPresence('offline')});
 
-// Safe Timestamp Helper (Fixes the 1970 Sorting Bug!)
 function getMsgTimestamp(m) {
   if (m.timestamp && m.timestamp.seconds) return m.timestamp.seconds * 1000;
   if (m.clientTime) return m.clientTime;
   return Date.now();
 }
 
-// Background notifier
 let lastMsgTime=Date.now();
 function startNotifier(){
   stop('notifier');
@@ -570,6 +567,11 @@ function getRoomId(uid){if(!me||!uid)return'';return uid<me.uid?`dm_${uid}_${me.
 const MASTER_EMOJI_DICT={"smile":"😊","joy":"😂","heart":"❤️","fire":"🔥","star":"⭐","thumbsup":"👍","thumbsdown":"👎","eyes":"👀","100":"💯","rocket":"🚀","crown":"👑","skull":"💀","wave":"👋","tada":"🎉","cool":"😎","cry":"😢","laugh":"🤣","love":"😍","wink":"😉","thinking":"🤔","clap":"👏","check":"✅","x":"❌","warning":"⚠️","music":"🎵","gift":"🎁","trophy":"🏆","pizza":"🍕"};
 
 let autocompleteActive=false,currentSuggestions=[],autocompleteIndex=0,uploadAccept='';
+
+// 🚀 ZERO-COOLDOWN TYPING LOGIC (Throttled so Firestore never blocks your sends!)
+let isTypingSent = false;
+let typingStopTimer = null;
+
 function handleInput(){
   const v=$('text').value,cursor=$('text').selectionStart;
   const beforeCursor=v.slice(0,cursor),match=beforeCursor.match(/:([a-zA-Z0-9_+-]+)$/);
@@ -579,17 +581,23 @@ function handleInput(){
     if(currentSuggestions.length>0){autocompleteActive=true;autocompleteIndex=0;renderEmojiAutocomplete();$('emoji-autocomplete').classList.remove('hidden')}else closeEmojiAutocomplete();
   }else closeEmojiAutocomplete();
   
-  // Clean auto-expiring typing indicator
-  clearTimeout(typingTimeout);
   const roomKey = getRoomKey();
-  if(!roomKey) return;
+  if(!roomKey || !me) return;
 
-  if(me && view.type && $('text').value.length > 0){
-    db.collection('vox_typing').doc(roomKey).set({[me.uid]: profile.displayName || 'Someone'}, {merge: true}).catch(()=>{});
-    typingTimeout = setTimeout(() => {
+  // Throttled: Send to Firestore once per 3s max, removing the keypress write flood
+  if(v.length > 0){
+    if(!isTypingSent){
+      isTypingSent = true;
+      db.collection('vox_typing').doc(roomKey).set({[me.uid]: profile.displayName || 'Someone'}, {merge: true}).catch(()=>{});
+    }
+    clearTimeout(typingStopTimer);
+    typingStopTimer = setTimeout(() => {
+      isTypingSent = false;
       db.collection('vox_typing').doc(roomKey).set({[me.uid]: firebase.firestore.FieldValue.delete()}, {merge: true}).catch(()=>{});
-    }, 3000);
-  }else if(me && view.type){
+    }, 2800);
+  }else{
+    isTypingSent = false;
+    clearTimeout(typingStopTimer);
     db.collection('vox_typing').doc(roomKey).set({[me.uid]: firebase.firestore.FieldValue.delete()}, {merge: true}).catch(()=>{});
   }
 }
@@ -840,7 +848,7 @@ if(location.search.includes('server=')){
   });
 }
 
-// 🎬 LIGHTBOX PHOTO/VIDEO VIEWER CONTROLS
+// 🎬 LIGHTBOX PHOTO/VIDEO VIEWER
 let currentZoom = 1;
 function openLightbox(src, type){
   const box = $('mediaLightbox');
@@ -882,7 +890,6 @@ function closeLightbox(e){
   $('lightboxImg').src = '';
 }
 
-// Close lightbox on Escape key
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (!$('mediaLightbox').classList.contains('hidden')) closeLightbox();
@@ -890,7 +897,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// 🚀 BULLETPROOF REAL-TIME MESSAGING ENGINE (Fixes the Delayed Send Bug!)
+// 🚀 REAL-TIME MESSAGE LISTENER WITH INSTANT LOCAL RECOGNITION
 function listenMessages(){
   stop('msgs');msgCache={};
   $('msgs').innerHTML='<div class="spinner"></div>';
@@ -933,11 +940,19 @@ function listenMessages(){
 
       s.docChanges().forEach(c => {
         const m = { id: c.doc.id, ...c.doc.data() };
+        
+        // Match optimistic local message to prevent any duplicate insertion
+        const existingByTime = m.clientTime ? document.querySelector(`.msg[data-client-time="${m.clientTime}"]`) : null;
+        if(existingByTime){
+          existingByTime.setAttribute('data-id', m.id);
+          msgCache[m.id] = m;
+          return;
+        }
+
         if (c.type === 'added') {
           if (!msgCache[m.id]) {
             msgCache[m.id] = m;
             appendMsg(m);
-            // Play ping chime if message is from someone else and tab is not active
             if (m.senderUid !== me.uid && (document.hidden || !document.hasFocus())) {
               playPing();
             }
@@ -961,7 +976,7 @@ function listenMessages(){
 // High performance message appender (Zero delay, instant timestamp)
 async function appendMsg(m){
   const box=$('msgs');
-  if (document.querySelector(`.msg[data-id="${m.id}"]`)) return; // Prevent duplicate DOM inserts
+  if (document.querySelector(`.msg[data-id="${m.id}"]`)) return;
 
   const wasBottom=box.scrollHeight-box.scrollTop<=box.clientHeight+100;
   
@@ -992,10 +1007,9 @@ async function appendMsg(m){
   }
   if(m.reactions)reactions=Object.entries(m.reactions).map(([e,arr])=>`<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${e}')">${e} ${arr.length}</span>`).join(' ');
   
-  // Format exact current time immediately
   const formattedTime = new Date(getMsgTimestamp(m)).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
-  const html=`<div class="msg" data-id="${m.id}"><img class="avatar" src="${u.photoURL||''}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${formattedTime}</span></div><div>${body}</div>${media}${reactions?`<div style="margin-top:4px">${reactions}</div>`:''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid===me.uid?`<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>`:''}</div></div>`;
+  const html=`<div class="msg" data-id="${m.id}" data-client-time="${m.clientTime || ''}"><img class="avatar" src="${u.photoURL||''}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${formattedTime}</span></div><div>${body}</div>${media}${reactions?`<div style="margin-top:4px">${reactions}</div>`:''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid===me.uid?`<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>`:''}</div></div>`;
   
   box.insertAdjacentHTML('beforeend', html);
   if(wasBottom || m.senderUid === me.uid) scrollToBottom();
@@ -1011,7 +1025,6 @@ function updateMsg(m){
   const lines=body.querySelectorAll('div');
   if(lines.length>1)lines[1].innerHTML=txt;
   
-  // Update timestamp if server assigned final time
   const timeEl = body.querySelector('.t');
   if (timeEl) timeEl.textContent = new Date(getMsgTimestamp(m)).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
@@ -1046,14 +1059,12 @@ if(msgsEl){
 }
 function checkMissedBanner(){if(hasScrolledUp)$('missedBanner').classList.remove('hidden')}
 
-// Core sender function
 async function postMessageInternal(customData){
   const payload={
     senderUid:me.uid,
     sender:profile.displayName||'Voxer',
     senderPhoto:profile.photoURL||'',
     timestamp:firebase.firestore.FieldValue.serverTimestamp(),
-    clientTime:Date.now(), // ⚡ Client millisecond ensures immediate correct placement!
     ...customData
   };
   return db.collection('vox_messages').add(payload);
@@ -1088,16 +1099,52 @@ async function postMessage(data){
   }else return;
   
   await postMessageInternal(payload);
-  clearTimeout(typingTimeout);
+  
   const roomKey = getRoomKey();
-  if(roomKey){
+  if(roomKey && isTypingSent){
+    isTypingSent = false;
+    clearTimeout(typingStopTimer);
     db.collection('vox_typing').doc(roomKey).set({[me.uid]:firebase.firestore.FieldValue.delete()},{merge:true}).catch(()=>{});
   }
 }
 
+// ⚡ 0ms INSTANT OPTIMISTIC SEND (Zero delay, zero cooldown!)
 async function send(){
-  const v=$('text').value.trim();if(!v)return;$('text').value='';closeEmojiAutocomplete();
-  try{await postMessage({text:v})}catch(e){toast('Could not send: '+e.message)}
+  const v=$('text').value.trim();
+  if(!v) return;
+  $('text').value='';
+  closeEmojiAutocomplete();
+
+  // Clear typing indicator immediately
+  isTypingSent = false;
+  clearTimeout(typingStopTimer);
+
+  // 1. Immediately render to the screen in 0.001s!
+  const clientTime = Date.now();
+  const tempId = 'temp_' + clientTime + '_' + Math.random().toString(36).substr(2, 5);
+  const optimisticMsg = {
+    id: tempId,
+    senderUid: me.uid,
+    sender: profile.displayName || 'Voxer',
+    senderPhoto: profile.photoURL || '',
+    text: v,
+    clientTime: clientTime,
+    timestamp: { seconds: Math.floor(clientTime / 1000) }
+  };
+
+  const emptyNotice = $('msgs').querySelector('.empty');
+  if (emptyNotice) emptyNotice.remove();
+
+  msgCache[tempId] = optimisticMsg;
+  appendMsg(optimisticMsg);
+  scrollToBottom();
+
+  // 2. Deliver to Firestore in the background
+  try{
+    await postMessage({ text: v, clientTime: clientTime });
+  }catch(e){
+    toast('Could not send: ' + e.message);
+  }
 }
 
 function toggleMenu(e){e.stopPropagation();$('menu').classList.toggle('hidden');$('emoji-menu').classList.add('hidden')}
@@ -1112,7 +1159,7 @@ async function upload(inp){const f=inp.files[0];inp.value='';if(!f)return;sendFi
 document.addEventListener('paste',e=>{if(!me||$('composer').classList.contains('hidden')||!$('modal').classList.contains('hidden'))return;const it=[...((e.clipboardData&&e.clipboardData.items)||[])].find(i=>i.kind==='file'&&i.type.startsWith('image/'));if(!it)return;const f=it.getAsFile();if(!f)return;e.preventDefault();sendFile(f)});
 async function sendFile(f){
   $('menu').innerHTML='<div>Uploading...</div>';$('menu').classList.remove('hidden');
-  try{const url=await cloudUpload(f);await postMessage({text:'',mediaUrl:url,mediaType:f.type});toast('File sent')}catch(e){toast(e.message)}
+  try{const url=await cloudUpload(f);await postMessage({text:'',mediaUrl:url,mediaType:f.type,clientTime:Date.now()});toast('File sent')}catch(e){toast(e.message)}
   $('menu').classList.add('hidden');renderMenu();
 }
 function renderMenu(){$('menu').innerHTML='<div onclick="pick(\'image/*,video/*\')">📷 Photo/Video</div><div onclick="pick(\'*/*\')">📎 Any file</div>'}
