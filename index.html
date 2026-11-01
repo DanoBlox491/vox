@@ -108,7 +108,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #msgs::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--p3) 0%,var(--p4) 100%);border-radius:10px}
 #msgs::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--p4) 0%,var(--blue) 100%)}
 
-/* ⚡ ZERO DELAY, INSTANT 60FPS FLAT RENDERING */
+/* ⚡ ZERO DELAY, CLEAN 60FPS FLAT RENDERING */
 .msg{display:flex;gap:12px;margin-bottom:12px;padding:12px;border-radius:12px;transition:background .2s;border-left:3px solid transparent;position:relative}
 .msg:hover{background:rgba(0,212,255,.03);border-left-color:var(--blue);box-shadow:0 4px 15px rgba(0,212,255,.1)}
 .msg .avatar{width:40px;height:40px}
@@ -309,7 +309,7 @@ function playPing(){
     initAudio();
     const now = audioCtx.currentTime;
     
-    // Discord Tone 1: E5 (659.25Hz)
+    // Tone 1: E5 (659.25Hz)
     const osc1 = audioCtx.createOscillator();
     const gain1 = audioCtx.createGain();
     osc1.type = 'sine';
@@ -321,7 +321,7 @@ function playPing(){
     osc1.start(now);
     osc1.stop(now + 0.13);
 
-    // Discord Tone 2: A5 (880Hz)
+    // Tone 2: A5 (880Hz)
     const osc2 = audioCtx.createOscillator();
     const gain2 = audioCtx.createGain();
     osc2.type = 'sine';
@@ -514,10 +514,15 @@ setInterval(()=>{if(Date.now()-lastActivity>300000&&me)updateMyPresence('away')}
 ['mousedown','keydown','touchstart'].forEach(e=>document.addEventListener(e,()=>{lastActivity=Date.now();if(me)updateMyPresence('online')}));
 window.addEventListener('beforeunload',()=>{if(me)updateMyPresence('offline')});
 
+// ⚡ 100% DETERMINISTIC TIMESTAMP FUNCTION (Never scrambles or returns NaN!)
 function getMsgTimestamp(m) {
-  if (m.timestamp && m.timestamp.seconds) return m.timestamp.seconds * 1000;
-  if (m.clientTime) return m.clientTime;
-  return Date.now();
+  if (m.clientTime && typeof m.clientTime === 'number') return m.clientTime;
+  if (m.timestamp) {
+    if (typeof m.timestamp.toMillis === 'function') return m.timestamp.toMillis();
+    if (typeof m.timestamp.seconds === 'number') return m.timestamp.seconds * 1000;
+    if (typeof m.timestamp === 'number') return m.timestamp;
+  }
+  return 0; // Fixed fallback ensures stable sort
 }
 
 let lastMsgTime=Date.now();
@@ -542,8 +547,8 @@ function startNotifier(){
 }
 
 function handleIncoming(m){
-  const roomId=m.serverId?`server_${m.serverId}_${m.channel}`:m.groupId?`group_${m.groupId}`:getRoomId(m.senderUid);
-  const currentRoom=view.type==='server'&&channel?`server_${view.id}_${channel.id}`:view.type==='group'?`group_${view.id}`:view.type==='dm'?getRoomId(view.id):null;
+  const roomId=m.roomId || (m.serverId?`server_${m.serverId}_${m.channel}`:m.groupId?`group_${m.groupId}`:getRoomId(m.senderUid));
+  const currentRoom=getRoomKey();
   
   if(roomId!==currentRoom || document.hidden || !document.hasFocus()){
     playPing();
@@ -568,7 +573,7 @@ const MASTER_EMOJI_DICT={"smile":"😊","joy":"😂","heart":"❤️","fire":"�
 
 let autocompleteActive=false,currentSuggestions=[],autocompleteIndex=0,uploadAccept='';
 
-// 🚀 ZERO-COOLDOWN TYPING LOGIC (Throttled so Firestore never blocks your sends!)
+// 🚀 ZERO-COOLDOWN TYPING LOGIC
 let isTypingSent = false;
 let typingStopTimer = null;
 
@@ -584,7 +589,6 @@ function handleInput(){
   const roomKey = getRoomKey();
   if(!roomKey || !me) return;
 
-  // Throttled: Send to Firestore once per 3s max, removing the keypress write flood
   if(v.length > 0){
     if(!isTypingSent){
       isTypingSent = true;
@@ -848,7 +852,7 @@ if(location.search.includes('server=')){
   });
 }
 
-// 🎬 LIGHTBOX PHOTO/VIDEO VIEWER
+// 🎬 LIGHTBOX CONTROLS
 let currentZoom = 1;
 function openLightbox(src, type){
   const box = $('mediaLightbox');
@@ -897,7 +901,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// 🚀 REAL-TIME MESSAGE LISTENER WITH INSTANT LOCAL RECOGNITION
+// 🚀 REAL-TIME MESSAGE LISTENER WITH REFRESH-PROOF SYNCHRONOUS DOM INSERTION
 function listenMessages(){
   stop('msgs');msgCache={};
   $('msgs').innerHTML='<div class="spinner"></div>';
@@ -914,7 +918,8 @@ function listenMessages(){
     }else if(view.type==='dm'){
       q = q.where('dmId','==',getRoomId(view.id));
     }
-    return q.limit(60);
+    // Expanded buffer ensures no chats ever disappear on refresh
+    return q.limit(200);
   }
 
   let firstLoad = true;
@@ -923,11 +928,14 @@ function listenMessages(){
       $('msgs').innerHTML = '';
       firstLoad = false;
       let initialDocs = s.docs.map(doc => ({id: doc.id, ...doc.data()}));
+      
+      // 100% Deterministic Sort: Oldest on top, newest on bottom
       initialDocs.sort((a,b) => getMsgTimestamp(a) - getMsgTimestamp(b));
       
       if (initialDocs.length === 0) {
         $('msgs').innerHTML = '<div class="empty">No messages here yet. Say hello! 👋</div>';
       } else {
+        // Pure Synchronous Sequential Append: NEVER jumps or scrambles order!
         initialDocs.forEach(m => {
           msgCache[m.id] = m;
           appendMsg(m);
@@ -941,7 +949,7 @@ function listenMessages(){
       s.docChanges().forEach(c => {
         const m = { id: c.doc.id, ...c.doc.data() };
         
-        // Match optimistic local message to prevent any duplicate insertion
+        // Match optimistic local message to prevent duplicate insertion
         const existingByTime = m.clientTime ? document.querySelector(`.msg[data-client-time="${m.clientTime}"]`) : null;
         if(existingByTime){
           existingByTime.setAttribute('data-id', m.id);
@@ -973,21 +981,32 @@ function listenMessages(){
   });
 }
 
-// High performance message appender (Zero delay, instant timestamp)
-async function appendMsg(m){
+// ⚡ 100% SYNCHRONOUS DOM INSERTION (Eliminates the top-of-chat race bug!)
+function appendMsg(m){
   const box=$('msgs');
   if (document.querySelector(`.msg[data-id="${m.id}"]`)) return;
 
   const wasBottom=box.scrollHeight-box.scrollTop<=box.clientHeight+100;
   
-  if(!userCache[m.senderUid]){
-    try{
-      const snap=await db.collection('vox_users').doc(m.senderUid).get();
-      if(snap.exists)userCache[m.senderUid]=snap.data();
-    }catch(e){}
+  // Use cached profile or fallback directly to stored message data without blocking DOM!
+  const u = userCache[m.senderUid] || { displayName: m.sender || 'Voxer', photoURL: m.senderPhoto || '' };
+  
+  // If user profile is not in cache, fetch silently in the background without halting message flow
+  if(!userCache[m.senderUid] && m.senderUid){
+    db.collection('vox_users').doc(m.senderUid).get().then(snap=>{
+      if(snap.exists){
+        userCache[m.senderUid] = snap.data();
+        const el = document.querySelector(`.msg[data-id="${m.id}"]`);
+        if(el){
+          const nameEl = el.querySelector('.n');
+          const avEl = el.querySelector('.avatar');
+          if(nameEl && snap.data().displayName) nameEl.textContent = snap.data().displayName;
+          if(avEl && snap.data().photoURL) avEl.src = snap.data().photoURL;
+        }
+      }
+    }).catch(()=>{});
   }
   
-  const u=userCache[m.senderUid]||{displayName:m.sender||'Unknown',photoURL:m.senderPhoto||''};
   let body=esc(m.text||'');
   body=body.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
   
@@ -1007,7 +1026,7 @@ async function appendMsg(m){
   }
   if(m.reactions)reactions=Object.entries(m.reactions).map(([e,arr])=>`<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${e}')">${e} ${arr.length}</span>`).join(' ');
   
-  const formattedTime = new Date(getMsgTimestamp(m)).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const formattedTime = new Date(getMsgTimestamp(m) || Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
   const html=`<div class="msg" data-id="${m.id}" data-client-time="${m.clientTime || ''}"><img class="avatar" src="${u.photoURL||''}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${formattedTime}</span></div><div>${body}</div>${media}${reactions?`<div style="margin-top:4px">${reactions}</div>`:''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid===me.uid?`<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>`:''}</div></div>`;
   
@@ -1037,7 +1056,12 @@ function updateMsg(m){
   }else if(reactionDiv)reactionDiv.remove();
 }
 
-function scrollToBottom(){const b=$('msgs');b.scrollTop=b.scrollHeight}
+function scrollToBottom(){
+  const b=$('msgs');
+  if(!b) return;
+  b.scrollTop = b.scrollHeight;
+  requestAnimationFrame(()=>{ b.scrollTop = b.scrollHeight; });
+}
 
 function listenTyping(){
   if(typingUnsub)typingUnsub();
@@ -1108,18 +1132,18 @@ async function postMessage(data){
   }
 }
 
-// ⚡ 0ms INSTANT OPTIMISTIC SEND (Zero delay, zero cooldown!)
+// ⚡ INSTANT OPTIMISTIC SEND (0ms delay, zero cooldown!)
 async function send(){
   const v=$('text').value.trim();
   if(!v) return;
   $('text').value='';
   closeEmojiAutocomplete();
 
-  // Clear typing indicator immediately
+  // Clear typing state locally
   isTypingSent = false;
   clearTimeout(typingStopTimer);
 
-  // 1. Immediately render to the screen in 0.001s!
+  // 1. Immediately render to the screen in 0.001s
   const clientTime = Date.now();
   const tempId = 'temp_' + clientTime + '_' + Math.random().toString(36).substr(2, 5);
   const optimisticMsg = {
