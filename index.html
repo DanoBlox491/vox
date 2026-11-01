@@ -108,7 +108,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #msgs::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--p3) 0%,var(--p4) 100%);border-radius:10px}
 #msgs::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--p4) 0%,var(--blue) 100%)}
 
-/* ⚡ Clean instantaneous message rendering (no jumping animation!) */
+/* ⚡ ZERO ANIMATION: Instant 60fps message rendering! */
 .msg{display:flex;gap:12px;margin-bottom:12px;padding:12px;border-radius:12px;transition:background .2s;border-left:3px solid transparent;position:relative}
 .msg:hover{background:rgba(0,212,255,.03);border-left-color:var(--blue);box-shadow:0 4px 15px rgba(0,212,255,.1)}
 .msg .avatar{width:40px;height:40px}
@@ -122,7 +122,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 .msg a:hover{border-bottom-color:var(--blue);text-shadow:0 0 10px var(--blue-glow)}
 #typing-indicator{position:absolute;bottom:72px;left:30px;font-size:12px;font-weight:600;color:var(--blue);text-shadow:0 0 10px var(--blue-glow);font-style:italic}
 
-/* Sleek composer without bulky button */
+/* Clean, Sleek Composer */
 #composer{padding:18px 24px;display:flex;gap:10px;align-items:center;border-top:1px solid var(--p3);background:linear-gradient(135deg,rgba(15,20,34,.95) 0%,rgba(10,14,26,.95) 100%);backdrop-filter:blur(20px);box-shadow:0 -4px 20px rgba(0,0,0,.3)}
 #composer input{margin:0;border-radius:12px;font-size:15px;flex:1}
 #plus,#emoji-btn{width:48px;height:48px;font-size:22px;background:linear-gradient(135deg,var(--p3) 0%,var(--p4) 100%);display:flex;justify-content:center;align-items:center;border-radius:12px;cursor:pointer;transition:all .3s cubic-bezier(.68,-.55,.265,1.55);border:2px solid transparent;flex-shrink:0}
@@ -175,13 +175,13 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #missedBanner:hover{background:linear-gradient(135deg,rgba(255,46,147,.3) 0%,rgba(168,85,247,.3) 100%);box-shadow:0 6px 30px rgba(255,46,147,.4)}
 #localVideo,#remoteVideo{width:100%;max-width:640px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.6),0 0 40px var(--blue-glow);margin:12px auto;display:block;border:3px solid rgba(0,212,255,.4)}
 
-/* 🎬 PHOTO & VIDEO LIGHTBOX VIEWER WITH ZOOM */
+/* 🎬 LIGHTBOX PHOTO/VIDEO ZOOM MODAL */
 .lightbox-overlay{position:fixed;inset:0;background:rgba(5,8,16,.96);backdrop-filter:blur(14px);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;user-select:none}
 .lightbox-controls{position:absolute;top:20px;right:24px;display:flex;gap:10px;z-index:10000}
 .lightbox-controls button{width:auto;padding:10px 16px;font-size:14px;border-radius:10px;background:var(--p3);color:var(--txt);border:1px solid rgba(0,212,255,.4);box-shadow:0 4px 15px rgba(0,0,0,.4)}
 .lightbox-controls button:hover{background:var(--blue);color:#000;box-shadow:0 0 20px var(--blue-glow)}
 .lightbox-controls button.danger:hover{background:var(--danger);color:#fff}
-.lightbox-body{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.lightbox-body{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:auto}
 .lightbox-body img,.lightbox-body video{max-width:90vw;max-height:85vh;border-radius:14px;transition:transform .15s ease-out;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,.9);border:2px solid rgba(0,212,255,.3)}
 
 @media(max-width:900px){#app{grid-template-columns:70px 1fr}#side2{position:fixed;left:-280px;width:280px;z-index:50;transition:left .3s;height:100%}#side2.open{left:70px;box-shadow:4px 0 30px rgba(0,0,0,.5)}.auth-container{grid-template-columns:1fr;gap:30px}.gs-title{font-size:48px}.gs-subtitle{font-size:16px}.auth-card{padding:30px}}
@@ -299,7 +299,7 @@ const auth=firebase.auth(),db=firebase.firestore();
 let me=null,profile={},view={type:'home'},channel=null,channels=[],servers=[],groups=[],userCache={},msgCache={},unsubs={},stop=k=>{if(unsubs[k]){unsubs[k]();delete unsubs[k]}},unreadChannels={},typingUnsub=null,typingTimeout=null;
 const FIVE_DAYS=5*24*60*60*1000;
 
-// 🔔 PURE WEB AUDIO SYNTHESIZED PING SOUND (100% Offline, Zero 404s)
+// 🔔 DISCORD-IDENTICAL NOTIFICATION SOUND (Synthesized via Web Audio API)
 let audioCtx=null;
 function initAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }
 ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, initAudio, {once:true}));
@@ -307,18 +307,31 @@ function initAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.
 function playPing(){
   try{
     initAudio();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    // Clean bright double-chime (D5 to A5)
-    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.36);
+    const now = audioCtx.currentTime;
+    
+    // Discord Tone 1: E5 (659.25Hz) with quick bell envelope
+    const osc1 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, now);
+    gain1.gain.setValueAtTime(0.18, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc1.connect(gain1);
+    gain1.connect(audioCtx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.13);
+
+    // Discord Tone 2: A5 (880Hz) warm chime response
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.08);
+    gain2.gain.setValueAtTime(0.22, now + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start(now + 0.08);
+    osc2.stop(now + 0.42);
   }catch(e){}
 }
 
@@ -331,6 +344,15 @@ function dbErr(e){
     toast(e.message || 'Database error');
   }
 }
+
+// Clear unread badge as soon as the user focuses back on the tab
+window.addEventListener('focus', () => {
+  const currentRoom = getRoomKey();
+  if (currentRoom && unreadChannels[currentRoom]) {
+    unreadChannels[currentRoom] = 0;
+    recount(); renderRail(); renderSide();
+  }
+});
 
 // Strict Username Validation
 let usernameCheckTimeout;
@@ -493,7 +515,14 @@ setInterval(()=>{if(Date.now()-lastActivity>300000&&me)updateMyPresence('away')}
 ['mousedown','keydown','touchstart'].forEach(e=>document.addEventListener(e,()=>{lastActivity=Date.now();if(me)updateMyPresence('online')}));
 window.addEventListener('beforeunload',()=>{if(me)updateMyPresence('offline')});
 
-// Notifier & Sound Ping on background/other tabs
+// Safe Timestamp Helper (Fixes the 1970 Sorting Bug!)
+function getMsgTimestamp(m) {
+  if (m.timestamp && m.timestamp.seconds) return m.timestamp.seconds * 1000;
+  if (m.clientTime) return m.clientTime;
+  return Date.now();
+}
+
+// Background notifier
 let lastMsgTime=Date.now();
 function startNotifier(){
   stop('notifier');
@@ -504,7 +533,8 @@ function startNotifier(){
       s.docChanges().forEach(c => {
         if(c.type === 'added'){
           const m = c.doc.data();
-          if(m.senderUid !== me.uid && m.timestamp && (m.timestamp.seconds * 1000) > lastMsgTime){
+          const t = getMsgTimestamp(m);
+          if(m.senderUid !== me.uid && t > lastMsgTime){
             handleIncoming(m);
           }
         }
@@ -518,7 +548,6 @@ function handleIncoming(m){
   const roomId=m.serverId?`server_${m.serverId}_${m.channel}`:m.groupId?`group_${m.groupId}`:getRoomId(m.senderUid);
   const currentRoom=view.type==='server'&&channel?`server_${view.id}_${channel.id}`:view.type==='group'?`group_${view.id}`:view.type==='dm'?getRoomId(view.id):null;
   
-  // 🔔 Play chime if on another channel or on another tab/window!
   if(roomId!==currentRoom || document.hidden || !document.hasFocus()){
     playPing();
     unreadChannels[roomId]=(unreadChannels[roomId]||0)+1;
@@ -550,14 +579,16 @@ function handleInput(){
     if(currentSuggestions.length>0){autocompleteActive=true;autocompleteIndex=0;renderEmojiAutocomplete();$('emoji-autocomplete').classList.remove('hidden')}else closeEmojiAutocomplete();
   }else closeEmojiAutocomplete();
   
+  // Clean auto-expiring typing indicator
   clearTimeout(typingTimeout);
   const roomKey = getRoomKey();
   if(!roomKey) return;
 
   if(me && view.type && $('text').value.length > 0){
+    db.collection('vox_typing').doc(roomKey).set({[me.uid]: profile.displayName || 'Someone'}, {merge: true}).catch(()=>{});
     typingTimeout = setTimeout(() => {
-      db.collection('vox_typing').doc(roomKey).set({[me.uid]: profile.displayName || 'Someone'}, {merge: true}).catch(()=>{});
-    }, 300);
+      db.collection('vox_typing').doc(roomKey).set({[me.uid]: firebase.firestore.FieldValue.delete()}, {merge: true}).catch(()=>{});
+    }, 3000);
   }else if(me && view.type){
     db.collection('vox_typing').doc(roomKey).set({[me.uid]: firebase.firestore.FieldValue.delete()}, {merge: true}).catch(()=>{});
   }
@@ -782,14 +813,10 @@ async function sendServerInviteToFriend(sid,serverName,friendUid){
   const link=`${location.origin}${location.pathname}?server=${sid}`;
   const dmId=getRoomId(friendUid);
   try{
-    await db.collection('vox_messages').add({
-      senderUid:me.uid,
-      sender:profile.displayName||'Voxer',
-      senderPhoto:profile.photoURL||'',
-      timestamp:firebase.firestore.FieldValue.serverTimestamp(),
-      dmId:dmId,
-      roomId:dmId,
-      text:`Hey! Join my server **${serverName}**: ${link}`
+    await postMessageInternal({
+      dmId: dmId,
+      roomId: dmId,
+      text: `Hey! Join my server **${serverName}**: ${link}`
     });
     if(btn){
       btn.textContent='Sent ✓';
@@ -855,7 +882,15 @@ function closeLightbox(e){
   $('lightboxImg').src = '';
 }
 
-// Message Listener
+// Close lightbox on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (!$('mediaLightbox').classList.contains('hidden')) closeLightbox();
+    if (!$('modal').classList.contains('hidden')) closeModal();
+  }
+});
+
+// 🚀 BULLETPROOF REAL-TIME MESSAGING ENGINE (Fixes the Delayed Send Bug!)
 function listenMessages(){
   stop('msgs');msgCache={};
   $('msgs').innerHTML='<div class="spinner"></div>';
@@ -863,7 +898,7 @@ function listenMessages(){
   const roomKey = getRoomKey();
   if(!roomKey) return;
 
-  function buildQuery(useOrder = true){
+  function buildQuery(){
     let q = db.collection('vox_messages');
     if(view.type==='server'&&channel){
       q = q.where('serverId','==',view.id).where('channel','==',channel.id);
@@ -872,44 +907,63 @@ function listenMessages(){
     }else if(view.type==='dm'){
       q = q.where('dmId','==',getRoomId(view.id));
     }
-    if(useOrder){
-      return q.orderBy('timestamp','desc').limit(50);
-    }else{
-      return q.limit(50);
-    }
+    return q.limit(60);
   }
 
-  function startListen(useOrder){
-    unsubs.msgs = buildQuery(useOrder).onSnapshot(s => {
+  let firstLoad = true;
+  unsubs.msgs = buildQuery().onSnapshot(s => {
+    if (firstLoad) {
       $('msgs').innerHTML = '';
-      let docs = s.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      if(useOrder){
-        docs.reverse();
-      }else{
-        docs.sort((a,b) => ((a.timestamp?.seconds||0) - (b.timestamp?.seconds||0)));
+      firstLoad = false;
+      let initialDocs = s.docs.map(doc => ({id: doc.id, ...doc.data()}));
+      initialDocs.sort((a,b) => getMsgTimestamp(a) - getMsgTimestamp(b));
+      
+      if (initialDocs.length === 0) {
+        $('msgs').innerHTML = '<div class="empty">No messages here yet. Say hello! 👋</div>';
+      } else {
+        initialDocs.forEach(m => {
+          msgCache[m.id] = m;
+          appendMsg(m);
+        });
+        scrollToBottom();
       }
-      docs.forEach(m => {
-        msgCache[m.id] = m;
-        appendMsg(m);
-      });
-      scrollToBottom();
-      checkMissedBanner();
-    }, err => {
-      if(useOrder && err.message && err.message.includes('requires an index')){
-        console.warn("Falling back to client sorting mode:", err.message);
-        startListen(false);
-      }else{
-        dbErr(err);
-      }
-    });
-  }
+    } else {
+      const emptyNotice = $('msgs').querySelector('.empty');
+      if (emptyNotice) emptyNotice.remove();
 
-  startListen(true);
+      s.docChanges().forEach(c => {
+        const m = { id: c.doc.id, ...c.doc.data() };
+        if (c.type === 'added') {
+          if (!msgCache[m.id]) {
+            msgCache[m.id] = m;
+            appendMsg(m);
+            // Play ping chime if message is from someone else and tab is not active
+            if (m.senderUid !== me.uid && (document.hidden || !document.hasFocus())) {
+              playPing();
+            }
+          }
+        } else if (c.type === 'modified') {
+          msgCache[m.id] = m;
+          updateMsg(m);
+        } else if (c.type === 'removed') {
+          delete msgCache[m.id];
+          const el = document.querySelector(`.msg[data-id="${m.id}"]`);
+          if (el) el.remove();
+        }
+      });
+      checkMissedBanner();
+    }
+  }, err => {
+    dbErr(err);
+  });
 }
 
-// High performance append (zero jump animation, click-to-zoom media)
+// High performance message appender (Zero delay, instant timestamp)
 async function appendMsg(m){
-  const box=$('msgs'),wasBottom=box.scrollHeight-box.scrollTop<=box.clientHeight+100;
+  const box=$('msgs');
+  if (document.querySelector(`.msg[data-id="${m.id}"]`)) return; // Prevent duplicate DOM inserts
+
+  const wasBottom=box.scrollHeight-box.scrollTop<=box.clientHeight+100;
   
   if(!userCache[m.senderUid]){
     try{
@@ -938,10 +992,13 @@ async function appendMsg(m){
   }
   if(m.reactions)reactions=Object.entries(m.reactions).map(([e,arr])=>`<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${e}')">${e} ${arr.length}</span>`).join(' ');
   
-  const html=`<div class="msg" data-id="${m.id}"><img class="avatar" src="${u.photoURL||''}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${new Date((m.timestamp?.seconds||0)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><div>${body}</div>${media}${reactions?`<div style="margin-top:4px">${reactions}</div>`:''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid===me.uid?`<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>`:''}</div></div>`;
+  // Format exact current time immediately
+  const formattedTime = new Date(getMsgTimestamp(m)).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+  const html=`<div class="msg" data-id="${m.id}"><img class="avatar" src="${u.photoURL||''}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${formattedTime}</span></div><div>${body}</div>${media}${reactions?`<div style="margin-top:4px">${reactions}</div>`:''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid===me.uid?`<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>`:''}</div></div>`;
   
   box.insertAdjacentHTML('beforeend', html);
-  if(wasBottom)scrollToBottom();
+  if(wasBottom || m.senderUid === me.uid) scrollToBottom();
 }
 
 function updateMsg(m){
@@ -953,6 +1010,11 @@ function updateMsg(m){
   txt=txt.replace(emojiPattern,(match,name)=>MASTER_EMOJI_DICT[name]||match);
   const lines=body.querySelectorAll('div');
   if(lines.length>1)lines[1].innerHTML=txt;
+  
+  // Update timestamp if server assigned final time
+  const timeEl = body.querySelector('.t');
+  if (timeEl) timeEl.textContent = new Date(getMsgTimestamp(m)).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
   let reactions='';
   if(m.reactions)reactions=Object.entries(m.reactions).map(([e,arr])=>`<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${e}')">${e} ${arr.length}</span>`).join(' ');
   let reactionDiv=body.querySelector('div[style*="margin-top"]');
@@ -984,14 +1046,21 @@ if(msgsEl){
 }
 function checkMissedBanner(){if(hasScrolledUp)$('missedBanner').classList.remove('hidden')}
 
-async function postMessage(data){
+// Core sender function
+async function postMessageInternal(customData){
   const payload={
     senderUid:me.uid,
     sender:profile.displayName||'Voxer',
     senderPhoto:profile.photoURL||'',
     timestamp:firebase.firestore.FieldValue.serverTimestamp(),
-    ...data
+    clientTime:Date.now(), // ⚡ Client millisecond ensures immediate correct placement!
+    ...customData
   };
+  return db.collection('vox_messages').add(payload);
+}
+
+async function postMessage(data){
+  const payload={ ...data };
   if(view.type==='server'&&channel){
     payload.serverId=view.id;
     payload.channel=channel.id;
@@ -1018,7 +1087,7 @@ async function postMessage(data){
     payload.roomId=getRoomId(view.id);
   }else return;
   
-  await db.collection('vox_messages').add(payload);
+  await postMessageInternal(payload);
   clearTimeout(typingTimeout);
   const roomKey = getRoomKey();
   if(roomKey){
@@ -1170,7 +1239,7 @@ async function viewProfile(uid){
   if(isSelf)actions='<button class="pri" onclick="editProfileModal()">Edit Profile</button><button onclick="closeModal()">Close</button>';
   else if(isFriend)actions=`<button class="pri" onclick="openView('dm','${uid}');closeModal()">Send Message</button><button class="danger" onclick="removeFriend('${uid}')">Remove Friend</button><button onclick="closeModal()">Close</button>`;
   else actions=`<button class="pri" onclick="addFriendDirect('${uid}')">Add Friend</button><button onclick="closeModal()">Close</button>`;
-  $('modal').innerHTML=`<div id="profileView" class="modal-inner"><img class="avatar" src="${u.photoURL||''}" alt="${esc(u.displayName)}"><h2>${esc(u.displayName)}</h2><p>@${u.username||'no_username'}</p><p style="font-size:12px;color:var(--mut)">UID: ${uid}</p>${u.bio?`<div class="bio">${esc(u.bio)}</div>`:''}<div class="socials">${u.socials?.yt?`<a href="${u.socials.yt}" target="_blank">YouTube</a>` : ''}${u.socials?.discord?`<a href="${u.socials.discord}" target="_blank">Discord</a>` : ''}</div><div id="profileActions">${actions}</div></div>`;
+  $('modal').innerHTML=`<div id="profileView" class="modal-inner"><img class="avatar" src="${u.photoURL||''}" alt="${esc(u.displayName)}"><h2>${esc(u.displayName)}</h2><p>@${u.username||'no_username'}</p><p style="font-size:12px;color:var(--mut)">UID: ${uid}</p>${u.bio?`<div class="bio">${esc(u.bio)}</div>` : ''}<div class="socials">${u.socials?.yt?`<a href="${u.socials.yt}" target="_blank">YouTube</a>` : ''}${u.socials?.discord?`<a href="${u.socials.discord}" target="_blank">Discord</a>` : ''}</div><div id="profileActions">${actions}</div></div>`;
   $('modal').classList.remove('hidden');
 }
 async function addFriendDirect(uid){
