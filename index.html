@@ -268,7 +268,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
       <div class="gs-title">VOX</div>
       <div class="gs-subtitle">START CHATTING SMOOTHLY</div>
     </div>
-    
+
     <div class="auth-container">
       <!-- Sign In (Sign Up) Card -->
       <div class="auth-card signup-card">
@@ -281,7 +281,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
         <div class="err" id="sErr"></div>
         <button class="pink" onclick="signup()">Create Account</button>
       </div>
-      
+
       <!-- Log In Card -->
       <div class="auth-card">
         <h2>Log In</h2>
@@ -289,9 +289,9 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
         <input id="lPass" type="password" placeholder="Password" autocomplete="current-password">
         <div class="err" id="lErr"></div>
         <button class="pri" onclick="login()">Log In</button>
-        
+
         <div class="divider">OR</div>
-        
+
         <button class="oauth-btn" onclick="loginWithGoogle()">
           <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Continue with Google
@@ -346,9 +346,24 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <div id="toast"></div>
 
 <script>
-const $ = id => document.getElementById(id), esc = s => (s+'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $ = id => document.getElementById(id);
 
-// 🔥 FIXED: Correct firebaseConfig for vox-chat-979fd
+/* ✅ FIX: escape & " ' as well — safe inside attributes */
+function esc(s) {
+  return (s === null || s === undefined ? '' : s + '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* ✅ FIX: block javascript:/data: URLs in src/href */
+function safeUrl(u) {
+  return (typeof u === 'string' && /^https?:\/\//i.test(u.trim())) ? u.trim() : '';
+}
+
+/* 🔥 FIXED: Correct firebaseConfig for vox-chat-979fd */
 const firebaseConfig = {
   apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
   authDomain: "vox-chat-979fd.firebaseapp.com",
@@ -361,18 +376,29 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(), db = firebase.firestore();
-let me = null, profile = {}, view = {type:'home'}, channel = null, channels = [], servers = [], groups = [], userCache = {}, msgCache = {}, unsubs = {}, stop = k => {if(unsubs[k]){unsubs[k]();delete unsubs[k]}}, unreadChannels = {}, typingUnsub = null;
+
+let me = null, profile = {}, view = {type:'home'}, channel = null, channels = [], servers = [], groups = [],
+    userCache = {}, msgCache = {}, unsubs = {},
+    stop = k => { if (unsubs[k]) { try { unsubs[k](); } catch(e){} delete unsubs[k]; } },
+    unreadChannels = {}, typingUnsub = null;
+
 const FIVE_DAYS = 5*24*60*60*1000;
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
-function dbErr(e) { console.error(e); toast('Database error'); }
+
+/* ✅ FIX: surface missing-index errors instead of a generic message */
+function dbErr(e) {
+  console.error(e);
+  const m = (e && e.message) || '';
+  toast(m.toLowerCase().includes('index') ? 'Missing Firestore index — check browser console' : 'Database error');
+}
 
 let usernameCheckTimeout;
 async function checkUsername(username, msgId) {
   clearTimeout(usernameCheckTimeout);
   const msgEl = $(msgId);
   if (!username || username.length < 3) { msgEl.classList.add('hidden'); return; }
-  
+
   usernameCheckTimeout = setTimeout(async () => {
     try {
       const snap = await db.collection('vox_users').where('username', '==', username.toLowerCase()).limit(1).get();
@@ -392,22 +418,22 @@ async function checkUsername(username, msgId) {
 async function signup() {
   const e = $('sEmail').value.trim(), u = $('sUsername').value.trim(), p = $('sPass').value, cp = $('sConfirmPass').value;
   $('sErr').textContent = '';
-  
+
   if (!e || !u || !p || !cp) { $('sErr').textContent = 'Fill all fields'; return; }
   if (u.length < 3) { $('sErr').textContent = 'Username must be at least 3 characters'; return; }
   if (!/^[a-z0-9_]+$/.test(u)) { $('sErr').textContent = 'Username can only contain lowercase letters, numbers, and underscores'; return; }
   if (p !== cp) { $('sErr').textContent = 'Passwords do not match'; return; }
   if (p.length < 6) { $('sErr').textContent = 'Password must be at least 6 characters'; return; }
-  
+
   try {
     const snap = await db.collection('vox_users').where('username', '==', u.toLowerCase()).limit(1).get();
     if (!snap.empty) { $('sErr').textContent = 'Username already taken'; return; }
-    
+
     const userCred = await auth.createUserWithEmailAndPassword(e, p);
     await db.collection('vox_users').doc(userCred.user.uid).set({
       displayName: u,
       username: u.toLowerCase(),
-      email: e, 
+      email: e,
       photoURL: '',
       bio: '',
       socials: {yt: '', discord: ''},
@@ -418,26 +444,28 @@ async function signup() {
 }
 
 async function login() {
-  const u = $('lUsername').value.trim(), p = $('lPass').value.trim();
+  const u = $('lUsername').value.trim();
+  /* ✅ FIX: never trim the password — it was trimmed here but not at signup */
+  const p = $('lPass').value;
   $('lErr').textContent = '';
-  
+
   if (!u || !p) { $('lErr').textContent = 'Fill all fields'; return; }
-  
+
   try {
     let email = u;
     if (!u.includes('@')) {
       const snap = await db.collection('vox_users').where('username', '==', u.toLowerCase()).limit(1).get();
       if (snap.empty) { $('lErr').textContent = 'Username not found'; return; }
-      
+
       const userData = snap.docs[0].data();
       if (userData.email) {
         email = userData.email;
       } else {
         $('lErr').textContent = 'This is an old account. Please log in using your Email address or the Google button.';
-        return; 
+        return;
       }
     }
-    
+
     await auth.signInWithEmailAndPassword(email, p);
     toast('Welcome back! 🔥');
   } catch (err) {
@@ -454,10 +482,10 @@ async function loginWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
     const result = await auth.signInWithPopup(provider);
     const user = result.user;
-    
+
     const ref = db.collection('vox_users').doc(user.uid);
     const snap = await ref.get();
-    
+
     if (!snap.exists) {
       let baseName = (user.displayName || 'user').toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
       if (!baseName) baseName = 'user';
@@ -469,7 +497,7 @@ async function loginWithGoogle() {
         username = `${baseName}_${counter}`;
         counter++;
       }
-      
+
       await ref.set({
         displayName: user.displayName || 'Voxer',
         username: username,
@@ -488,7 +516,8 @@ async function loginWithGoogle() {
 
 function renderMe() {
   const a = $('me').querySelector('.avatar'), b = $('me').querySelector('b');
-  a.src = profile.photoURL || ''; b.textContent = profile.displayName || 'Voxer';
+  a.src = safeUrl(profile.photoURL);
+  b.textContent = profile.displayName || 'Voxer';
 }
 function isMobile() { return window.innerWidth <= 900; }
 function setDrawer(open) { if (isMobile()) $('side2').classList.toggle('open', open); }
@@ -500,8 +529,11 @@ let lastActivity = Date.now(); setInterval(() => { if (Date.now() - lastActivity
 window.addEventListener('beforeunload', () => { if (me) updateMyPresence('offline'); });
 
 let lastMsgTime = Date.now();
+
+/* ✅ FIX: notifier is stored in unsubs so logout actually stops it */
 function startNotifier() {
-  db.collection('vox_messages').where('senderUid', '!=', me.uid).onSnapshot(s => {
+  stop('notifier');
+  unsubs.notifier = db.collection('vox_messages').where('senderUid', '!=', me.uid).onSnapshot(s => {
     s.docChanges().forEach(c => {
       if (c.type === 'added') {
         const m = c.doc.data();
@@ -511,6 +543,7 @@ function startNotifier() {
     lastMsgTime = Date.now();
   }, dbErr);
 }
+
 function handleIncoming(m) {
   const roomId = m.serverId ? `server_${m.serverId}_${m.channel}` : m.groupId ? `group_${m.groupId}` : getRoomId(m.senderUid);
   const currentRoom = view.type === 'server' && channel ? `server_${view.id}_${channel.id}` : view.type === 'group' ? `group_${view.id}` : view.type === 'dm' ? getRoomId(view.id) : null;
@@ -518,7 +551,7 @@ function handleIncoming(m) {
     unreadChannels[roomId] = (unreadChannels[roomId] || 0) + 1;
     recount(); renderRail(); renderSide();
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(m.sender || 'New message', {body: m.text || 'Sent a file', icon: m.senderPhoto || ''});
+      new Notification(m.sender || 'New message', {body: m.text || 'Sent a file', icon: safeUrl(m.senderPhoto)});
     }
   }
 }
@@ -530,27 +563,49 @@ function recount() {
 }
 function hasUnread(prefix) { return Object.keys(unreadChannels).some(k => k.startsWith(prefix) && unreadChannels[k] > 0); }
 function markVisited(id) { Object.keys(unreadChannels).forEach(k => { if (k.startsWith('server_' + id)) unreadChannels[k] = 0; }); recount(); }
-function getRoomId(uid) { if (!me) return ''; return uid < me.uid ? `dm_${uid}_${me.uid}` : `dm_${me.uid}_${uid}`; }
+
+/* ✅ FIX: this is the DM room key generator — callers must pass a uid */
+function getRoomId(uid) {
+  if (!me || !uid) return '';
+  return uid < me.uid ? `dm_${uid}_${me.uid}` : `dm_${me.uid}_${uid}`;
+}
 
 const MASTER_EMOJI_DICT = {"smile":"😊","grin":"😁","joy":"😂","heart":"❤️","fire":"🔥","star":"⭐","thumbsup":"👍","thumbsdown":"👎","clap":"👏","eyes":"👀","100":"💯","rocket":"🚀","crown":"👑","skull":"💀","wave":"👋","tada":"🎉","thinking":"🤔","cool":"😎","cry":"😢","angry":"😠","laugh":"🤣","love":"😍","wink":"😉","tongue":"😛","nervous":"😅","heart_eyes":"😍","smirk":"😏","neutral":"😐","confused":"😕","money":"🤑","sick":"🤢","robot":"🤖","alien":"👽","ghost":"👻","cat":"🐱","dog":"🐶","pizza":"🍕","beer":"🍺","coffee":"☕","cake":"🍰","rainbow":"🌈","sun":"☀️","moon":"🌙","zap":"⚡","boom":"💥","sparkles":"✨","check":"✅","x":"❌","warning":"⚠️","ban":"🚫","music":"🎵","bell":"🔔","gift":"🎁","trophy":"🏆","medal":"🏅","key":"🔑","lock":"🔒","unlock":"🔓","link":"🔗","phone":"📱","computer":"💻","gear":"⚙️","hammer":"🔨","wrench":"🔧","mag":"🔍","bulb":"💡","book":"📖","moneybag":"💰","gem":"💎","bomb":"💣","hourglass":"⏳","alarm":"⏰","calendar":"📅","chart":"📈","email":"📧","inbox":"📥","package":"📦","pen":"✏️","pin":"📌","clip":"📎","scissors":"✂️","bookmark":"🔖","folder":"📁","page":"📄","newspaper":"📰","green_heart":"💚","yellow_heart":"💛","blue_heart":"💙","purple_heart":"💜","broken_heart":"💔","heart_exclamation":"❣️","two_hearts":"💕","sparkling_heart":"💖","heartpulse":"💗","heartbeat":"💓","revolving_hearts":"💞","cupid":"💘"};
 
-let autocompleteActive = false, currentSuggestions = [], autocompleteIndex = 0, uploadAccept = '';
+/* ✅ FIX: one precompiled regex instead of looping 120 keys per message */
+const EMOJI_KEYS = Object.keys(MASTER_EMOJI_DICT).sort((a,b) => b.length - a.length);
+const EMOJI_RE = new RegExp(':' + EMOJI_KEYS.join('|') + ':', 'g');
 
-let typingDebounce = null;
+function formatBody(text) {
+  let s = esc(text);
+  s = s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(EMOJI_RE, m => MASTER_EMOJI_DICT[m.slice(1, -1)] || m);
+  return s;
+}
+
+let autocompleteActive = false, currentSuggestions = [], autocompleteIndex = 0;
+
+/* ✅ FIX: capture the room key at keystroke time */
+let typingDebounce = null, typingRoomKey = '';
 function handleInput() {
   const v = $('text').value, cursor = $('text').selectionStart;
   const beforeCursor = v.slice(0, cursor), match = beforeCursor.match(/:([a-zA-Z0-9_+-]+)$/);
   if (match) {
     const q = match[1].toLowerCase();
     currentSuggestions = Object.keys(MASTER_EMOJI_DICT).filter(k => k.startsWith(q)).slice(0, 8);
-    if (currentSuggestions.length > 0) { autocompleteActive = true; autocompleteIndex = 0; renderEmojiAutocomplete(); $('emoji-autocomplete').classList.remove('hidden'); } else closeEmojiAutocomplete();
+    if (currentSuggestions.length > 0) {
+      autocompleteActive = true; autocompleteIndex = 0;
+      renderEmojiAutocomplete(); $('emoji-autocomplete').classList.remove('hidden');
+    } else closeEmojiAutocomplete();
   } else closeEmojiAutocomplete();
-  
-  if (me && view.type && getRoomKey()) {
-    db.collection('vox_typing').doc(getRoomKey()).set({[me.uid]: profile.displayName || 'Someone'}, {merge: true}).catch(() => {});
+
+  const key = getRoomKey();
+  if (me && key) {
+    typingRoomKey = key;
+    db.collection('vox_typing').doc(key).set({[me.uid]: profile.displayName || 'Someone'}, {merge: true}).catch(() => {});
     clearTimeout(typingDebounce);
     typingDebounce = setTimeout(() => {
-      if (me) db.collection('vox_typing').doc(getRoomKey()).set({[me.uid]: firebase.firestore.FieldValue.delete()}, {merge: true}).catch(() => {});
+      if (me && typingRoomKey) db.collection('vox_typing').doc(typingRoomKey).set({[me.uid]: firebase.firestore.FieldValue.delete()}, {merge: true}).catch(() => {});
     }, 2500);
   }
 }
@@ -565,9 +620,11 @@ function getRoomKey() {
 function renderEmojiAutocomplete() {
   const box = $('emoji-autocomplete'); box.innerHTML = '';
   currentSuggestions.forEach((name, index) => {
-    const div = document.createElement('div'); div.className = `emoji-suggestion ${index === autocompleteIndex ? 'active' : ''}`;
-    div.innerHTML = `<span class="emoji-icon">${MASTER_EMOJI_DICT[name]}</span> <span class="emoji-name">:${name}</span>`;
-    div.onclick = () => insertEmoji(name); box.appendChild(div);
+    const div = document.createElement('div');
+    div.className = `emoji-suggestion ${index === autocompleteIndex ? 'active' : ''}`;
+    div.innerHTML = `<span class="emoji-icon">${MASTER_EMOJI_DICT[name]}</span> <span class="emoji-name">:${esc(name)}</span>`;
+    div.onclick = () => insertEmoji(name);
+    box.appendChild(div);
   });
 }
 function closeEmojiAutocomplete() { autocompleteActive = false; $('emoji-autocomplete').classList.add('hidden'); }
@@ -587,9 +644,9 @@ function handleKeyDown(e) {
 }
 
 auth.onAuthStateChanged(async user => {
-  if (!user) { 
-    me = null; Object.keys(unsubs).forEach(stop); unreadChannels = {}; recount(); 
-    $('app').classList.add('hidden'); $('getStarted').classList.remove('hidden'); return; 
+  if (!user) {
+    me = null; Object.keys(unsubs).forEach(stop); unreadChannels = {}; recount();
+    $('app').classList.add('hidden'); $('getStarted').classList.remove('hidden'); return;
   }
   const last = +localStorage.getItem('vox_last_active') || Date.now();
   if (Date.now() - last > FIVE_DAYS) { localStorage.removeItem('vox_last_active'); auth.signOut(); return; }
@@ -598,7 +655,7 @@ auth.onAuthStateChanged(async user => {
   $('lErr').textContent = ''; $('sErr').textContent = '';
   const ref = db.collection('vox_users').doc(user.uid);
   $('getStarted').classList.add('hidden'); $('app').classList.remove('hidden');
-  
+
   try {
     const snap = await ref.get();
     if (!snap.exists) {
@@ -614,19 +671,40 @@ auth.onAuthStateChanged(async user => {
       }
     }
   } catch (e) { dbErr(e); }
-  
+
   updateMyPresence('online');
   stop('me');
-  unsubs.me = ref.onSnapshot(s => { profile = s.data() || {}; userCache[user.uid] = profile; renderMe(); if (view.type === 'home') renderSide(); }, dbErr);
+
+  /* ✅ FIX: hydrate friend profiles so names/avatars aren't "Unknown" after reload */
+  unsubs.me = ref.onSnapshot(async s => {
+    profile = s.data() || {};
+    userCache[user.uid] = profile;
+    renderMe();
+
+    const missing = (profile.friends || []).filter(u => !userCache[u]);
+    if (missing.length) {
+      await Promise.all(missing.map(async u => {
+        try {
+          const d = await db.collection('vox_users').doc(u).get();
+          if (d.exists) userCache[u] = d.data();
+        } catch (e) { /* ignore single-user fetch failures */ }
+      }));
+    }
+
+    if (view.type === 'home' || view.type === 'dm') renderSide();
+  }, dbErr);
+
   stop('servers');
   unsubs.servers = db.collection('vox_servers').onSnapshot(s => { servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
+
   stop('groups');
   unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => { groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
-  
+
   startNotifier();
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
   openView('home');
 });
+
 function renderRail() {
   const r = $('rail'), dot = '<span class="unread-dot"></span>';
   let h = `<div class="ico ${view.type === 'home' || view.type === 'dm' ? 'on' : ''}" title="Home" onclick="openView('home')">🏠${hasUnread('dm_') ? dot : ''}</div>`;
@@ -635,14 +713,15 @@ function renderRail() {
   h += `<div class="ico" title="Create server" onclick="createServerModal()">＋</div><div class="ico grp" title="Create group" onclick="createGroupModal()">👥</div>`;
   r.innerHTML = h;
 }
+
 async function openView(type, id) {
   view = {type, id}; channel = null; channels = [];
-  stop('chan'); stop('msgs'); if (typingUnsub) typingUnsub();
+  stop('chan'); stop('msgs'); if (typingUnsub) { typingUnsub(); typingUnsub = null; }
   $('composer').classList.add('hidden'); $('typing-indicator').classList.add('hidden');
   $('msgs').innerHTML = '<div class="empty">No chat open yet. 🔥</div>';
   $('topTitle').textContent = type === 'home' ? 'Friends' : (type === 'dm' ? 'Direct Message' : '');
   $('topBtns').innerHTML = '';
-  
+
   if (type === 'server') {
     markVisited(id);
     unsubs.chan = db.collection('vox_channels').where('serverId', '==', id).onSnapshot(s => {
@@ -652,7 +731,7 @@ async function openView(type, id) {
         if (first) { selectChannel(first.id, true); return; }
       }
       renderSide();
-    });
+    }, dbErr);
   } else if (type === 'group') {
     const g = groups.find(x => x.id === id);
     $('topTitle').textContent = '👥 ' + (g ? g.name : 'Group');
@@ -665,15 +744,18 @@ async function openView(type, id) {
     $('topTitle').textContent = '💬 ' + (friend ? friend.displayName : 'Direct Message');
     $('composer').classList.remove('hidden');
     listenMessages(); listenTyping();
-    unreadChannels[getRoomId()] = 0;
+    /* ✅ FIX: pass the uid — this was clearing the wrong (undefined) key */
+    unreadChannels[getRoomId(id)] = 0;
   }
   if (isMobile()) setDrawer(type === 'home' || type === 'server');
   recount(); renderRail(); renderSide();
 }
+
 function selectChannel(cid, auto) {
   const c = channels.find(x => x.id === cid); if (!c) return;
   if (c.type === 'voice') {
-    channel = c; stop('msgs'); if (typingUnsub) typingUnsub(); $('typing-indicator').classList.add('hidden');
+    channel = c; stop('msgs'); if (typingUnsub) { typingUnsub(); typingUnsub = null; }
+    $('typing-indicator').classList.add('hidden');
     $('topTitle').textContent = '🔊 ' + c.name; $('composer').classList.add('hidden');
     $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join video call</button></div>`;
     if (isMobile()) setDrawer(false);
@@ -684,15 +766,21 @@ function selectChannel(cid, auto) {
   unreadChannels[`server_${view.id}_${cid}`] = 0; recount(); renderRail(); renderSide();
   if (isMobile() && !auto) setDrawer(false);
 }
+
 function renderSide() {
-  const l = $('list'); l.innerHTML = ''; $('sideTitle').textContent = '';
-  if (view.type === 'home') {
+  const l = $('list'); l.innerHTML = '';
+  $('sideTitle').textContent = '';
+  /* ✅ FIX: always reset the header buttons so they don't leak between views */
+  $('sideBtns').innerHTML = '';
+
+  /* ✅ FIX: render the friends list in DM view too (was blank before) */
+  if (view.type === 'home' || view.type === 'dm') {
     $('sideTitle').textContent = 'Friends';
     $('sideBtns').innerHTML = '<button class="pri" onclick="addFriendModal()">➕ Add</button>';
     (profile.friends || []).forEach(uid => {
       const u = userCache[uid] || {displayName: 'Unknown'};
       const roomKey = getRoomId(uid), unread = unreadChannels[roomKey] || 0, dot = unread > 0 ? '<span class="unread-dot"></span>' : '';
-      l.innerHTML += `<div class="item ${view.type === 'dm' && view.id === uid ? 'on' : ''}" onclick="openView('dm','${uid}')"><img class="avatar" src="${u.photoURL || ''}" alt="${esc(u.displayName)}"><span>${esc(u.displayName)}</span>${dot}</div>`;
+      l.innerHTML += `<div class="item ${view.type === 'dm' && view.id === uid ? 'on' : ''}" onclick="openView('dm','${uid}')"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}"><span>${esc(u.displayName)}</span>${dot}</div>`;
     });
   } else if (view.type === 'server') {
     const s = servers.find(x => x.id === view.id);
@@ -711,8 +799,9 @@ function listenMessages() {
   let q = db.collection('vox_messages').orderBy('timestamp', 'desc').limit(50);
   if (view.type === 'server' && channel) q = q.where('serverId', '==', view.id).where('channel', '==', channel.id);
   else if (view.type === 'group') q = q.where('groupId', '==', view.id);
-  else if (view.type === 'dm') q = q.where('dmId', '==', getRoomId());
-  
+  /* ✅ FIX: pass view.id — was querying dm_<me>_undefined */
+  else if (view.type === 'dm') q = q.where('dmId', '==', getRoomId(view.id));
+
   unsubs.msgs = q.onSnapshot(s => {
     const adds = [], mods = [];
     s.docChanges().forEach(c => {
@@ -729,42 +818,44 @@ function listenMessages() {
 function appendMsg(m) {
   const box = $('msgs'), wasBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 100;
   const u = userCache[m.senderUid] || {displayName: m.sender || 'Unknown', photoURL: m.senderPhoto || ''};
-  let body = esc(m.text || '');
-  body = body.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-  Object.keys(MASTER_EMOJI_DICT).forEach(k => body = body.split(':' + k + ':').join(MASTER_EMOJI_DICT[k]));
+  let body = formatBody(m.text || '');
   let media = '', reactions = '';
+
   if (m.mediaUrl) {
+    const url = safeUrl(m.mediaUrl);
     const t = m.mediaType || '';
-    if (t.startsWith('image')) media = `<img class="m" src="${m.mediaUrl}" alt="Image" loading="lazy">`;
-    else if (t.startsWith('video')) media = `<video class="m" src="${m.mediaUrl}" controls></video>`;
-    else media = `<div class="filecard"><span>📎 ${t}</span><button onclick="window.open('${m.mediaUrl}','_blank')">Download</button></div>`;
+    if (!url) media = '';
+    else if (t.startsWith('image')) media = `<img class="m" src="${url}" alt="Image" loading="lazy">`;
+    else if (t.startsWith('video')) media = `<video class="m" src="${url}" controls></video>`;
+    else media = `<div class="filecard"><span>📎 ${esc(t)}</span><button onclick="window.open('${url}','_blank','noopener')">Download</button></div>`;
   }
-  if (m.reactions) reactions = Object.entries(m.reactions).map(([e, arr]) => `<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${e}')">${e} ${arr.length}</span>`).join(' ');
-  
-  const html = `<div class="msg" data-id="${m.id}"><img class="avatar" src="${u.photoURL || ''}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${new Date((m.timestamp?.seconds || 0) * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span></div><div>${body}</div>${media}${reactions ? `<div style="margin-top:4px">${reactions}</div>` : ''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid === me.uid ? `<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>` : ''}</div></div>`;
-  
+  if (m.reactions) reactions = Object.entries(m.reactions).map(([e, arr]) => `<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${esc(e)}')">${esc(e)} ${arr.length}</span>`).join(' ');
+
+  const html = `<div class="msg" data-id="${m.id}"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${new Date((m.timestamp?.seconds || 0) * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span></div><div>${body}</div>${media}${reactions ? `<div style="margin-top:4px">${reactions}</div>` : ''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid === me.uid ? `<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>` : ''}</div></div>`;
+
   box.insertAdjacentHTML('beforeend', html);
   if (wasBottom) scrollToBottom();
 }
+
 function updateMsg(m) {
   const el = document.querySelector(`.msg[data-id="${m.id}"]`); if (!el) return;
   const body = el.querySelector('.body'); if (!body) return;
-  let txt = esc(m.text || '');
-  txt = txt.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-  Object.keys(MASTER_EMOJI_DICT).forEach(k => txt = txt.split(':' + k + ':').join(MASTER_EMOJI_DICT[k]));
+  const txt = formatBody(m.text || '');
   const lines = body.querySelectorAll('div');
   if (lines.length > 1) lines[1].innerHTML = txt;
   let reactions = '';
-  if (m.reactions) reactions = Object.entries(m.reactions).map(([e, arr]) => `<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${e}')">${e} ${arr.length}</span>`).join(' ');
+  if (m.reactions) reactions = Object.entries(m.reactions).map(([e, arr]) => `<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${esc(e)}')">${esc(e)} ${arr.length}</span>`).join(' ');
   let reactionDiv = body.querySelector('div[style*="margin-top"]');
   if (reactions) {
     if (!reactionDiv) { reactionDiv = document.createElement('div'); reactionDiv.style.marginTop = '4px'; body.appendChild(reactionDiv); }
     reactionDiv.innerHTML = reactions;
   } else if (reactionDiv) reactionDiv.remove();
 }
+
 function scrollToBottom() { const b = $('msgs'); b.scrollTop = b.scrollHeight; }
+
 function listenTyping() {
-  if (typingUnsub) typingUnsub();
+  if (typingUnsub) { typingUnsub(); typingUnsub = null; }
   const roomKey = getRoomKey(); if (!roomKey) return;
   typingUnsub = db.collection('vox_typing').doc(roomKey).onSnapshot(s => {
     const d = s.data() || {}, names = Object.entries(d).filter(([uid]) => uid !== me.uid).map(([, n]) => n);
@@ -772,11 +863,11 @@ function listenTyping() {
     else { $('typing-indicator').textContent = names.join(', ') + (names.length === 1 ? ' is typing...' : ' are typing...'); $('typing-indicator').classList.remove('hidden'); }
   }, () => {});
 }
-let lastScroll = 0, hasScrolledUp = false;
+
+let hasScrolledUp = false;
 $('msgs').addEventListener('scroll', () => {
   const box = $('msgs'), atBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 50;
   if (atBottom) { $('missedBanner').classList.add('hidden'); hasScrolledUp = false; } else hasScrolledUp = true;
-  lastScroll = box.scrollTop;
 });
 function checkMissedBanner() {
   if (hasScrolledUp) $('missedBanner').classList.remove('hidden');
@@ -786,17 +877,22 @@ async function postMessage(data) {
   const payload = {senderUid: me.uid, sender: profile.displayName || 'Voxer', senderPhoto: profile.photoURL || '', timestamp: firebase.firestore.FieldValue.serverTimestamp(), ...data};
   if (view.type === 'server' && channel) { payload.serverId = view.id; payload.channel = channel.id; }
   else if (view.type === 'group') payload.groupId = view.id;
-  else if (view.type === 'dm') payload.dmId = getRoomId();
+  /* ✅ FIX: pass view.id — was writing dm_<me>_undefined so the other person never saw it */
+  else if (view.type === 'dm') payload.dmId = getRoomId(view.id);
   else return;
   await db.collection('vox_messages').add(payload);
-  if (typingUnsub) db.collection('vox_typing').doc(getRoomKey()).set({[me.uid]: firebase.firestore.FieldValue.delete()}, {merge: true}).catch(() => {});
+  const key = getRoomKey();
+  if (key) db.collection('vox_typing').doc(key).set({[me.uid]: firebase.firestore.FieldValue.delete()}, {merge: true}).catch(() => {});
 }
+
 async function send() {
   const v = $('text').value.trim(); if (!v) return; $('text').value = ''; closeEmojiAutocomplete();
   try { await postMessage({text: v}); } catch (e) { toast('Could not send: ' + e.message); }
 }
+
 function toggleMenu(e) { e.stopPropagation(); $('menu').classList.toggle('hidden'); $('emoji-menu').classList.add('hidden'); }
-function pick(accept) { uploadAccept = accept; const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
+function pick(accept) { const f = $('file'); f.accept = accept; $('menu').classList.add('hidden'); f.click(); }
+
 const CLOUDINARY = {cloudName: 'x9rwrmqe', uploadPreset: 'vox_uploads'};
 async function cloudUpload(file) {
   const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', CLOUDINARY.uploadPreset);
@@ -809,8 +905,15 @@ async function catbox(file) {
   let r; try { r = await fetch('https://catbox.moe/user/api.php', {method: 'POST', body: fd}); } catch (e) { throw new Error('could not reach Catbox'); }
   const u = (await r.text()).trim(); if (!u.startsWith('http')) throw new Error(u || 'Catbox sent no link'); return u;
 }
+
 async function upload(inp) { const f = inp.files[0]; inp.value = ''; if (!f) return; sendFile(f); }
-document.addEventListener('paste', e => { if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return; const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/')); if (!it) return; const f = it.getAsFile(); if (!f) return; e.preventDefault(); sendFile(f); });
+document.addEventListener('paste', e => {
+  if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return;
+  const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
+  if (!it) return;
+  const f = it.getAsFile(); if (!f) return;
+  e.preventDefault(); sendFile(f);
+});
 async function sendFile(f) {
   $('menu').innerHTML = '<div>Uploading...</div>'; $('menu').classList.remove('hidden');
   try { const url = await catbox(f); await postMessage({text: '', mediaUrl: url, mediaType: f.type}); toast('File sent'); } catch (e) { toast(e.message); }
@@ -818,9 +921,11 @@ async function sendFile(f) {
 }
 function renderMenu() { $('menu').innerHTML = '<div onclick="pick(\'image/*,video/*\')">📷 Photo/Video</div><div onclick="pick(\'*/*\')">📎 Any file</div>'; }
 renderMenu();
+
 function toggleEmojiMenu(e) { e.stopPropagation(); $('emoji-menu').classList.toggle('hidden'); $('menu').classList.add('hidden'); }
 function renderEmojiMenu() {
-  const common = ['smile','joy','heart','fire','thumbsup','cry','laugh','eyes','rocket','skull'];
+  /* ✅ FIX: show 40 common emoji instead of only 10 */
+  const common = ['smile','joy','heart','fire','thumbsup','cry','laugh','eyes','rocket','skull','tada','cool','love','wink','thinking','clap','100','crown','star','wave','sparkles','gem','trophy','gift','coffee','pizza','cake','beer','music','zap','boom','check','x','warning','ghost','robot','alien','cat','dog','rainbow'];
   $('emoji-menu').innerHTML = common.map(k => `<div onclick="insertEmojiDirect('${MASTER_EMOJI_DICT[k]}')">${MASTER_EMOJI_DICT[k]}</div>`).join('');
 }
 renderEmojiMenu();
@@ -832,24 +937,28 @@ async function reactMenu(id) {
   await toggleReaction(id, emoji);
 }
 async function toggleReaction(mid, emoji) {
-  const ref = db.collection('vox_messages').doc(mid), snap = await ref.get();
-  if (!snap.exists) return;
-  const m = snap.data(), reactions = m.reactions || {};
-  if (!reactions[emoji]) reactions[emoji] = [];
-  const idx = reactions[emoji].indexOf(me.uid);
-  if (idx > -1) reactions[emoji].splice(idx, 1); else reactions[emoji].push(me.uid);
-  if (reactions[emoji].length === 0) delete reactions[emoji];
-  await ref.update({reactions});
+  try {
+    const ref = db.collection('vox_messages').doc(mid), snap = await ref.get();
+    if (!snap.exists) return;
+    const m = snap.data(), reactions = m.reactions || {};
+    if (!reactions[emoji]) reactions[emoji] = [];
+    const idx = reactions[emoji].indexOf(me.uid);
+    if (idx > -1) reactions[emoji].splice(idx, 1); else reactions[emoji].push(me.uid);
+    if (reactions[emoji].length === 0) delete reactions[emoji];
+    await ref.update({reactions});
+  } catch (e) { dbErr(e); }
 }
 async function editMsg(id) {
   const m = msgCache[id]; if (!m) return;
   const newText = prompt('Edit message:', m.text); if (newText === null) return;
-  await db.collection('vox_messages').doc(id).update({text: newText});
+  try { await db.collection('vox_messages').doc(id).update({text: newText}); } catch (e) { dbErr(e); }
 }
 async function deleteMsg(id) {
   if (!confirm('Delete this message?')) return;
-  await db.collection('vox_messages').doc(id).delete();
-  const el = document.querySelector(`.msg[data-id="${id}"]`); if (el) el.remove();
+  try {
+    await db.collection('vox_messages').doc(id).delete();
+    const el = document.querySelector(`.msg[data-id="${id}"]`); if (el) el.remove();
+  } catch (e) { dbErr(e); }
 }
 
 function createServerModal() {
@@ -858,36 +967,43 @@ function createServerModal() {
 }
 async function createServer() {
   const n = $('serverName').value.trim(); if (!n) return toast('Enter name');
-  await db.collection('vox_servers').add({name: n, owner: me.uid, webhookUrl: '', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal(); toast('Server created');
+  try {
+    await db.collection('vox_servers').add({name: n, owner: me.uid, webhookUrl: '', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    closeModal(); toast('Server created');
+  } catch (e) { dbErr(e); }
 }
+
 function serverSettings(sid) {
   const s = servers.find(x => x.id === sid); if (!s) return;
-  $('modal').innerHTML = `<div class="modal-inner"><h3>${esc(s.name)} Settings</h3>${s.owner === me.uid ? `<input id="webhookUrl" placeholder="Discord Webhook URL" value="${s.webhookUrl || ''}"><div class="modal-actions"><button class="pri" onclick="saveWebhook('${sid}')">Save Webhook</button><button class="danger" onclick="deleteServer('${sid}')">Delete Server</button><button onclick="closeModal()">Close</button></div>` : '<p>You are not the owner.</p><button onclick="closeModal()">Close</button>'}</div>`;
+  $('modal').innerHTML = `<div class="modal-inner"><h3>${esc(s.name)} Settings</h3>${s.owner === me.uid ? `<input id="webhookUrl" placeholder="Discord Webhook URL" value="${esc(s.webhookUrl || '')}"><div class="modal-actions"><button class="pri" onclick="saveWebhook('${sid}')">Save Webhook</button><button class="danger" onclick="deleteServer('${sid}')">Delete Server</button><button onclick="closeModal()">Close</button></div>` : '<p>You are not the owner.</p><button onclick="closeModal()">Close</button>'}</div>`;
   $('modal').classList.remove('hidden');
 }
 async function saveWebhook(sid) {
   const url = $('webhookUrl').value.trim();
-  await db.collection('vox_servers').doc(sid).update({webhookUrl: url});
-  closeModal(); toast('Webhook saved');
+  try { await db.collection('vox_servers').doc(sid).update({webhookUrl: url}); closeModal(); toast('Webhook saved'); } catch (e) { dbErr(e); }
 }
 async function deleteServer(sid) {
   if (!confirm('Delete this server?')) return;
-  await db.collection('vox_servers').doc(sid).delete();
-  const chans = await db.collection('vox_channels').where('serverId', '==', sid).get();
-  chans.forEach(c => c.ref.delete());
-  const msgs = await db.collection('vox_messages').where('serverId', '==', sid).get();
-  msgs.forEach(m => m.ref.delete());
-  closeModal(); toast('Server deleted'); openView('home');
+  try {
+    await db.collection('vox_servers').doc(sid).delete();
+    const chans = await db.collection('vox_channels').where('serverId', '==', sid).get();
+    chans.forEach(c => c.ref.delete());
+    const msgs = await db.collection('vox_messages').where('serverId', '==', sid).get();
+    msgs.forEach(m => m.ref.delete());
+    closeModal(); toast('Server deleted'); openView('home');
+  } catch (e) { dbErr(e); }
 }
+
 function addChannelModal() {
   $('modal').innerHTML = `<div class="modal-inner"><h3>Add Channel</h3><input id="chanName" placeholder="Channel name"><select id="chanType"><option value="text">Text</option><option value="voice">Voice</option></select><div class="modal-actions"><button class="pri" onclick="addChannel()">Add</button><button onclick="closeModal()">Cancel</button></div></div>`;
   $('modal').classList.remove('hidden');
 }
 async function addChannel() {
   const n = $('chanName').value.trim(), t = $('chanType').value; if (!n) return toast('Enter name');
-  await db.collection('vox_channels').add({serverId: view.id, name: n, type: t, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal(); toast('Channel added');
+  try {
+    await db.collection('vox_channels').add({serverId: view.id, name: n, type: t, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    closeModal(); toast('Channel added');
+  } catch (e) { dbErr(e); }
 }
 
 function createGroupModal() {
@@ -896,17 +1012,22 @@ function createGroupModal() {
 }
 async function createGroup() {
   const n = $('groupName').value.trim(); if (!n) return toast('Enter name');
-  await db.collection('vox_groups').add({name: n, members: [me.uid], createdBy: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  closeModal(); toast('Group created');
+  try {
+    await db.collection('vox_groups').add({name: n, members: [me.uid], createdBy: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    closeModal(); toast('Group created');
+  } catch (e) { dbErr(e); }
 }
 async function deleteGroup(gid) {
   if (!confirm('Delete this group?')) return;
-  await db.collection('vox_groups').doc(gid).delete();
-  const msgs = await db.collection('vox_messages').where('groupId', '==', gid).get();
-  msgs.forEach(m => m.ref.delete());
-  toast('Group deleted'); openView('home');
+  try {
+    await db.collection('vox_groups').doc(gid).delete();
+    const msgs = await db.collection('vox_messages').where('groupId', '==', gid).get();
+    msgs.forEach(m => m.ref.delete());
+    toast('Group deleted'); openView('home');
+  } catch (e) { dbErr(e); }
 }
 function shareInvite(gid) { const link = `${location.origin}${location.pathname}?join=${gid}`; navigator.clipboard.writeText(link).then(() => toast('Invite link copied')).catch(() => prompt('Invite link:', link)); }
+
 if (location.search.includes('join=')) {
   const gid = new URLSearchParams(location.search).get('join');
   auth.onAuthStateChanged(u => {
@@ -918,51 +1039,71 @@ function addFriendModal() {
   $('modal').innerHTML = `<div class="modal-inner"><h3>Add Friend</h3><input id="friendUid" placeholder="Friend's User ID"><div class="modal-actions"><button class="pri" onclick="addFriend()">Add</button><button onclick="closeModal()">Cancel</button></div></div>`;
   $('modal').classList.remove('hidden');
 }
+
+/* ✅ FIX: guarded — update() on a non-existent doc used to throw silently */
 async function addFriend() {
   const uid = $('friendUid').value.trim(); if (!uid) return toast('Enter UID');
   if (uid === me.uid) return toast('Cannot add yourself');
-  await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)});
-  await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayUnion(me.uid)});
-  const snap = await db.collection('vox_users').doc(uid).get(); if (snap.exists) userCache[uid] = snap.data();
-  closeModal(); toast('Friend added'); if (view.type === 'home') renderSide();
+  try {
+    const target = await db.collection('vox_users').doc(uid).get();
+    if (!target.exists) return toast('No user with that ID');
+    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)});
+    await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayUnion(me.uid)});
+    userCache[uid] = target.data();
+    closeModal(); toast('Friend added'); if (view.type === 'home' || view.type === 'dm') renderSide();
+  } catch (e) { dbErr(e); }
 }
 
 function viewProfile(uid) {
   const u = userCache[uid] || {displayName: 'Unknown'};
   const isSelf = uid === me.uid;
   const isFriend = (profile.friends || []).includes(uid);
+  const yt = safeUrl(u.socials?.yt), dc = safeUrl(u.socials?.discord);
   let actions = '';
   if (isSelf) actions = '<button class="pri" onclick="editProfileModal()">Edit Profile</button><button onclick="closeModal()">Close</button>';
   else if (isFriend) actions = `<button class="pri" onclick="openView('dm','${uid}');closeModal()">Send Message</button><button class="danger" onclick="removeFriend('${uid}')">Remove Friend</button><button onclick="closeModal()">Close</button>`;
   else actions = `<button class="pri" onclick="addFriendDirect('${uid}')">Add Friend</button><button onclick="closeModal()">Close</button>`;
-  $('modal').innerHTML = `<div id="profileView" class="modal-inner"><img class="avatar" src="${u.photoURL || ''}" alt="${esc(u.displayName)}"><h2>${esc(u.displayName)}</h2><p>@${u.username || 'no_username'}</p><p style="font-size:12px;color:var(--mut)">UID: ${uid}</p>${u.bio ? `<div class="bio">${esc(u.bio)}</div>` : ''}<div class="socials">${u.socials?.yt ? `<a href="${u.socials.yt}" target="_blank">YouTube</a>` : ''}${u.socials?.discord ? `<a href="${u.socials.discord}" target="_blank">Discord</a>` : ''}</div><div id="profileActions">${actions}</div></div>`;
+  $('modal').innerHTML = `<div id="profileView" class="modal-inner"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}"><h2>${esc(u.displayName)}</h2><p>@${esc(u.username || 'no_username')}</p><p style="font-size:12px;color:var(--mut)">UID: ${esc(uid)}</p>${u.bio ? `<div class="bio">${esc(u.bio)}</div>` : ''}<div class="socials">${yt ? `<a href="${yt}" target="_blank" rel="noopener">YouTube</a>` : ''}${dc ? `<a href="${dc}" target="_blank" rel="noopener">Discord</a>` : ''}</div><div id="profileActions">${actions}</div></div>`;
   $('modal').classList.remove('hidden');
 }
+
 async function addFriendDirect(uid) {
-  await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)});
-  await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayUnion(me.uid)});
-  toast('Friend added'); closeModal(); if (view.type === 'home') renderSide();
+  try {
+    const target = await db.collection('vox_users').doc(uid).get();
+    if (!target.exists) return toast('No user with that ID');
+    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)});
+    await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayUnion(me.uid)});
+    userCache[uid] = target.data();
+    toast('Friend added'); closeModal(); if (view.type === 'home' || view.type === 'dm') renderSide();
+  } catch (e) { dbErr(e); }
 }
+
 async function removeFriend(uid) {
   if (!confirm('Remove friend?')) return;
-  await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayRemove(uid)});
-  await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayRemove(me.uid)});
-  toast('Friend removed'); closeModal(); if (view.type === 'home') renderSide();
+  try {
+    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayRemove(uid)});
+    await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayRemove(me.uid)});
+    toast('Friend removed'); closeModal(); if (view.type === 'home' || view.type === 'dm') renderSide();
+  } catch (e) { dbErr(e); }
 }
 
 function editProfileModal() {
-  $('modal').innerHTML = `<div class="modal-inner"><h3>Edit Profile</h3><input id="editName" placeholder="Display name" value="${profile.displayName || ''}"><input id="editPhoto" placeholder="Photo URL" value="${profile.photoURL || ''}"><textarea id="editBio" placeholder="Bio" rows="3">${profile.bio || ''}</textarea><input id="editYt" placeholder="YouTube link" value="${profile.socials?.yt || ''}"><input id="editDiscord" placeholder="Discord link" value="${profile.socials?.discord || ''}"><div class="modal-actions"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="auth.signOut();closeModal()">Logout</button><button onclick="closeModal()">Cancel</button></div></div>`;
+  $('modal').innerHTML = `<div class="modal-inner"><h3>Edit Profile</h3><input id="editName" placeholder="Display name" value="${esc(profile.displayName || '')}"><input id="editPhoto" placeholder="Photo URL" value="${esc(profile.photoURL || '')}"><textarea id="editBio" placeholder="Bio" rows="3">${esc(profile.bio || '')}</textarea><input id="editYt" placeholder="YouTube link" value="${esc(profile.socials?.yt || '')}"><input id="editDiscord" placeholder="Discord link" value="${esc(profile.socials?.discord || '')}"><div class="modal-actions"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="auth.signOut();closeModal()">Logout</button><button onclick="closeModal()">Cancel</button></div></div>`;
   $('modal').classList.remove('hidden');
 }
 async function saveProfile() {
   const name = $('editName').value.trim(), photo = $('editPhoto').value.trim(), bio = $('editBio').value.trim(), yt = $('editYt').value.trim(), discord = $('editDiscord').value.trim();
   if (!name) return toast('Enter name');
-  await db.collection('vox_users').doc(me.uid).update({displayName: name, photoURL: photo, bio, socials: {yt, discord}});
-  closeModal(); toast('Profile updated');
+  try {
+    await db.collection('vox_users').doc(me.uid).update({displayName: name, photoURL: photo, bio, socials: {yt, discord}});
+    closeModal(); toast('Profile updated');
+  } catch (e) { dbErr(e); }
 }
 function closeModal() { $('modal').classList.add('hidden'); $('modal').innerHTML = ''; }
 
-let localStream, remoteStream, pc, callDoc;
+/* ===== WebRTC ===== */
+let localStream, remoteStream, pc, callDoc = null;
+
 async function joinVoice() {
   if (!channel || channel.type !== 'voice') return;
   try {
@@ -973,16 +1114,18 @@ async function joinVoice() {
     if (snap.empty) await createCall(); else await joinCall(snap.docs[0].id);
   } catch (e) { toast('Could not access camera/mic: ' + e.message); }
 }
+
 async function createCall() {
   pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
   pc.ontrack = e => { if (!remoteStream) { remoteStream = new MediaStream(); $('remoteVideo').srcObject = remoteStream; } remoteStream.addTrack(e.track); };
   const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-  const ref = await db.collection('vox_calls').add({serverId: view.id, channelId: channel.id, offer: {type: offer.type, sdp: offer.sdp}, callerUid: me.uid});
+  const ref = await db.collection('vox_calls').add({serverId: view.id, channelId: channel.id, offer: {type: offer.type, sdp: offer.sdp}, callerUid: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
   callDoc = ref.id;
   ref.onSnapshot(s => { const d = s.data(); if (d?.answer && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(d.answer)); });
-  pc.onicecandidate = e => { if (e.candidate) ref.update({callerCandidates: firebase.firestore.FieldValue.arrayUnion(e.candidate.toJSON())}); };
+  pc.onicecandidate = e => { if (e.candidate) ref.update({callerCandidates: firebase.firestore.FieldValue.arrayUnion(e.candidate.toJSON())}).catch(()=>{}); };
 }
+
 async function joinCall(docId) {
   const ref = db.collection('vox_calls').doc(docId);
   const snap = await ref.get(); if (!snap.exists) return;
@@ -993,21 +1136,28 @@ async function joinCall(docId) {
   await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
   const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
   await ref.update({answer: {type: answer.type, sdp: answer.sdp}, calleeUid: me.uid});
-  pc.onicecandidate = e => { if (e.candidate) ref.update({calleeCandidates: firebase.firestore.FieldValue.arrayUnion(e.candidate.toJSON())}); };
+  pc.onicecandidate = e => { if (e.candidate) ref.update({calleeCandidates: firebase.firestore.FieldValue.arrayUnion(e.candidate.toJSON())}).catch(()=>{}); };
   if (d.callerCandidates) d.callerCandidates.forEach(c => pc.addIceCandidate(new RTCIceCandidate(c)));
+  /* ✅ FIX: remember which call doc we joined so we can clean it up */
+  callDoc = docId;
 }
-function leaveVoice() {
+
+/* ✅ FIX: delete the stale call doc on leave, otherwise the next person joins a dead call */
+async function leaveVoice() {
   if (localStream) localStream.getTracks().forEach(t => t.stop());
-  if (pc) pc.close();
-  selectChannel(channel.id);
+  if (pc) { try { pc.close(); } catch(e){} }
+  if (callDoc) { try { await db.collection('vox_calls').doc(callDoc).delete(); } catch(e){} callDoc = null; }
+  localStream = null; remoteStream = null; pc = null;
+  if (channel) selectChannel(channel.id);
 }
+
 async function toggleScreen() {
   try {
     const screen = await navigator.mediaDevices.getDisplayMedia({video: true});
     const videoTrack = screen.getVideoTracks()[0];
     const sender = pc.getSenders().find(s => s.track?.kind === 'video');
     if (sender) sender.replaceTrack(videoTrack);
-    videoTrack.onended = () => { const cam = localStream.getVideoTracks()[0]; if (sender && cam) sender.replaceTrack(cam); };
+    videoTrack.onended = () => { const cam = localStream && localStream.getVideoTracks()[0]; if (sender && cam) sender.replaceTrack(cam); };
   } catch (e) { toast('Screen share failed'); }
 }
 </script>
