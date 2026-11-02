@@ -140,7 +140,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 .msg .n:hover{filter:drop-shadow(0 0 8px var(--blue));transform:translateY(-1px);}
 .msg .t{color:var(--mut);font-size:11px;margin-left:8px;font-weight:500;}
 .msg .body{min-width:0;flex:1;word-break:break-word;line-height:1.6;}
-.msg img.m,.msg video{max-width:360px;max-height:280px;border-radius:12px;margin-top:8px;display:block;box-shadow:0 8px 30px rgba(0,0,0,0.5);border:2px solid rgba(0, 212, 255, 0.2);transition:all 0.3s;}
+.msg img.m,.msg video{max-width:360px;max-height:280px;border-radius:12px;margin-top:8px;display:block;box-shadow:0 8px 30px rgba(0,0,0,0.5);border:2px solid rgba(0, 212, 255, 0.2);transition:all 0.3s;cursor:pointer;}
 .msg img.m:hover,.msg video:hover{transform:scale(1.02);box-shadow:0 12px 40px rgba(0, 212, 255, 0.3);border-color:var(--blue);}
 .msg a{color:var(--blue);text-decoration:none;font-weight:600;transition:all 0.2s;border-bottom:1px solid transparent;}
 .msg a:hover{border-bottom-color:var(--blue);text-shadow:0 0 10px var(--blue-glow);}
@@ -170,17 +170,20 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 .acts button:hover{background:var(--blue);color:#000;}
 @media(hover:none){.msg .acts{display:flex;position:static;margin-top:8px;width:max-content;}}
 
-.prev{display:block;max-width:420px;margin-top:10px;background:linear-gradient(135deg, var(--p2) 0%, var(--p1) 100%);border-left:4px solid var(--blue);border-radius:12px;overflow:hidden;text-decoration:none;color:var(--txt);transition:all 0.3s;box-shadow:0 4px 15px rgba(0,0,0,0.3);}
-.prev:hover{box-shadow:0 8px 30px var(--blue-glow);transform:translateY(-2px);border-left-width:6px;}
-.prev img{width:100%;display:block;max-height:220px;object-fit:cover;}
-.prev div{padding:12px 14px}
-.prev b{display:block;margin-bottom:4px;font-size:15px;font-weight:700;}
-.prev span{color:var(--txt-dim);font-size:13px;display:block;line-height:1.5;}
-.prev small{color:var(--blue);font-size:12px;font-weight:600;}
-
-.filecard{display:inline-flex;gap:10px;align-items:center;background:linear-gradient(135deg, var(--p2) 0%, var(--p1) 100%);border:2px solid rgba(0, 212, 255, 0.3);border-radius:12px;padding:10px 14px;margin-top:8px;transition:all 0.3s;box-shadow:0 4px 15px rgba(0,0,0,0.3);}
+/* File Cards */
+.filecard{display:inline-flex;gap:12px;align-items:center;background:var(--p3);border:1px solid var(--p4);border-radius:12px;padding:12px 16px;margin-top:8px;transition:all 0.3s;box-shadow:0 4px 15px rgba(0,0,0,0.2);width:max-content;max-width:100%;}
 .filecard:hover{box-shadow:0 8px 25px var(--blue-glow);transform:translateY(-2px);border-color:var(--blue);}
-.filecard button{padding:6px 12px;font-size:12px;}
+.filecard-icon{font-size:28px;}
+.filecard-info{display:flex;flex-direction:column;gap:2px;overflow:hidden;}
+.filecard-info b{font-size:14px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.filecard-info span{font-size:12px;color:var(--mut);}
+.filecard button{padding:6px 12px;font-size:12px;width:auto;}
+
+/* Media Viewer Lightbox */
+#media-viewer { position:fixed; inset:0; background:rgba(0,0,0,0.9); backdrop-filter:blur(10px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; padding:20px; animation:fadeIn 0.3s; cursor:pointer; }
+#media-viewer img, #media-viewer video { max-width:100%; max-height:90vh; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.8); cursor:default; }
+#media-viewer .close-btn { position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.2); color:#fff; font-size:24px; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
+#media-viewer .close-btn:hover { background:var(--danger); border-color:var(--danger); transform:scale(1.1); }
 
 #emoji-autocomplete{position:absolute;bottom:72px;left:24px;background:linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%);backdrop-filter:blur(20px);border:2px solid rgba(0, 212, 255, 0.3);border-radius:16px;max-height:280px;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 30px var(--blue-glow);z-index:15;animation:slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 #emoji-autocomplete::-webkit-scrollbar{width:6px}
@@ -308,7 +311,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
     <div class="wifi-notice">
       📶 Please ensure you are connected to Wi-Fi to install the app and get the best experience.
     </div>
-    <div class="version-stamp">Vox v1.1.0</div>
+    <div class="version-stamp">Vox v1.2.0</div>
 
   </div>
 </div>
@@ -354,11 +357,18 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <!-- Modals -->
 <div id="modal" class="modal hidden"></div>
 
+<!-- Media Viewer Lightbox -->
+<div id="media-viewer" class="hidden" onclick="closeMediaViewer()">
+  <div class="close-btn">✖</div>
+  <img id="media-viewer-img" src="" class="hidden" onclick="event.stopPropagation()">
+  <video id="media-viewer-video" src="" class="hidden" controls onclick="event.stopPropagation()"></video>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
 <script>
-console.log(`%c Vox Chat v1.1.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
+console.log(`%c Vox Chat v1.2.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
 
 const $ = id => document.getElementById(id);
 
@@ -374,6 +384,30 @@ function esc(s) {
 function safeUrl(u) {
   return (typeof u === 'string' && /^https?:\/\//i.test(u.trim())) ? u.trim() : '';
 }
+
+/* ===== MEDIA VIEWER ===== */
+function viewMedia(url, type) {
+  $('media-viewer').classList.remove('hidden');
+  if (type === 'image') {
+    $('media-viewer-img').src = url;
+    $('media-viewer-img').classList.remove('hidden');
+    $('media-viewer-video').classList.add('hidden');
+    $('media-viewer-video').pause();
+    $('media-viewer-video').src = '';
+  } else {
+    $('media-viewer-video').src = url;
+    $('media-viewer-video').classList.remove('hidden');
+    $('media-viewer-img').classList.add('hidden');
+    $('media-viewer-img').src = '';
+  }
+}
+function closeMediaViewer() {
+  $('media-viewer').classList.add('hidden');
+  $('media-viewer-img').src = '';
+  $('media-viewer-video').src = '';
+  $('media-viewer-video').pause();
+}
+/* ======================== */
 
 /* ===== AUDIO NOTIFICATION ===== */
 let audioCtx = null;
@@ -585,14 +619,19 @@ function handleIncoming(m) {
   const roomId = m.serverId ? `server_${m.serverId}_${m.channel}` : m.groupId ? `group_${m.groupId}` : getRoomId(m.senderUid);
   const currentRoom = view.type === 'server' && channel ? `server_${view.id}_${channel.id}` : view.type === 'group' ? `group_${view.id}` : view.type === 'dm' ? getRoomId(view.id) : null;
   
-  if (roomId !== currentRoom) {
+  const isTabHidden = document.hidden || !document.hasFocus();
+  const isDifferentRoom = roomId !== currentRoom;
+
+  if (isDifferentRoom) {
     unreadChannels[roomId] = (unreadChannels[roomId] || 0) + 1;
     recount(); renderRail(); renderSide();
-    
-    playPing();
-    toast(`💬 ${m.sender || 'New message'}: ${m.text || 'Sent a file'}`);
+  }
 
-    if ('Notification' in window && Notification.permission === 'granted') {
+  // Trigger ping and OS notification if tab is hidden OR if it's a different room
+  if (isDifferentRoom || isTabHidden) {
+    playPing();
+
+    if (isTabHidden && 'Notification' in window && Notification.permission === 'granted') {
       const notif = new Notification(m.sender || 'New message', {
         body: m.text || 'Sent a file', 
         icon: safeUrl(m.senderPhoto),
@@ -606,6 +645,8 @@ function handleIncoming(m) {
         else if (m.senderUid) openView('dm', m.senderUid);
         notif.close();
       };
+    } else if (!isTabHidden && isDifferentRoom) {
+      toast(`💬 ${m.sender || 'New message'}: ${m.text || 'Sent a file'}`);
     }
   }
 }
@@ -809,12 +850,19 @@ function selectChannel(cid, auto) {
   if (c.type === 'voice') {
     channel = c; stop('msgs'); if (typingUnsub) { typingUnsub(); typingUnsub = null; }
     $('typing-indicator').classList.add('hidden');
-    $('topTitle').textContent = '🔊 ' + c.name; $('composer').classList.add('hidden');
+    $('topTitle').textContent = '🔊 ' + c.name; 
+    
+    /* ✅ FIX: Add the call button directly to the top bar so it's impossible to miss */
+    $('topBtns').innerHTML = '<button class="pri" onclick="joinVoice()" style="width:auto;padding:8px 16px;font-size:14px;">📹 Join Call</button>';
+    
+    $('composer').classList.add('hidden');
     $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join video call</button></div>`;
     if (isMobile()) setDrawer(false);
     renderSide(); return;
   }
-  channel = c; $('topTitle').textContent = '# ' + c.name; $('composer').classList.remove('hidden');
+  channel = c; $('topTitle').textContent = '# ' + c.name; 
+  $('topBtns').innerHTML = ''; /* ✅ Clear call button for text channels */
+  $('composer').classList.remove('hidden');
   listenMessages(); listenTyping();
   unreadChannels[`server_${view.id}_${cid}`] = 0; recount(); renderRail(); renderSide();
   if (isMobile() && !auto) setDrawer(false);
@@ -871,14 +919,27 @@ function appendMsg(m) {
   let body = formatBody(m.text || '');
   let media = '', reactions = '';
 
+  /* ✅ FIX: Enhanced Media Display */
   if (m.mediaUrl) {
     const url = safeUrl(m.mediaUrl);
     const t = m.mediaType || '';
     if (!url) media = '';
-    else if (t.startsWith('image')) media = `<img class="m" src="${url}" alt="Image" loading="lazy">`;
-    else if (t.startsWith('video')) media = `<video class="m" src="${url}" controls></video>`;
-    else media = `<div class="filecard"><span>📎 ${esc(t)}</span><button onclick="window.open('${url}','_blank','noopener')">Download</button></div>`;
+    else if (t.startsWith('image')) media = `<img class="m" src="${url}" alt="Image" loading="lazy" onclick="viewMedia('${url}', 'image')">`;
+    else if (t.startsWith('video')) media = `<video class="m" src="${url}" onclick="event.preventDefault(); viewMedia('${url}', 'video')"></video>`;
+    else {
+      // Better UI for PDFs and random files
+      const ext = t.split('/')[1] || 'File';
+      media = `<div class="filecard">
+                 <div class="filecard-icon">📄</div>
+                 <div class="filecard-info">
+                   <b>Document</b>
+                   <span>${esc(ext)}</span>
+                 </div>
+                 <button class="pri" onclick="window.open('${url}','_blank','noopener')">⬇️ Download</button>
+               </div>`;
+    }
   }
+  
   if (m.reactions) reactions = Object.entries(m.reactions).map(([e, arr]) => `<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${esc(e)}')">${esc(e)} ${arr.length}</span>`).join(' ');
 
   const html = `<div class="msg" data-id="${m.id}"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${new Date((m.timestamp?.seconds || 0) * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span></div><div>${body}</div>${media}${reactions ? `<div style="margin-top:4px">${reactions}</div>` : ''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid === me.uid ? `<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>` : ''}</div></div>`;
@@ -972,8 +1033,6 @@ function renderMenu() { $('menu').innerHTML = '<div onclick="pick(\'image/*,vide
 renderMenu();
 
 function toggleEmojiMenu(e) { e.stopPropagation(); $('emoji-menu').classList.toggle('hidden'); $('menu').classList.add('hidden'); }
-
-/* FIX: Render ALL emojis from the dictionary */
 function renderEmojiMenu() {
   const allEmojis = Object.keys(MASTER_EMOJI_DICT);
   $('emoji-menu').innerHTML = allEmojis.map(k => `<div onclick="insertEmojiDirect('${MASTER_EMOJI_DICT[k]}')" title=":${k}:">${MASTER_EMOJI_DICT[k]}</div>`).join('');
@@ -1236,7 +1295,6 @@ async function toggleScreen() {
       pc.addTrack(videoTrack, screen);
     }
 
-    // Show the screen share locally if the local video element wasn't there (e.g., no webcam)
     if (!$('localVideo')) {
       const v = document.createElement('video');
       v.id = 'localVideo'; v.autoplay = true; v.muted = true; v.playsInline = true;
