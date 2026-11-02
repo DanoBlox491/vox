@@ -152,17 +152,21 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #plus,#emoji-btn{width:48px;height:48px;font-size:22px;background:linear-gradient(135deg, var(--p3) 0%, var(--p4) 100%);display:flex;justify-content:center;align-items:center;border-radius:12px;cursor:pointer;transition:all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);border:2px solid transparent;}
 #plus:hover,#emoji-btn:hover{background:linear-gradient(135deg, var(--blue) 0%, #0099cc 100%);box-shadow:0 6px 20px var(--blue-glow);transform:scale(1.1) rotate(90deg);border-color:rgba(0, 212, 255, 0.5);}
 
-#menu,#emoji-menu{position:absolute;bottom:78px;background:linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%);backdrop-filter:blur(20px);border:2px solid rgba(0, 212, 255, 0.3);border-radius:16px;padding:8px;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 30px var(--blue-glow);z-index:10;animation:slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
+#menu{position:absolute;bottom:78px;left:24px;background:linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%);backdrop-filter:blur(20px);border:2px solid rgba(0, 212, 255, 0.3);border-radius:16px;padding:8px;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 30px var(--blue-glow);z-index:10;animation:slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 @keyframes slideUp{from{opacity:0;transform:translateY(10px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
-#menu{left:24px} 
-#emoji-menu{left:82px;display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;max-height:240px;overflow-y:auto;}
-#emoji-menu::-webkit-scrollbar{width:6px}
-#emoji-menu::-webkit-scrollbar-track{background:transparent}
-#emoji-menu::-webkit-scrollbar-thumb{background:var(--p3);border-radius:10px}
+
+/* Custom Full Emoji Menu */
+#emoji-menu { position: absolute; bottom: 78px; left: 82px; background: linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%); backdrop-filter: blur(20px); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 16px; width: 340px; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 30px var(--blue-glow); z-index: 10; animation: slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); display: flex; flex-direction: column; overflow: hidden; }
+#emoji-search { width: 100%; margin: 0; border: none; border-bottom: 2px solid var(--p3); border-radius: 16px 16px 0 0; padding: 12px 16px; background: rgba(0,0,0,0.2); font-size: 14px; }
+#emoji-search:focus { box-shadow: none; background: rgba(0,0,0,0.4); }
+#emoji-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 10px; max-height: 240px; overflow-y: auto; }
+#emoji-grid::-webkit-scrollbar { width: 6px; }
+#emoji-grid::-webkit-scrollbar-thumb { background: var(--p3); border-radius: 10px; }
+#emoji-grid div { cursor: pointer; font-size: 24px; padding: 6px; text-align: center; border-radius: 8px; transition: all 0.2s; }
+#emoji-grid div:hover { background: var(--p3); transform: scale(1.2); }
+
 #menu div{padding:12px 16px;border-radius:10px;cursor:pointer;white-space:nowrap;transition:all 0.2s;font-weight:600;font-size:14px;}
 #menu div:hover{background:linear-gradient(135deg, var(--blue) 0%, #0099cc 100%);color:#000;box-shadow:0 4px 15px var(--blue-glow);transform:translateX(4px);}
-#emoji-menu div{cursor:pointer;font-size:28px;padding:8px;text-align:center;border-radius:10px;transition:all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
-#emoji-menu div:hover{background:var(--p3);transform:scale(1.3);box-shadow:0 4px 15px rgba(0, 212, 255, 0.2);}
 
 .msg .acts{position:absolute;right:12px;top:8px;display:none;gap:4px;background:linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%);backdrop-filter:blur(20px);border:2px solid rgba(0, 212, 255, 0.3);border-radius:10px;padding:4px;box-shadow:0 8px 25px rgba(0,0,0,0.5), 0 0 20px var(--blue-glow);}
 .msg:hover .acts{display:flex;animation:slideIn 0.2s}
@@ -185,9 +189,14 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #media-viewer .close-btn { position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.2); color:#fff; font-size:24px; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
 #media-viewer .close-btn:hover { background:var(--danger); border-color:var(--danger); transform:scale(1.1); }
 
-/* Call Widget */
-#call-widget { position: fixed; bottom: 90px; right: 24px; width: 320px; background: rgba(15, 20, 34, 0.95); backdrop-filter: blur(10px); border: 2px solid rgba(0, 212, 255, 0.4); border-radius: 16px; z-index: 999; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 30px var(--blue-glow); display: flex; flex-direction: column; gap: 10px; transition: all 0.3s; animation: slideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
-#call-widget video { width: 100%; border-radius: 12px; background: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+/* Call Widget & Mesh Grid */
+#call-widget { position: fixed; bottom: 90px; right: 24px; width: 380px; background: rgba(15, 20, 34, 0.95); backdrop-filter: blur(10px); border: 2px solid rgba(0, 212, 255, 0.4); border-radius: 16px; z-index: 999; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 30px var(--blue-glow); display: flex; flex-direction: column; gap: 10px; transition: all 0.3s; animation: slideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+#video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; }
+#video-grid::-webkit-scrollbar { width: 4px; }
+#video-grid::-webkit-scrollbar-thumb { background: var(--p3); border-radius: 4px; }
+.video-container { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; border: 1px solid var(--p3); }
+.video-container video { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+.video-container .name-tag { position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; pointer-events: none; }
 #call-controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 #call-controls button { padding: 8px 12px; font-size: 13px; width: auto; border-radius: 8px; }
 
@@ -227,8 +236,6 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #missedBanner{background:linear-gradient(135deg, rgba(255, 46, 147, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);backdrop-filter:blur(10px);padding:16px 24px;text-align:center;font-weight:700;color:var(--txt);cursor:pointer;transition:all 0.3s;border-bottom:2px solid var(--pink);box-shadow:0 4px 20px rgba(255, 46, 147, 0.3);animation:slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 #missedBanner:hover{background:linear-gradient(135deg, rgba(255, 46, 147, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);box-shadow:0 6px 30px rgba(255, 46, 147, 0.4);}
 
-#localVideo,#remoteVideo{width:100%;max-width:640px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 40px var(--blue-glow);margin:12px auto;display:block;border:3px solid rgba(0, 212, 255, 0.4);}
-
 @media(max-width:900px){
   #app{grid-template-columns:70px 1fr}
   #side2{position:fixed;left:-280px;width:280px;z-index:50;transition:left 0.3s;height:100%}
@@ -252,6 +259,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
   .auth-card{padding:24px}
   .auth-card h2{font-size:24px}
   #call-widget { width: 90%; left: 5%; right: auto; bottom: 80px; }
+  #emoji-menu { left: 5%; width: 90%; }
 }
 
 .spinner{width:50px;height:50px;border:5px solid var(--p3);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:40px auto;}
@@ -318,7 +326,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
     <div class="wifi-notice">
       📶 Please ensure you are connected to Wi-Fi to install the app and get the best experience.
     </div>
-    <div class="version-stamp">Vox v1.3.0</div>
+    <div class="version-stamp">Vox v1.4.1</div>
 
   </div>
 </div>
@@ -356,13 +364,28 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
       <input type="file" id="file" class="hidden" onchange="upload(this)">
     </div>
     <div id="menu" class="hidden"></div>
-    <div id="emoji-menu" class="hidden"></div>
+    
+    <!-- The New Full Emoji Menu -->
+    <div id="emoji-menu" class="hidden">
+      <input id="emoji-search" type="text" placeholder="Search emojis (e.g., smile, pizza)..." oninput="filterEmojis(this.value)">
+      <div id="emoji-grid"></div>
+    </div>
+    
     <div id="emoji-autocomplete" class="hidden"></div>
   </div>
 </div>
 
 <!-- Persistent Call Widget -->
-<div id="call-widget" class="hidden"></div>
+<div id="call-widget" class="hidden">
+  <div style="font-weight:800;margin-bottom:8px;font-size:14px;color:var(--blue);display:flex;justify-content:space-between;align-items:center;">
+    <span>📹 Active Call</span>
+    <button class="danger" onclick="leaveVoice()" style="padding:4px 8px;font-size:11px;width:auto;border-radius:6px;">Leave</button>
+  </div>
+  <div id="video-grid"></div>
+  <div id="call-controls">
+    <button class="pri" onclick="toggleScreen()" style="background:linear-gradient(135deg, var(--purple) 0%, #7e22ce 100%);color:#fff;box-shadow:0 4px 15px var(--purple-glow);">Share Screen</button>
+  </div>
+</div>
 
 <!-- Modals -->
 <div id="modal" class="modal hidden"></div>
@@ -378,7 +401,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <div id="toast"></div>
 
 <script>
-console.log(`%c Vox Chat v1.3.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
+console.log(`%c Vox Chat v1.4.1 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
 
 const $ = id => document.getElementById(id);
 
@@ -447,6 +470,44 @@ function playPing() {
   osc.stop(audioCtx.currentTime + 0.3);
 }
 /* =============================== */
+
+/* ===== EMOJI ENGINE ===== */
+// Fallback dictionary for instant load
+const MASTER_EMOJI_DICT = {"smile":"😊","grin":"😁","joy":"😂","heart":"❤️","fire":"🔥","star":"⭐","thumbsup":"👍","thumbsdown":"👎","clap":"👏","eyes":"👀","100":"💯","rocket":"🚀","crown":"👑","skull":"💀","wave":"👋","tada":"🎉","thinking":"🤔","cool":"😎","cry":"😢","angry":"😠","laugh":"🤣","love":"😍","wink":"😉","tongue":"😛","nervous":"😅","heart_eyes":"😍","smirk":"😏","neutral":"😐","confused":"😕","money":"🤑","sick":"🤢","robot":"🤖","alien":"👽","ghost":"👻","cat":"🐱","dog":"🐶","pizza":"🍕","beer":"🍺","coffee":"☕","cake":"🍰","rainbow":"🌈","sun":"☀️","moon":"🌙","zap":"⚡","boom":"💥","sparkles":"✨","check":"✅","x":"❌","warning":"⚠️","ban":"🚫","music":"🎵","bell":"🔔","gift":"🎁","trophy":"🏆","medal":"🏅","key":"🔑","lock":"🔒","unlock":"🔓","link":"🔗","phone":"📱","computer":"💻","gear":"⚙️","hammer":"🔨","wrench":"🔧","mag":"🔍","bulb":"💡","book":"📖","moneybag":"💰","gem":"💎","bomb":"💣","hourglass":"⏳","alarm":"⏰","calendar":"📅","chart":"📈","email":"📧","inbox":"📥","package":"📦","pen":"✏️","pin":"📌","clip":"📎","scissors":"✂️","bookmark":"🔖","folder":"📁","page":"📄","newspaper":"📰","green_heart":"💚","yellow_heart":"💛","blue_heart":"💙","purple_heart":"💜","broken_heart":"💔","heart_exclamation":"❣️","two_hearts":"💕","sparkling_heart":"💖","heartpulse":"💗","heartbeat":"💓","revolving_hearts":"💞","cupid":"💘"};
+
+let FULL_EMOJI_DICT = {...MASTER_EMOJI_DICT};
+let EMOJI_RE = null;
+
+function buildEmojiRegex() {
+  const keys = Object.keys(FULL_EMOJI_DICT).sort((a,b) => b.length - a.length);
+  if (keys.length > 0) EMOJI_RE = new RegExp(':' + keys.join('|') + ':', 'g');
+}
+buildEmojiRegex();
+
+// Asynchronously fetch the full 3600+ emoji list
+fetch('https://cdn.jsdelivr.net/npm/@emoji-mart/data/sets/15/native.json')
+  .then(r => r.json())
+  .then(data => {
+    if (data && data.emojis) {
+      Object.keys(data.emojis).forEach(key => {
+        const skin = data.emojis[key].skins[0];
+        if (skin && skin.native) {
+          FULL_EMOJI_DICT[key] = skin.native;
+        }
+      });
+      buildEmojiRegex();
+      renderEmojiGrid(); // Refresh the picker
+    }
+  })
+  .catch(e => console.warn('Could not load full emoji set, using fallback.', e));
+
+function formatBody(text) {
+  let s = esc(text);
+  s = s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  if (EMOJI_RE) s = s.replace(EMOJI_RE, m => FULL_EMOJI_DICT[m.slice(1, -1)] || m);
+  return s;
+}
+/* ======================== */
 
 const firebaseConfig = {
   apiKey: "AIzaSyC2cLgHHIYXxKx62JCntppUVYJkfWT9wDw",
@@ -673,18 +734,6 @@ function getRoomId(uid) {
   return uid < me.uid ? `dm_${uid}_${me.uid}` : `dm_${me.uid}_${uid}`;
 }
 
-const MASTER_EMOJI_DICT = {"smile":"😊","grin":"😁","joy":"😂","heart":"❤️","fire":"🔥","star":"⭐","thumbsup":"👍","thumbsdown":"👎","clap":"👏","eyes":"👀","100":"💯","rocket":"🚀","crown":"👑","skull":"💀","wave":"👋","tada":"🎉","thinking":"🤔","cool":"😎","cry":"😢","angry":"😠","laugh":"🤣","love":"😍","wink":"😉","tongue":"😛","nervous":"😅","heart_eyes":"😍","smirk":"😏","neutral":"😐","confused":"😕","money":"🤑","sick":"🤢","robot":"🤖","alien":"👽","ghost":"👻","cat":"🐱","dog":"🐶","pizza":"🍕","beer":"🍺","coffee":"☕","cake":"🍰","rainbow":"🌈","sun":"☀️","moon":"🌙","zap":"⚡","boom":"💥","sparkles":"✨","check":"✅","x":"❌","warning":"⚠️","ban":"🚫","music":"🎵","bell":"🔔","gift":"🎁","trophy":"🏆","medal":"🏅","key":"🔑","lock":"🔒","unlock":"🔓","link":"🔗","phone":"📱","computer":"💻","gear":"⚙️","hammer":"🔨","wrench":"🔧","mag":"🔍","bulb":"💡","book":"📖","moneybag":"💰","gem":"💎","bomb":"💣","hourglass":"⏳","alarm":"⏰","calendar":"📅","chart":"📈","email":"📧","inbox":"📥","package":"📦","pen":"✏️","pin":"📌","clip":"📎","scissors":"✂️","bookmark":"🔖","folder":"📁","page":"📄","newspaper":"📰","green_heart":"💚","yellow_heart":"💛","blue_heart":"💙","purple_heart":"💜","broken_heart":"💔","heart_exclamation":"❣️","two_hearts":"💕","sparkling_heart":"💖","heartpulse":"💗","heartbeat":"💓","revolving_hearts":"💞","cupid":"💘"};
-
-const EMOJI_KEYS = Object.keys(MASTER_EMOJI_DICT).sort((a,b) => b.length - a.length);
-const EMOJI_RE = new RegExp(':' + EMOJI_KEYS.join('|') + ':', 'g');
-
-function formatBody(text) {
-  let s = esc(text);
-  s = s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-  s = s.replace(EMOJI_RE, m => MASTER_EMOJI_DICT[m.slice(1, -1)] || m);
-  return s;
-}
-
 let autocompleteActive = false, currentSuggestions = [], autocompleteIndex = 0;
 let typingDebounce = null, typingRoomKey = '';
 function handleInput() {
@@ -692,7 +741,8 @@ function handleInput() {
   const beforeCursor = v.slice(0, cursor), match = beforeCursor.match(/:([a-zA-Z0-9_+-]+)$/);
   if (match) {
     const q = match[1].toLowerCase();
-    currentSuggestions = Object.keys(MASTER_EMOJI_DICT).filter(k => k.startsWith(q)).slice(0, 8);
+    // Use FULL_EMOJI_DICT here for complete autocomplete
+    currentSuggestions = Object.keys(FULL_EMOJI_DICT).filter(k => k.startsWith(q)).slice(0, 8);
     if (currentSuggestions.length > 0) {
       autocompleteActive = true; autocompleteIndex = 0;
       renderEmojiAutocomplete(); $('emoji-autocomplete').classList.remove('hidden');
@@ -722,7 +772,7 @@ function renderEmojiAutocomplete() {
   currentSuggestions.forEach((name, index) => {
     const div = document.createElement('div');
     div.className = `emoji-suggestion ${index === autocompleteIndex ? 'active' : ''}`;
-    div.innerHTML = `<span class="emoji-icon">${MASTER_EMOJI_DICT[name]}</span> <span class="emoji-name">:${esc(name)}</span>`;
+    div.innerHTML = `<span class="emoji-icon">${FULL_EMOJI_DICT[name]}</span> <span class="emoji-name">:${esc(name)}</span>`;
     div.onclick = () => insertEmoji(name);
     box.appendChild(div);
   });
@@ -730,7 +780,7 @@ function renderEmojiAutocomplete() {
 function closeEmojiAutocomplete() { autocompleteActive = false; $('emoji-autocomplete').classList.add('hidden'); }
 function insertEmoji(name) {
   const val = $('text').value, cursor = $('text').selectionStart;
-  const newText = val.slice(0, cursor).replace(/:([a-zA-Z0-9_+-]+)$/, MASTER_EMOJI_DICT[name] + ' ') + val.slice(cursor);
+  const newText = val.slice(0, cursor).replace(/:([a-zA-Z0-9_+-]+)$/, FULL_EMOJI_DICT[name] + ' ') + val.slice(cursor);
   $('text').value = newText; $('text').focus(); closeEmojiAutocomplete();
 }
 function handleKeyDown(e) {
@@ -1040,12 +1090,31 @@ async function sendFile(f) {
 function renderMenu() { $('menu').innerHTML = '<div onclick="pick(\'image/*,video/*\')">📷 Photo/Video</div><div onclick="pick(\'*/*\')">📎 Any file</div>'; }
 renderMenu();
 
-function toggleEmojiMenu(e) { e.stopPropagation(); $('emoji-menu').classList.toggle('hidden'); $('menu').classList.add('hidden'); }
-function renderEmojiMenu() {
-  const allEmojis = Object.keys(MASTER_EMOJI_DICT);
-  $('emoji-menu').innerHTML = allEmojis.map(k => `<div onclick="insertEmojiDirect('${MASTER_EMOJI_DICT[k]}')" title=":${k}:">${MASTER_EMOJI_DICT[k]}</div>`).join('');
+function toggleEmojiMenu(e) { 
+  e.stopPropagation(); 
+  $('emoji-menu').classList.toggle('hidden'); 
+  $('menu').classList.add('hidden'); 
+  if (!$('emoji-menu').classList.contains('hidden')) {
+    $('emoji-search').value = '';
+    renderEmojiGrid();
+    $('emoji-search').focus();
+  }
 }
-renderEmojiMenu();
+
+function renderEmojiGrid(filter = '') {
+  const grid = $('emoji-grid');
+  const keys = Object.keys(FULL_EMOJI_DICT).filter(k => k.includes(filter.toLowerCase()));
+  
+  // Only render the first 200 results to prevent lagging the browser
+  const renderKeys = keys.slice(0, 200); 
+  
+  grid.innerHTML = renderKeys.map(k => `<div onclick="insertEmojiDirect('${FULL_EMOJI_DICT[k]}')" title=":${k}:">${FULL_EMOJI_DICT[k]}</div>`).join('');
+}
+
+function filterEmojis(val) {
+  renderEmojiGrid(val);
+}
+
 function insertEmojiDirect(emoji) { $('text').value += emoji + ' '; $('emoji-menu').classList.add('hidden'); $('text').focus(); }
 
 function replyMsg(id) { const m = msgCache[id]; if (!m) return; $('text').value = `@${m.sender} `; $('text').focus(); }
@@ -1217,8 +1286,9 @@ async function saveProfile() {
 }
 function closeModal() { $('modal').classList.add('hidden'); $('modal').innerHTML = ''; }
 
-/* ===== WebRTC ===== */
-let localStream, remoteStream, pc, callDoc = null, activeCallRoom = null;
+/* ===== WebRTC Mesh ===== */
+let localStream, pc, callDoc = null, activeCallRoom = null;
+const peers = {}; // Store multiple peer connections for Mesh Network
 
 async function joinVoice() {
   const roomKey = getRoomKey();
@@ -1229,18 +1299,8 @@ async function joinVoice() {
 
   activeCallRoom = roomKey;
   $('call-widget').classList.remove('hidden');
-  $('call-widget').innerHTML = `
-    <div style="font-weight:800;margin-bottom:8px;font-size:14px;color:var(--blue);display:flex;justify-content:space-between;align-items:center;">
-      <span>📹 Active Call</span>
-      <button class="danger" onclick="leaveVoice()" style="padding:4px 8px;font-size:11px;width:auto;border-radius:6px;">Leave</button>
-    </div>
-    <video id="remoteVideo" autoplay playsinline></video>
-    <video id="localVideo" autoplay muted playsinline class="hidden"></video>
-    <div id="call-controls">
-      <button class="pri" onclick="toggleScreen()" style="background:linear-gradient(135deg, var(--purple) 0%, #7e22ce 100%);color:#fff;box-shadow:0 4px 15px var(--purple-glow);">Share Screen</button>
-      <button onclick="toggleFullscreen('remoteVideo')">Fullscreen</button>
-    </div>
-  `;
+  $('video-grid').innerHTML = ''; // Clear grid
+  $('call-widget').querySelector('span').textContent = `📹 Call: ${roomKey.split('_')[0] === 'dm' ? 'DM' : 'Room'}`;
 
   try {
     try { localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true}); }
@@ -1252,75 +1312,178 @@ async function joinVoice() {
       }
     }
 
-    if (localStream.getVideoTracks().length > 0) {
-      $('localVideo').classList.remove('hidden');
-      $('localVideo').srcObject = localStream;
+    // Add my own video to the grid
+    addVideoToGrid('local-video', localStream, 'You (Me)');
+
+    // Mesh Logic: Join the room's signaling collection
+    const callRef = db.collection('vox_calls').doc(roomKey);
+    const snap = await callRef.get();
+    
+    if (!snap.exists) {
+      await callRef.set({ active: true, users: [me.uid], createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    } else {
+      await callRef.update({ users: firebase.firestore.FieldValue.arrayUnion(me.uid) });
     }
 
-    const snap = await db.collection('vox_calls').where('roomKey', '==', roomKey).limit(1).get();
-    if (snap.empty) await createCall(roomKey); else await joinCall(snap.docs[0].id);
+    // Listen for other users joining
+    const unsub = callRef.onSnapshot(async s => {
+      if (!s.exists) { leaveVoice(); return; } // Call ended
+      const data = s.data();
+      const users = data.users || [];
+      
+      // If someone else is in the room, connect to them
+      for (const uid of users) {
+        if (uid !== me.uid && !peers[uid]) {
+          await createPeerConnection(uid, roomKey, callRef);
+        }
+      }
+
+      // Cleanup connections for users who left
+      Object.keys(peers).forEach(uid => {
+        if (!users.includes(uid)) {
+          peers[uid].pc.close();
+          peers[uid].videoEl.remove();
+          delete peers[uid];
+        }
+      });
+    });
+
+    // Save unsub to clean up later
+    if (!unsubs['call_' + roomKey]) unsubs['call_' + roomKey] = unsub;
+    callDoc = callRef;
+
   } catch (e) {
     toast('Could not join call: ' + e.message);
     leaveVoice();
   }
 }
 
-async function createCall(roomKey) {
-  pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
+async function createPeerConnection(uid, roomKey, callRef) {
+  const pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
+  
   if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.ontrack = e => { if (!remoteStream) { remoteStream = new MediaStream(); $('remoteVideo').srcObject = remoteStream; } remoteStream.addTrack(e.track); };
-  const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-  const ref = await db.collection('vox_calls').add({roomKey, offer: {type: offer.type, sdp: offer.sdp}, callerUid: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-  callDoc = ref.id;
-  ref.onSnapshot(s => { const d = s.data(); if (d?.answer && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(d.answer)); });
-  pc.onicecandidate = e => { if (e.candidate) ref.update({callerCandidates: firebase.firestore.FieldValue.arrayUnion(e.candidate.toJSON())}).catch(()=>{}); };
+
+  const remoteStream = new MediaStream();
+  const videoEl = addVideoToGrid('remote-' + uid, remoteStream, userCache[uid]?.displayName || 'User');
+  
+  peers[uid] = { pc, videoEl };
+
+  pc.ontrack = e => { remoteStream.addTrack(e.track); };
+
+  // ICE Candidates
+  pc.onicecandidate = e => {
+    if (e.candidate) callRef.collection('signals').add({ to: uid, from: me.uid, candidate: e.candidate.toJSON() });
+  };
+
+  // Create Offer
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await callRef.collection('signals').add({ to: uid, from: me.uid, offer: { type: offer.type, sdp: offer.sdp } });
+
+  // Listen for answers and ICE candidates
+  const signalUnsub = callRef.collection('signals').where('to', '==', me.uid).onSnapshot(s => {
+    s.docChanges().forEach(async change => {
+      if (change.type === 'added') {
+        const data = change.doc.data();
+        if (data.from === uid) {
+          if (data.offer && !pc.signalingState !== 'stable') {
+             // I got an offer, need to answer
+             await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+             const answer = await pc.createAnswer();
+             await pc.setLocalDescription(answer);
+             await callRef.collection('signals').add({ to: uid, from: me.uid, answer: { type: answer.type, sdp: answer.sdp } });
+          }
+          if (data.answer && pc.signalingState === 'have-local-offer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+          }
+          if (data.candidate) {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => console.error(e));
+          }
+          change.doc.ref.delete(); // Clean up signal
+        }
+      }
+    });
+  });
+  
+  // Store signal unsub just in case
+  peers[uid].signalUnsub = signalUnsub;
 }
 
-async function joinCall(docId) {
-  const ref = db.collection('vox_calls').doc(docId);
-  const snap = await ref.get(); if (!snap.exists) return;
-  const d = snap.data();
-  pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
-  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.ontrack = e => { if (!remoteStream) { remoteStream = new MediaStream(); $('remoteVideo').srcObject = remoteStream; } remoteStream.addTrack(e.track); };
-  await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
-  const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
-  await ref.update({answer: {type: answer.type, sdp: answer.sdp}, calleeUid: me.uid});
-  pc.onicecandidate = e => { if (e.candidate) ref.update({calleeCandidates: firebase.firestore.FieldValue.arrayUnion(e.candidate.toJSON())}).catch(()=>{}); };
-  if (d.callerCandidates) d.callerCandidates.forEach(c => pc.addIceCandidate(new RTCIceCandidate(c)));
-  callDoc = docId;
+function addVideoToGrid(id, stream, name) {
+  const container = document.createElement('div');
+  container.className = 'video-container';
+  container.id = 'vid-' + id;
+  
+  const vid = document.createElement('video');
+  vid.id = id;
+  vid.autoplay = true;
+  vid.playsInline = true;
+  if (id === 'local-video') vid.muted = true;
+  vid.srcObject = stream;
+  vid.onclick = () => toggleFullscreen(id);
+
+  const tag = document.createElement('div');
+  tag.className = 'name-tag';
+  tag.textContent = name;
+
+  container.appendChild(vid);
+  container.appendChild(tag);
+  $('video-grid').appendChild(container);
+  return container;
 }
 
 async function leaveVoice() {
   if (localStream) localStream.getTracks().forEach(t => t.stop());
-  if (pc) { try { pc.close(); } catch(e){} }
-  if (callDoc) { try { await db.collection('vox_calls').doc(callDoc).delete(); } catch(e){} callDoc = null; }
-  localStream = null; remoteStream = null; pc = null; activeCallRoom = null;
+  
+  Object.values(peers).forEach(p => {
+    p.pc.close();
+    if (p.signalUnsub) p.signalUnsub();
+  });
+  for (let k in peers) delete peers[k];
+
+  if (callDoc) {
+    try {
+      await callDoc.update({ users: firebase.firestore.FieldValue.arrayRemove(me.uid) });
+      // We don't delete the call doc here to allow others to keep talking. The DB rule handles empty cleanup eventually.
+    } catch(e){}
+    callDoc = null; 
+  }
+
+  if (activeCallRoom) {
+    stop('call_' + activeCallRoom);
+    activeCallRoom = null;
+  }
+
+  localStream = null;
   $('call-widget').classList.add('hidden');
-  $('call-widget').innerHTML = '';
+  $('video-grid').innerHTML = '';
 }
 
 async function toggleScreen() {
-  if (!pc) return toast('Still connecting...');
+  if (!localStream) return toast('Wait for mic/camera to load');
   try {
     const screen = await navigator.mediaDevices.getDisplayMedia({video: true});
     const videoTrack = screen.getVideoTracks()[0];
-    const sender = pc.getSenders().find(s => s.track?.kind === 'video');
     
-    if (sender) sender.replaceTrack(videoTrack);
-    else pc.addTrack(videoTrack, screen);
+    // Update all peer connections
+    Object.values(peers).forEach(p => {
+      const sender = p.pc.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) sender.replaceTrack(videoTrack);
+      else p.pc.addTrack(videoTrack, screen);
+    });
 
-    $('localVideo').classList.remove('hidden');
-    $('localVideo').srcObject = screen;
+    // Update local video element
+    const localVid = $('local-video');
+    if (localVid) localVid.srcObject = screen;
 
     videoTrack.onended = () => { 
-      if (localStream && localStream.getVideoTracks().length > 0) {
-        if (sender) sender.replaceTrack(localStream.getVideoTracks()[0]);
-        $('localVideo').srcObject = localStream;
-      } else {
-        if (sender) sender.replaceTrack(null);
-        $('localVideo').classList.add('hidden');
-      }
+      // Revert to camera
+      const camTrack = localStream.getVideoTracks()[0];
+      Object.values(peers).forEach(p => {
+        const sender = p.pc.getSenders().find(s => s.track?.kind === 'video');
+        if (sender && camTrack) sender.replaceTrack(camTrack);
+      });
+      if (localVid && camTrack) localVid.srcObject = localStream;
     };
   } catch (e) { toast('Screen share failed'); }
 }
