@@ -154,7 +154,8 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 
 #menu,#emoji-menu{position:absolute;bottom:78px;background:linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%);backdrop-filter:blur(20px);border:2px solid rgba(0, 212, 255, 0.3);border-radius:16px;padding:8px;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 30px var(--blue-glow);z-index:10;animation:slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 @keyframes slideUp{from{opacity:0;transform:translateY(10px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
-#menu{left:24px} #emoji-menu{left:82px;display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;max-height:240px;overflow-y:auto;}
+#menu{left:24px} 
+#emoji-menu{left:82px;display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;max-height:240px;overflow-y:auto;}
 #emoji-menu::-webkit-scrollbar{width:6px}
 #emoji-menu::-webkit-scrollbar-track{background:transparent}
 #emoji-menu::-webkit-scrollbar-thumb{background:var(--p3);border-radius:10px}
@@ -307,7 +308,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
     <div class="wifi-notice">
       📶 Please ensure you are connected to Wi-Fi to install the app and get the best experience.
     </div>
-    <div class="version-stamp">Vox v1.0.0</div>
+    <div class="version-stamp">Vox v1.1.0</div>
 
   </div>
 </div>
@@ -357,7 +358,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <div id="toast"></div>
 
 <script>
-console.log(`%c Vox Chat v1.0.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
+console.log(`%c Vox Chat v1.1.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
 
 const $ = id => document.getElementById(id);
 
@@ -971,9 +972,11 @@ function renderMenu() { $('menu').innerHTML = '<div onclick="pick(\'image/*,vide
 renderMenu();
 
 function toggleEmojiMenu(e) { e.stopPropagation(); $('emoji-menu').classList.toggle('hidden'); $('menu').classList.add('hidden'); }
+
+/* FIX: Render ALL emojis from the dictionary */
 function renderEmojiMenu() {
-  const common = ['smile','joy','heart','fire','thumbsup','cry','laugh','eyes','rocket','skull','tada','cool','love','wink','thinking','clap','100','crown','star','wave','sparkles','gem','trophy','gift','coffee','pizza','cake','beer','music','zap','boom','check','x','warning','ghost','robot','alien','cat','dog','rainbow'];
-  $('emoji-menu').innerHTML = common.map(k => `<div onclick="insertEmojiDirect('${MASTER_EMOJI_DICT[k]}')">${MASTER_EMOJI_DICT[k]}</div>`).join('');
+  const allEmojis = Object.keys(MASTER_EMOJI_DICT);
+  $('emoji-menu').innerHTML = allEmojis.map(k => `<div onclick="insertEmojiDirect('${MASTER_EMOJI_DICT[k]}')" title=":${k}:">${MASTER_EMOJI_DICT[k]}</div>`).join('');
 }
 renderEmojiMenu();
 function insertEmojiDirect(emoji) { $('text').value += emoji + ' '; $('emoji-menu').classList.add('hidden'); $('text').focus(); }
@@ -1152,18 +1155,44 @@ let localStream, remoteStream, pc, callDoc = null;
 
 async function joinVoice() {
   if (!channel || channel.type !== 'voice') return;
+  let localVideoHTML = '';
+  
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-    $('msgs').innerHTML = `<div style="padding:20px"><video id="localVideo" autoplay muted playsinline></video><video id="remoteVideo" autoplay playsinline></video><br><button class="danger" onclick="leaveVoice()">Leave call</button> <button onclick="toggleScreen()">Share screen</button></div>`;
-    $('localVideo').srcObject = localStream;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+    } catch (e) {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+        toast('Camera not found. Joining with mic only.');
+      } catch (e2) {
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({video: true});
+          toast('Mic not found. Joining with camera only.');
+        } catch (e3) {
+          localStream = new MediaStream();
+          toast('No mic or camera. Joining in listen-only mode.');
+        }
+      }
+    }
+
+    if (localStream.getVideoTracks().length > 0) {
+      localVideoHTML = `<video id="localVideo" autoplay muted playsinline></video>`;
+    }
+
+    $('msgs').innerHTML = `<div style="padding:20px">${localVideoHTML}<video id="remoteVideo" autoplay playsinline></video><br><button class="danger" onclick="leaveVoice()">Leave call</button> <button onclick="toggleScreen()">Share screen</button></div>`;
+    
+    if ($('localVideo')) $('localVideo').srcObject = localStream;
+
     const snap = await db.collection('vox_calls').where('serverId', '==', view.id).where('channelId', '==', channel.id).limit(1).get();
     if (snap.empty) await createCall(); else await joinCall(snap.docs[0].id);
-  } catch (e) { toast('Could not access camera/mic: ' + e.message); }
+  } catch (e) { 
+    toast('Could not join call: ' + e.message); 
+  }
 }
 
 async function createCall() {
   pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
   pc.ontrack = e => { if (!remoteStream) { remoteStream = new MediaStream(); $('remoteVideo').srcObject = remoteStream; } remoteStream.addTrack(e.track); };
   const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
   const ref = await db.collection('vox_calls').add({serverId: view.id, channelId: channel.id, offer: {type: offer.type, sdp: offer.sdp}, callerUid: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
@@ -1177,7 +1206,7 @@ async function joinCall(docId) {
   const snap = await ref.get(); if (!snap.exists) return;
   const d = snap.data();
   pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
   pc.ontrack = e => { if (!remoteStream) { remoteStream = new MediaStream(); $('remoteVideo').srcObject = remoteStream; } remoteStream.addTrack(e.track); };
   await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
   const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
@@ -1200,8 +1229,33 @@ async function toggleScreen() {
     const screen = await navigator.mediaDevices.getDisplayMedia({video: true});
     const videoTrack = screen.getVideoTracks()[0];
     const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-    if (sender) sender.replaceTrack(videoTrack);
-    videoTrack.onended = () => { const cam = localStream && localStream.getVideoTracks()[0]; if (sender && cam) sender.replaceTrack(cam); };
+    
+    if (sender) {
+      sender.replaceTrack(videoTrack);
+    } else {
+      pc.addTrack(videoTrack, screen);
+    }
+
+    // Show the screen share locally if the local video element wasn't there (e.g., no webcam)
+    if (!$('localVideo')) {
+      const v = document.createElement('video');
+      v.id = 'localVideo'; v.autoplay = true; v.muted = true; v.playsInline = true;
+      v.style.cssText = 'width:100%;max-width:640px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 40px var(--blue-glow);margin:12px auto;display:block;border:3px solid rgba(0, 212, 255, 0.4);';
+      const remoteVid = $('remoteVideo');
+      if (remoteVid) remoteVid.parentNode.insertBefore(v, remoteVid);
+      else $('msgs').insertBefore(v, $('msgs').firstChild);
+    }
+    $('localVideo').srcObject = screen;
+
+    videoTrack.onended = () => { 
+      if (localStream && localStream.getVideoTracks().length > 0) {
+        if (sender) sender.replaceTrack(localStream.getVideoTracks()[0]);
+        $('localVideo').srcObject = localStream;
+      } else {
+        if (sender) sender.replaceTrack(null);
+        if ($('localVideo')) $('localVideo').remove();
+      }
+    };
   } catch (e) { toast('Screen share failed'); }
 }
 </script>
