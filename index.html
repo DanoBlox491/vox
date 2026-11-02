@@ -326,7 +326,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
     <div class="wifi-notice">
       📶 Please ensure you are connected to Wi-Fi to install the app and get the best experience.
     </div>
-    <div class="version-stamp">Vox v1.4.1</div>
+    <div class="version-stamp">Vox v1.4.2</div>
 
   </div>
 </div>
@@ -378,7 +378,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <!-- Persistent Call Widget -->
 <div id="call-widget" class="hidden">
   <div style="font-weight:800;margin-bottom:8px;font-size:14px;color:var(--blue);display:flex;justify-content:space-between;align-items:center;">
-    <span>📹 Active Call</span>
+    <span id="call-widget-title">📹 Active Call</span>
     <button class="danger" onclick="leaveVoice()" style="padding:4px 8px;font-size:11px;width:auto;border-radius:6px;">Leave</button>
   </div>
   <div id="video-grid"></div>
@@ -401,7 +401,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <div id="toast"></div>
 
 <script>
-console.log(`%c Vox Chat v1.4.1 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
+console.log(`%c Vox Chat v1.4.2 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
 
 const $ = id => document.getElementById(id);
 
@@ -472,7 +472,6 @@ function playPing() {
 /* =============================== */
 
 /* ===== EMOJI ENGINE ===== */
-// Fallback dictionary for instant load
 const MASTER_EMOJI_DICT = {"smile":"😊","grin":"😁","joy":"😂","heart":"❤️","fire":"🔥","star":"⭐","thumbsup":"👍","thumbsdown":"👎","clap":"👏","eyes":"👀","100":"💯","rocket":"🚀","crown":"👑","skull":"💀","wave":"👋","tada":"🎉","thinking":"🤔","cool":"😎","cry":"😢","angry":"😠","laugh":"🤣","love":"😍","wink":"😉","tongue":"😛","nervous":"😅","heart_eyes":"😍","smirk":"😏","neutral":"😐","confused":"😕","money":"🤑","sick":"🤢","robot":"🤖","alien":"👽","ghost":"👻","cat":"🐱","dog":"🐶","pizza":"🍕","beer":"🍺","coffee":"☕","cake":"🍰","rainbow":"🌈","sun":"☀️","moon":"🌙","zap":"⚡","boom":"💥","sparkles":"✨","check":"✅","x":"❌","warning":"⚠️","ban":"🚫","music":"🎵","bell":"🔔","gift":"🎁","trophy":"🏆","medal":"🏅","key":"🔑","lock":"🔒","unlock":"🔓","link":"🔗","phone":"📱","computer":"💻","gear":"⚙️","hammer":"🔨","wrench":"🔧","mag":"🔍","bulb":"💡","book":"📖","moneybag":"💰","gem":"💎","bomb":"💣","hourglass":"⏳","alarm":"⏰","calendar":"📅","chart":"📈","email":"📧","inbox":"📥","package":"📦","pen":"✏️","pin":"📌","clip":"📎","scissors":"✂️","bookmark":"🔖","folder":"📁","page":"📄","newspaper":"📰","green_heart":"💚","yellow_heart":"💛","blue_heart":"💙","purple_heart":"💜","broken_heart":"💔","heart_exclamation":"❣️","two_hearts":"💕","sparkling_heart":"💖","heartpulse":"💗","heartbeat":"💓","revolving_hearts":"💞","cupid":"💘"};
 
 let FULL_EMOJI_DICT = {...MASTER_EMOJI_DICT};
@@ -484,7 +483,6 @@ function buildEmojiRegex() {
 }
 buildEmojiRegex();
 
-// Asynchronously fetch the full 3600+ emoji list
 fetch('https://cdn.jsdelivr.net/npm/@emoji-mart/data/sets/15/native.json')
   .then(r => r.json())
   .then(data => {
@@ -496,7 +494,7 @@ fetch('https://cdn.jsdelivr.net/npm/@emoji-mart/data/sets/15/native.json')
         }
       });
       buildEmojiRegex();
-      renderEmojiGrid(); // Refresh the picker
+      renderEmojiGrid();
     }
   })
   .catch(e => console.warn('Could not load full emoji set, using fallback.', e));
@@ -741,7 +739,6 @@ function handleInput() {
   const beforeCursor = v.slice(0, cursor), match = beforeCursor.match(/:([a-zA-Z0-9_+-]+)$/);
   if (match) {
     const q = match[1].toLowerCase();
-    // Use FULL_EMOJI_DICT here for complete autocomplete
     currentSuggestions = Object.keys(FULL_EMOJI_DICT).filter(k => k.startsWith(q)).slice(0, 8);
     if (currentSuggestions.length > 0) {
       autocompleteActive = true; autocompleteIndex = 0;
@@ -1104,10 +1101,7 @@ function toggleEmojiMenu(e) {
 function renderEmojiGrid(filter = '') {
   const grid = $('emoji-grid');
   const keys = Object.keys(FULL_EMOJI_DICT).filter(k => k.includes(filter.toLowerCase()));
-  
-  // Only render the first 200 results to prevent lagging the browser
   const renderKeys = keys.slice(0, 200); 
-  
   grid.innerHTML = renderKeys.map(k => `<div onclick="insertEmojiDirect('${FULL_EMOJI_DICT[k]}')" title=":${k}:">${FULL_EMOJI_DICT[k]}</div>`).join('');
 }
 
@@ -1286,9 +1280,9 @@ async function saveProfile() {
 }
 function closeModal() { $('modal').classList.add('hidden'); $('modal').innerHTML = ''; }
 
-/* ===== WebRTC Mesh ===== */
+/* ===== WebRTC Mesh (Fixed) ===== */
 let localStream, pc, callDoc = null, activeCallRoom = null;
-const peers = {}; // Store multiple peer connections for Mesh Network
+const peers = {}; 
 
 async function joinVoice() {
   const roomKey = getRoomKey();
@@ -1299,23 +1293,32 @@ async function joinVoice() {
 
   activeCallRoom = roomKey;
   $('call-widget').classList.remove('hidden');
-  $('video-grid').innerHTML = ''; // Clear grid
-  $('call-widget').querySelector('span').textContent = `📹 Call: ${roomKey.split('_')[0] === 'dm' ? 'DM' : 'Room'}`;
+  $('video-grid').innerHTML = ''; 
+  $('call-widget-title').textContent = `📹 Call: ${roomKey.split('_')[0] === 'dm' ? 'DM' : 'Room'}`;
 
   try {
     try { localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true}); }
     catch (e) {
-      try { localStream = await navigator.mediaDevices.getUserMedia({audio: true}); toast('Camera not found. Joining with mic only.'); }
+      try { 
+        localStream = await navigator.mediaDevices.getUserMedia({audio: true}); 
+        toast('Camera not found. Joining with mic only.'); 
+        createDummyVideoTrack();
+      }
       catch (e2) {
-        try { localStream = await navigator.mediaDevices.getUserMedia({video: true}); toast('Mic not found. Joining with camera only.'); }
-        catch (e3) { localStream = new MediaStream(); toast('No mic or camera. Joining in listen-only mode.'); }
+        try { 
+          localStream = await navigator.mediaDevices.getUserMedia({video: true}); 
+          toast('Mic not found. Joining with camera only.'); 
+        }
+        catch (e3) { 
+          localStream = new MediaStream(); 
+          toast('No mic or camera. Joining in listen-only mode.'); 
+          createDummyVideoTrack();
+        }
       }
     }
 
-    // Add my own video to the grid
     addVideoToGrid('local-video', localStream, 'You (Me)');
 
-    // Mesh Logic: Join the room's signaling collection
     const callRef = db.collection('vox_calls').doc(roomKey);
     const snap = await callRef.get();
     
@@ -1325,30 +1328,33 @@ async function joinVoice() {
       await callRef.update({ users: firebase.firestore.FieldValue.arrayUnion(me.uid) });
     }
 
-    // Listen for other users joining
     const unsub = callRef.onSnapshot(async s => {
-      if (!s.exists) { leaveVoice(); return; } // Call ended
+      if (!s.exists) { leaveVoice(); return; } 
       const data = s.data();
       const users = data.users || [];
       
-      // If someone else is in the room, connect to them
       for (const uid of users) {
         if (uid !== me.uid && !peers[uid]) {
-          await createPeerConnection(uid, roomKey, callRef);
+          // Fix Offer Collision: Lower UID initiates
+          if (me.uid < uid) {
+            await createPeerConnection(uid, roomKey, callRef, true);
+          } else {
+            await createPeerConnection(uid, roomKey, callRef, false);
+          }
         }
       }
 
-      // Cleanup connections for users who left
       Object.keys(peers).forEach(uid => {
         if (!users.includes(uid)) {
           peers[uid].pc.close();
-          peers[uid].videoEl.remove();
+          if (peers[uid].signalUnsub) peers[uid].signalUnsub();
+          const el = $('vid-remote-' + uid);
+          if (el) el.remove();
           delete peers[uid];
         }
       });
     });
 
-    // Save unsub to clean up later
     if (!unsubs['call_' + roomKey]) unsubs['call_' + roomKey] = unsub;
     callDoc = callRef;
 
@@ -1358,54 +1364,68 @@ async function joinVoice() {
   }
 }
 
-async function createPeerConnection(uid, roomKey, callRef) {
+function createDummyVideoTrack() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 640; canvas.height = 480;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#151b2e'; ctx.fillRect(0, 0, 640, 480);
+  ctx.fillStyle = '#00d4ff'; ctx.font = '30px Inter'; ctx.fillText('No Camera', 220, 240);
+  const dummyTrack = canvas.captureStream(10).getVideoTracks()[0];
+  localStream.addTrack(dummyTrack);
+}
+
+async function createPeerConnection(uid, roomKey, callRef, isInitiator) {
   const pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
   
   if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
   const remoteStream = new MediaStream();
-  const videoEl = addVideoToGrid('remote-' + uid, remoteStream, userCache[uid]?.displayName || 'User');
+  addVideoToGrid('remote-' + uid, remoteStream, userCache[uid]?.displayName || 'User');
   
-  peers[uid] = { pc, videoEl };
+  peers[uid] = { pc };
 
-  pc.ontrack = e => { remoteStream.addTrack(e.track); };
+  pc.ontrack = e => {
+    const vid = $( 'remote-' + uid );
+    if (vid) {
+      // Create new stream to force UI refresh on track replacement
+      vid.srcObject = new MediaStream([e.track]);
+      vid.play().catch(e => console.log('Autoplay blocked', e));
+    }
+  };
 
-  // ICE Candidates
   pc.onicecandidate = e => {
     if (e.candidate) callRef.collection('signals').add({ to: uid, from: me.uid, candidate: e.candidate.toJSON() });
   };
 
-  // Create Offer
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  await callRef.collection('signals').add({ to: uid, from: me.uid, offer: { type: offer.type, sdp: offer.sdp } });
+  if (isInitiator) {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await callRef.collection('signals').add({ to: uid, from: me.uid, offer: { type: offer.type, sdp: offer.sdp } });
+  }
 
-  // Listen for answers and ICE candidates
   const signalUnsub = callRef.collection('signals').where('to', '==', me.uid).onSnapshot(s => {
     s.docChanges().forEach(async change => {
       if (change.type === 'added') {
         const data = change.doc.data();
         if (data.from === uid) {
-          if (data.offer && !pc.signalingState !== 'stable') {
-             // I got an offer, need to answer
+          if (data.offer && !isInitiator) {
              await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
              const answer = await pc.createAnswer();
              await pc.setLocalDescription(answer);
              await callRef.collection('signals').add({ to: uid, from: me.uid, answer: { type: answer.type, sdp: answer.sdp } });
           }
-          if (data.answer && pc.signalingState === 'have-local-offer') {
+          if (data.answer && isInitiator) {
             await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
           }
           if (data.candidate) {
             await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => console.error(e));
           }
-          change.doc.ref.delete(); // Clean up signal
+          change.doc.ref.delete(); 
         }
       }
     });
   });
   
-  // Store signal unsub just in case
   peers[uid].signalUnsub = signalUnsub;
 }
 
@@ -1442,10 +1462,7 @@ async function leaveVoice() {
   for (let k in peers) delete peers[k];
 
   if (callDoc) {
-    try {
-      await callDoc.update({ users: firebase.firestore.FieldValue.arrayRemove(me.uid) });
-      // We don't delete the call doc here to allow others to keep talking. The DB rule handles empty cleanup eventually.
-    } catch(e){}
+    try { await callDoc.update({ users: firebase.firestore.FieldValue.arrayRemove(me.uid) }); } catch(e){}
     callDoc = null; 
   }
 
@@ -1463,21 +1480,18 @@ async function toggleScreen() {
   if (!localStream) return toast('Wait for mic/camera to load');
   try {
     const screen = await navigator.mediaDevices.getDisplayMedia({video: true});
-    const videoTrack = screen.getVideoTracks()[0];
-    
-    // Update all peer connections
+    const screenTrack = screen.getVideoTracks()[0];
+
     Object.values(peers).forEach(p => {
       const sender = p.pc.getSenders().find(s => s.track?.kind === 'video');
-      if (sender) sender.replaceTrack(videoTrack);
-      else p.pc.addTrack(videoTrack, screen);
+      if (sender) sender.replaceTrack(screenTrack);
+      else p.pc.addTrack(screenTrack, screen);
     });
 
-    // Update local video element
     const localVid = $('local-video');
     if (localVid) localVid.srcObject = screen;
 
-    videoTrack.onended = () => { 
-      // Revert to camera
+    screenTrack.onended = () => { 
       const camTrack = localStream.getVideoTracks()[0];
       Object.values(peers).forEach(p => {
         const sender = p.pc.getSenders().find(s => s.track?.kind === 'video');
