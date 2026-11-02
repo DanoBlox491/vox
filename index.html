@@ -185,6 +185,12 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #media-viewer .close-btn { position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.2); color:#fff; font-size:24px; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
 #media-viewer .close-btn:hover { background:var(--danger); border-color:var(--danger); transform:scale(1.1); }
 
+/* Call Widget */
+#call-widget { position: fixed; bottom: 90px; right: 24px; width: 320px; background: rgba(15, 20, 34, 0.95); backdrop-filter: blur(10px); border: 2px solid rgba(0, 212, 255, 0.4); border-radius: 16px; z-index: 999; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 30px var(--blue-glow); display: flex; flex-direction: column; gap: 10px; transition: all 0.3s; animation: slideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+#call-widget video { width: 100%; border-radius: 12px; background: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+#call-controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+#call-controls button { padding: 8px 12px; font-size: 13px; width: auto; border-radius: 8px; }
+
 #emoji-autocomplete{position:absolute;bottom:72px;left:24px;background:linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%);backdrop-filter:blur(20px);border:2px solid rgba(0, 212, 255, 0.3);border-radius:16px;max-height:280px;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 30px var(--blue-glow);z-index:15;animation:slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 #emoji-autocomplete::-webkit-scrollbar{width:6px}
 #emoji-autocomplete::-webkit-scrollbar-track{background:transparent}
@@ -245,6 +251,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
   .get-started-content{padding:20px}
   .auth-card{padding:24px}
   .auth-card h2{font-size:24px}
+  #call-widget { width: 90%; left: 5%; right: auto; bottom: 80px; }
 }
 
 .spinner{width:50px;height:50px;border:5px solid var(--p3);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:40px auto;}
@@ -311,7 +318,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
     <div class="wifi-notice">
       📶 Please ensure you are connected to Wi-Fi to install the app and get the best experience.
     </div>
-    <div class="version-stamp">Vox v1.2.0</div>
+    <div class="version-stamp">Vox v1.3.0</div>
 
   </div>
 </div>
@@ -354,6 +361,9 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
   </div>
 </div>
 
+<!-- Persistent Call Widget -->
+<div id="call-widget" class="hidden"></div>
+
 <!-- Modals -->
 <div id="modal" class="modal hidden"></div>
 
@@ -368,7 +378,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <div id="toast"></div>
 
 <script>
-console.log(`%c Vox Chat v1.2.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
+console.log(`%c Vox Chat v1.3.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
 
 const $ = id => document.getElementById(id);
 
@@ -627,7 +637,6 @@ function handleIncoming(m) {
     recount(); renderRail(); renderSide();
   }
 
-  // Trigger ping and OS notification if tab is hidden OR if it's a different room
   if (isDifferentRoom || isTabHidden) {
     playPing();
 
@@ -737,6 +746,7 @@ function handleKeyDown(e) {
 auth.onAuthStateChanged(async user => {
   if (!user) {
     me = null; Object.keys(unsubs).forEach(stop); unreadChannels = {}; recount();
+    leaveVoice();
     $('app').classList.add('hidden'); $('getStarted').classList.remove('hidden'); return;
   }
   const last = +localStorage.getItem('vox_last_active') || Date.now();
@@ -830,13 +840,14 @@ async function openView(type, id, targetChannelId) {
   } else if (type === 'group') {
     const g = groups.find(x => x.id === id);
     $('topTitle').textContent = '👥 ' + (g ? g.name : 'Group');
-    $('topBtns').innerHTML = `<button onclick="shareInvite('${id}')">🔗 Invite link</button>` + (g && g.createdBy === me.uid ? ` <button class="danger" onclick="deleteGroup('${id}')">🗑️ Delete</button>` : '');
+    $('topBtns').innerHTML = `<button class="pri" onclick="joinVoice()" style="width:auto;padding:8px 16px;font-size:14px;margin-right:8px;">📹 Join Call</button>` + `<button onclick="shareInvite('${id}')">🔗 Invite link</button>` + (g && g.createdBy === me.uid ? ` <button class="danger" onclick="deleteGroup('${id}')">🗑️ Delete</button>` : '');
     $('composer').classList.remove('hidden');
     listenMessages(); listenTyping();
     unreadChannels[`group_${id}`] = 0;
   } else if (type === 'dm') {
     const friend = userCache[id];
     $('topTitle').textContent = '💬 ' + (friend ? friend.displayName : 'Direct Message');
+    $('topBtns').innerHTML = `<button class="pri" onclick="joinVoice()" style="width:auto;padding:8px 16px;font-size:14px;">📹 Join Call</button>`;
     $('composer').classList.remove('hidden');
     listenMessages(); listenTyping();
     unreadChannels[getRoomId(id)] = 0;
@@ -852,16 +863,15 @@ function selectChannel(cid, auto) {
     $('typing-indicator').classList.add('hidden');
     $('topTitle').textContent = '🔊 ' + c.name; 
     
-    /* ✅ FIX: Add the call button directly to the top bar so it's impossible to miss */
     $('topBtns').innerHTML = '<button class="pri" onclick="joinVoice()" style="width:auto;padding:8px 16px;font-size:14px;">📹 Join Call</button>';
     
     $('composer').classList.add('hidden');
-    $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join video call</button></div>`;
+    $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join Call</button></div>`;
     if (isMobile()) setDrawer(false);
     renderSide(); return;
   }
   channel = c; $('topTitle').textContent = '# ' + c.name; 
-  $('topBtns').innerHTML = ''; /* ✅ Clear call button for text channels */
+  $('topBtns').innerHTML = ''; 
   $('composer').classList.remove('hidden');
   listenMessages(); listenTyping();
   unreadChannels[`server_${view.id}_${cid}`] = 0; recount(); renderRail(); renderSide();
@@ -919,7 +929,6 @@ function appendMsg(m) {
   let body = formatBody(m.text || '');
   let media = '', reactions = '';
 
-  /* ✅ FIX: Enhanced Media Display */
   if (m.mediaUrl) {
     const url = safeUrl(m.mediaUrl);
     const t = m.mediaType || '';
@@ -927,7 +936,6 @@ function appendMsg(m) {
     else if (t.startsWith('image')) media = `<img class="m" src="${url}" alt="Image" loading="lazy" onclick="viewMedia('${url}', 'image')">`;
     else if (t.startsWith('video')) media = `<video class="m" src="${url}" onclick="event.preventDefault(); viewMedia('${url}', 'video')"></video>`;
     else {
-      // Better UI for PDFs and random files
       const ext = t.split('/')[1] || 'File';
       media = `<div class="filecard">
                  <div class="filecard-icon">📄</div>
@@ -1210,51 +1218,59 @@ async function saveProfile() {
 function closeModal() { $('modal').classList.add('hidden'); $('modal').innerHTML = ''; }
 
 /* ===== WebRTC ===== */
-let localStream, remoteStream, pc, callDoc = null;
+let localStream, remoteStream, pc, callDoc = null, activeCallRoom = null;
 
 async function joinVoice() {
-  if (!channel || channel.type !== 'voice') return;
-  let localVideoHTML = '';
-  
+  const roomKey = getRoomKey();
+  if (!roomKey) return toast('No room selected');
+  if (activeCallRoom === roomKey) return toast('Already in this call');
+
+  if (activeCallRoom) await leaveVoice();
+
+  activeCallRoom = roomKey;
+  $('call-widget').classList.remove('hidden');
+  $('call-widget').innerHTML = `
+    <div style="font-weight:800;margin-bottom:8px;font-size:14px;color:var(--blue);display:flex;justify-content:space-between;align-items:center;">
+      <span>📹 Active Call</span>
+      <button class="danger" onclick="leaveVoice()" style="padding:4px 8px;font-size:11px;width:auto;border-radius:6px;">Leave</button>
+    </div>
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localVideo" autoplay muted playsinline class="hidden"></video>
+    <div id="call-controls">
+      <button class="pri" onclick="toggleScreen()" style="background:linear-gradient(135deg, var(--purple) 0%, #7e22ce 100%);color:#fff;box-shadow:0 4px 15px var(--purple-glow);">Share Screen</button>
+      <button onclick="toggleFullscreen('remoteVideo')">Fullscreen</button>
+    </div>
+  `;
+
   try {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-    } catch (e) {
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({audio: true});
-        toast('Camera not found. Joining with mic only.');
-      } catch (e2) {
-        try {
-          localStream = await navigator.mediaDevices.getUserMedia({video: true});
-          toast('Mic not found. Joining with camera only.');
-        } catch (e3) {
-          localStream = new MediaStream();
-          toast('No mic or camera. Joining in listen-only mode.');
-        }
+    try { localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true}); }
+    catch (e) {
+      try { localStream = await navigator.mediaDevices.getUserMedia({audio: true}); toast('Camera not found. Joining with mic only.'); }
+      catch (e2) {
+        try { localStream = await navigator.mediaDevices.getUserMedia({video: true}); toast('Mic not found. Joining with camera only.'); }
+        catch (e3) { localStream = new MediaStream(); toast('No mic or camera. Joining in listen-only mode.'); }
       }
     }
 
     if (localStream.getVideoTracks().length > 0) {
-      localVideoHTML = `<video id="localVideo" autoplay muted playsinline></video>`;
+      $('localVideo').classList.remove('hidden');
+      $('localVideo').srcObject = localStream;
     }
 
-    $('msgs').innerHTML = `<div style="padding:20px">${localVideoHTML}<video id="remoteVideo" autoplay playsinline></video><br><button class="danger" onclick="leaveVoice()">Leave call</button> <button onclick="toggleScreen()">Share screen</button></div>`;
-    
-    if ($('localVideo')) $('localVideo').srcObject = localStream;
-
-    const snap = await db.collection('vox_calls').where('serverId', '==', view.id).where('channelId', '==', channel.id).limit(1).get();
-    if (snap.empty) await createCall(); else await joinCall(snap.docs[0].id);
-  } catch (e) { 
-    toast('Could not join call: ' + e.message); 
+    const snap = await db.collection('vox_calls').where('roomKey', '==', roomKey).limit(1).get();
+    if (snap.empty) await createCall(roomKey); else await joinCall(snap.docs[0].id);
+  } catch (e) {
+    toast('Could not join call: ' + e.message);
+    leaveVoice();
   }
 }
 
-async function createCall() {
+async function createCall(roomKey) {
   pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
   if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
   pc.ontrack = e => { if (!remoteStream) { remoteStream = new MediaStream(); $('remoteVideo').srcObject = remoteStream; } remoteStream.addTrack(e.track); };
   const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-  const ref = await db.collection('vox_calls').add({serverId: view.id, channelId: channel.id, offer: {type: offer.type, sdp: offer.sdp}, callerUid: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+  const ref = await db.collection('vox_calls').add({roomKey, offer: {type: offer.type, sdp: offer.sdp}, callerUid: me.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
   callDoc = ref.id;
   ref.onSnapshot(s => { const d = s.data(); if (d?.answer && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(d.answer)); });
   pc.onicecandidate = e => { if (e.candidate) ref.update({callerCandidates: firebase.firestore.FieldValue.arrayUnion(e.candidate.toJSON())}).catch(()=>{}); };
@@ -1279,30 +1295,22 @@ async function leaveVoice() {
   if (localStream) localStream.getTracks().forEach(t => t.stop());
   if (pc) { try { pc.close(); } catch(e){} }
   if (callDoc) { try { await db.collection('vox_calls').doc(callDoc).delete(); } catch(e){} callDoc = null; }
-  localStream = null; remoteStream = null; pc = null;
-  if (channel) selectChannel(channel.id);
+  localStream = null; remoteStream = null; pc = null; activeCallRoom = null;
+  $('call-widget').classList.add('hidden');
+  $('call-widget').innerHTML = '';
 }
 
 async function toggleScreen() {
+  if (!pc) return toast('Still connecting...');
   try {
     const screen = await navigator.mediaDevices.getDisplayMedia({video: true});
     const videoTrack = screen.getVideoTracks()[0];
     const sender = pc.getSenders().find(s => s.track?.kind === 'video');
     
-    if (sender) {
-      sender.replaceTrack(videoTrack);
-    } else {
-      pc.addTrack(videoTrack, screen);
-    }
+    if (sender) sender.replaceTrack(videoTrack);
+    else pc.addTrack(videoTrack, screen);
 
-    if (!$('localVideo')) {
-      const v = document.createElement('video');
-      v.id = 'localVideo'; v.autoplay = true; v.muted = true; v.playsInline = true;
-      v.style.cssText = 'width:100%;max-width:640px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 40px var(--blue-glow);margin:12px auto;display:block;border:3px solid rgba(0, 212, 255, 0.4);';
-      const remoteVid = $('remoteVideo');
-      if (remoteVid) remoteVid.parentNode.insertBefore(v, remoteVid);
-      else $('msgs').insertBefore(v, $('msgs').firstChild);
-    }
+    $('localVideo').classList.remove('hidden');
     $('localVideo').srcObject = screen;
 
     videoTrack.onended = () => { 
@@ -1311,10 +1319,22 @@ async function toggleScreen() {
         $('localVideo').srcObject = localStream;
       } else {
         if (sender) sender.replaceTrack(null);
-        if ($('localVideo')) $('localVideo').remove();
+        $('localVideo').classList.add('hidden');
       }
     };
   } catch (e) { toast('Screen share failed'); }
+}
+
+function toggleFullscreen(vidId) {
+  const vid = $(vidId);
+  if (!vid) return;
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    if (vid.requestFullscreen) vid.requestFullscreen();
+    else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
+    else if (vid.msRequestFullscreen) vid.msRequestFullscreen();
+  }
 }
 </script>
 </body>
