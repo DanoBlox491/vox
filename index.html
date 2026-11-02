@@ -230,8 +230,8 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #profileView .socials{display:flex;gap:10px;justify-content:center;margin:20px 0;}
 #profileView .socials a{padding:10px 18px;background:linear-gradient(135deg, var(--p3) 0%, var(--p4) 100%);border-radius:10px;text-decoration:none;color:var(--txt);font-weight:600;transition:all 0.3s;border:2px solid transparent;}
 #profileView .socials a:hover{background:linear-gradient(135deg, var(--blue) 0%, #0099cc 100%);color:#000;box-shadow:0 6px 20px var(--blue-glow);border-color:rgba(0, 212, 255, 0.5);transform:translateY(-2px);}
-#profileActions{display:flex;gap:10px;margin-top:24px;}
-#profileActions button{flex:1}
+#profileActions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;}
+#profileActions button{flex:1;min-width:120px;}
 
 #missedBanner{background:linear-gradient(135deg, rgba(255, 46, 147, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);backdrop-filter:blur(10px);padding:16px 24px;text-align:center;font-weight:700;color:var(--txt);cursor:pointer;transition:all 0.3s;border-bottom:2px solid var(--pink);box-shadow:0 4px 20px rgba(255, 46, 147, 0.3);animation:slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 #missedBanner:hover{background:linear-gradient(135deg, rgba(255, 46, 147, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);box-shadow:0 6px 30px rgba(255, 46, 147, 0.4);}
@@ -326,7 +326,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
     <div class="wifi-notice">
       📶 Please ensure you are connected to Wi-Fi to install the app and get the best experience.
     </div>
-    <div class="version-stamp">Vox v1.4.2</div>
+    <div class="version-stamp">Vox v1.5.0</div>
 
   </div>
 </div>
@@ -401,7 +401,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <div id="toast"></div>
 
 <script>
-console.log(`%c Vox Chat v1.4.2 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
+console.log(`%c Vox Chat v1.5.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
 
 const $ = id => document.getElementById(id);
 
@@ -579,7 +579,9 @@ async function signup() {
       photoURL: '',
       bio: '',
       socials: {yt: '', discord: ''},
-      friends: []
+      friends: [],
+      friendRequests: [],
+      blockedUsers: []
     });
     toast('Account created! Welcome to Vox 🚀');
   } catch (err) { $('sErr').textContent = err.message; }
@@ -646,7 +648,9 @@ async function loginWithGoogle() {
         photoURL: user.photoURL || '',
         bio: '',
         socials: {yt: '', discord: ''},
-        friends: []
+        friends: [],
+        friendRequests: [],
+        blockedUsers: []
       });
     }
     toast('Welcome to Vox! 🚀');
@@ -685,6 +689,8 @@ function startNotifier() {
 }
 
 function handleIncoming(m) {
+  if (profile.blockedUsers?.includes(m.senderUid)) return; // Ignore blocked users
+
   const roomId = m.serverId ? `server_${m.serverId}_${m.channel}` : m.groupId ? `group_${m.groupId}` : getRoomId(m.senderUid);
   const currentRoom = view.type === 'server' && channel ? `server_${view.id}_${channel.id}` : view.type === 'group' ? `group_${view.id}` : view.type === 'dm' ? getRoomId(view.id) : null;
   
@@ -696,6 +702,7 @@ function handleIncoming(m) {
     recount(); renderRail(); renderSide();
   }
 
+  // Only ping if they are in a different room OR looking away
   if (isDifferentRoom || isTabHidden) {
     playPing();
 
@@ -808,7 +815,7 @@ auth.onAuthStateChanged(async user => {
     const snap = await ref.get();
     if (!snap.exists) {
       const defaultUser = user.displayName || 'New Voxer';
-      await ref.set({displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), email: user.email, photoURL: user.photoURL || '', bio: '', socials: {yt: '', discord: ''}, friends: []});
+      await ref.set({displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), email: user.email, photoURL: user.photoURL || '', bio: '', socials: {yt: '', discord: ''}, friends: [], friendRequests: [], blockedUsers: []});
     } else {
       const data = snap.data();
       if (!data.username) {
@@ -828,9 +835,13 @@ auth.onAuthStateChanged(async user => {
     userCache[user.uid] = profile;
     renderMe();
 
+    // Fetch new friend requests and blocked users lists
     const missing = (profile.friends || []).filter(u => !userCache[u]);
-    if (missing.length) {
-      await Promise.all(missing.map(async u => {
+    const reqs = (profile.friendRequests || []).filter(u => !userCache[u]);
+    const allMissing = [...new Set([...missing, ...reqs])];
+
+    if (allMissing.length) {
+      await Promise.all(allMissing.map(async u => {
         try {
           const d = await db.collection('vox_users').doc(u).get();
           if (d.exists) userCache[u] = d.data();
@@ -932,8 +943,14 @@ function renderSide() {
 
   if (view.type === 'home' || view.type === 'dm') {
     $('sideTitle').textContent = 'Friends';
-    $('sideBtns').innerHTML = '<button class="pri" onclick="addFriendModal()">➕ Add</button>';
+    const reqCount = (profile.friendRequests || []).length;
+    $('sideBtns').innerHTML = `
+      <button class="pri" onclick="addFriendModal()">➕ Add</button>
+      ${reqCount > 0 ? `<button class="pink" onclick="showRequestsModal()" style="position:relative;">🔔 Requests <span class="unread-dot" style="position:absolute;top:-5px;right:-5px;"></span></button>` : `<button onclick="showRequestsModal()">🔔 Requests</button>`}
+    `;
+    
     (profile.friends || []).forEach(uid => {
+      if (profile.blockedUsers?.includes(uid)) return; // Don't show blocked friends
       const u = userCache[uid] || {displayName: 'Unknown'};
       const roomKey = getRoomId(uid), unread = unreadChannels[roomKey] || 0, dot = unread > 0 ? '<span class="unread-dot"></span>' : '';
       l.innerHTML += `<div class="item ${view.type === 'dm' && view.id === uid ? 'on' : ''}" onclick="openView('dm','${uid}')"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}"><span>${esc(u.displayName)}</span>${dot}</div>`;
@@ -971,6 +988,8 @@ function listenMessages() {
 }
 
 function appendMsg(m) {
+  if (profile.blockedUsers?.includes(m.senderUid)) return; // Ignore blocked
+
   const box = $('msgs'), wasBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 100;
   const u = userCache[m.senderUid] || {displayName: m.sender || 'Unknown', photoURL: m.senderPhoto || ''};
   let body = formatBody(m.text || '');
@@ -1024,7 +1043,7 @@ function listenTyping() {
   if (typingUnsub) { typingUnsub(); typingUnsub = null; }
   const roomKey = getRoomKey(); if (!roomKey) return;
   typingUnsub = db.collection('vox_typing').doc(roomKey).onSnapshot(s => {
-    const d = s.data() || {}, names = Object.entries(d).filter(([uid]) => uid !== me.uid).map(([, n]) => n);
+    const d = s.data() || {}, names = Object.entries(d).filter(([uid]) => uid !== me.uid && !profile.blockedUsers?.includes(uid)).map(([, n]) => n);
     if (names.length === 0) $('typing-indicator').classList.add('hidden');
     else { $('typing-indicator').textContent = names.join(', ') + (names.length === 1 ? ' is typing...' : ' are typing...'); $('typing-indicator').classList.remove('hidden'); }
   }, () => {});
@@ -1216,7 +1235,7 @@ if (location.search.includes('join=')) {
 }
 
 function addFriendModal() {
-  $('modal').innerHTML = `<div class="modal-inner"><h3>Add Friend</h3><input id="friendUid" placeholder="Friend's User ID"><div class="modal-actions"><button class="pri" onclick="addFriend()">Add</button><button onclick="closeModal()">Cancel</button></div></div>`;
+  $('modal').innerHTML = `<div class="modal-inner"><h3>Add Friend</h3><input id="friendUid" placeholder="Friend's User ID"><div class="modal-actions"><button class="pri" onclick="addFriend()">Send Request</button><button onclick="closeModal()">Cancel</button></div></div>`;
   $('modal').classList.remove('hidden');
 }
 
@@ -1226,10 +1245,81 @@ async function addFriend() {
   try {
     const target = await db.collection('vox_users').doc(uid).get();
     if (!target.exists) return toast('No user with that ID');
-    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)});
-    await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayUnion(me.uid)});
+    
+    // Send Friend Request
+    await db.collection('vox_users').doc(uid).update({ friendRequests: firebase.firestore.FieldValue.arrayUnion(me.uid) });
     userCache[uid] = target.data();
-    closeModal(); toast('Friend added'); if (view.type === 'home' || view.type === 'dm') renderSide();
+    closeModal(); toast('Friend request sent!');
+  } catch (e) { dbErr(e); }
+}
+
+function showRequestsModal() {
+  const reqs = (profile.friendRequests || []);
+  let html = `<div class="modal-inner"><h3>Friend Requests</h3>`;
+  
+  if (reqs.length === 0) {
+    html += `<p style="text-align:center; color:var(--mut); padding:20px 0;">No pending requests.</p>`;
+  } else {
+    reqs.forEach(uid => {
+      const u = userCache[uid] || {displayName: 'Unknown User'};
+      html += `<div style="display:flex; justify-content:space-between; align-items:center; background:var(--p3); padding:10px; border-radius:8px; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img class="avatar" src="${safeUrl(u.photoURL)}">
+          <b>${esc(u.displayName)}</b>
+        </div>
+        <div style="display:flex; gap:5px;">
+          <button class="pri" style="padding:6px 12px; font-size:12px; width:auto;" onclick="acceptFriend('${uid}')">Accept</button>
+          <button class="danger" style="padding:6px 12px; font-size:12px; width:auto;" onclick="declineFriend('${uid}')">Decline</button>
+        </div>
+      </div>`;
+    });
+  }
+  
+  html += `<div class="modal-actions"><button onclick="closeModal()">Close</button></div></div>`;
+  $('modal').innerHTML = html;
+  $('modal').classList.remove('hidden');
+}
+
+async function acceptFriend(uid) {
+  try {
+    await db.collection('vox_users').doc(me.uid).update({
+      friendRequests: firebase.firestore.FieldValue.arrayRemove(uid),
+      friends: firebase.firestore.FieldValue.arrayUnion(uid)
+    });
+    await db.collection('vox_users').doc(uid).update({
+      friends: firebase.firestore.FieldValue.arrayUnion(me.uid)
+    });
+    toast('Friend accepted!');
+    closeModal(); renderSide();
+  } catch (e) { dbErr(e); }
+}
+
+async function declineFriend(uid) {
+  try {
+    await db.collection('vox_users').doc(me.uid).update({
+      friendRequests: firebase.firestore.FieldValue.arrayRemove(uid)
+    });
+    toast('Request declined');
+    closeModal(); renderSide();
+  } catch (e) { dbErr(e); }
+}
+
+async function toggleBlock(uid) {
+  const isBlocked = (profile.blockedUsers || []).includes(uid);
+  try {
+    if (isBlocked) {
+      await db.collection('vox_users').doc(me.uid).update({ blockedUsers: firebase.firestore.FieldValue.arrayRemove(uid) });
+      toast('User unblocked');
+    } else {
+      await db.collection('vox_users').doc(me.uid).update({
+        blockedUsers: firebase.firestore.FieldValue.arrayUnion(uid),
+        friends: firebase.firestore.FieldValue.arrayRemove(uid),
+        friendRequests: firebase.firestore.FieldValue.arrayRemove(uid)
+      });
+      toast('User blocked');
+    }
+    closeModal(); renderSide();
+    if (view.type === 'dm' && view.id === uid) openView('home');
   } catch (e) { dbErr(e); }
 }
 
@@ -1237,12 +1327,25 @@ function viewProfile(uid) {
   const u = userCache[uid] || {displayName: 'Unknown'};
   const isSelf = uid === me.uid;
   const isFriend = (profile.friends || []).includes(uid);
+  const isBlocked = (profile.blockedUsers || []).includes(uid);
+  const hasRequestedMe = (profile.friendRequests || []).includes(uid);
+  
   const yt = safeUrl(u.socials?.yt), dc = safeUrl(u.socials?.discord);
   let actions = '';
-  if (isSelf) actions = '<button class="pri" onclick="editProfileModal()">Edit Profile</button><button onclick="closeModal()">Close</button>';
-  else if (isFriend) actions = `<button class="pri" onclick="openView('dm','${uid}');closeModal()">Send Message</button><button class="danger" onclick="removeFriend('${uid}')">Remove Friend</button><button onclick="closeModal()">Close</button>`;
-  else actions = `<button class="pri" onclick="addFriendDirect('${uid}')">Add Friend</button><button onclick="closeModal()">Close</button>`;
-  $('modal').innerHTML = `<div id="profileView" class="modal-inner"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}"><h2>${esc(u.displayName)}</h2><p>@${esc(u.username || 'no_username')}</p><p style="font-size:12px;color:var(--mut)">UID: ${esc(uid)}</p>${u.bio ? `<div class="bio">${esc(u.bio)}</div>` : ''}<div class="socials">${yt ? `<a href="${yt}" target="_blank" rel="noopener">YouTube</a>` : ''}${dc ? `<a href="${dc}" target="_blank" rel="noopener">Discord</a>` : ''}</div><div id="profileActions">${actions}</div></div>`;
+
+  if (isSelf) {
+    actions = '<button class="pri" onclick="editProfileModal()">Edit Profile</button><button onclick="closeModal()">Close</button>';
+  } else if (isBlocked) {
+    actions = `<button class="pri" onclick="toggleBlock('${uid}')">Unblock</button><button onclick="closeModal()">Close</button>`;
+  } else if (hasRequestedMe) {
+    actions = `<button class="pri" onclick="acceptFriend('${uid}')">Accept Request</button><button class="danger" onclick="declineFriend('${uid}')">Decline</button><button onclick="closeModal()">Close</button>`;
+  } else if (isFriend) {
+    actions = `<button class="pri" onclick="openView('dm','${uid}');closeModal()">Send Message</button><button class="danger" onclick="removeFriend('${uid}')">Remove Friend</button><button onclick="toggleBlock('${uid}')">Block</button><button onclick="closeModal()">Close</button>`;
+  } else {
+    actions = `<button class="pri" onclick="addFriendDirect('${uid}')">Add Friend</button><button class="danger" onclick="toggleBlock('${uid}')">Block</button><button onclick="closeModal()">Close</button>`;
+  }
+
+  $('modal').innerHTML = `<div id="profileView" class="modal-inner"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}"><h2>${esc(u.displayName)} ${isBlocked ? '(Blocked)' : ''}</h2><p>@${esc(u.username || 'no_username')}</p><p style="font-size:12px;color:var(--mut)">UID: ${esc(uid)}</p>${u.bio ? `<div class="bio">${esc(u.bio)}</div>` : ''}<div class="socials">${yt ? `<a href="${yt}" target="_blank" rel="noopener">YouTube</a>` : ''}${dc ? `<a href="${dc}" target="_blank" rel="noopener">Discord</a>` : ''}</div><div id="profileActions">${actions}</div></div>`;
   $('modal').classList.remove('hidden');
 }
 
@@ -1250,10 +1353,9 @@ async function addFriendDirect(uid) {
   try {
     const target = await db.collection('vox_users').doc(uid).get();
     if (!target.exists) return toast('No user with that ID');
-    await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayUnion(uid)});
-    await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayUnion(me.uid)});
+    await db.collection('vox_users').doc(uid).update({ friendRequests: firebase.firestore.FieldValue.arrayUnion(me.uid) });
     userCache[uid] = target.data();
-    toast('Friend added'); closeModal(); if (view.type === 'home' || view.type === 'dm') renderSide();
+    toast('Friend request sent!'); closeModal(); 
   } catch (e) { dbErr(e); }
 }
 
@@ -1280,7 +1382,7 @@ async function saveProfile() {
 }
 function closeModal() { $('modal').classList.add('hidden'); $('modal').innerHTML = ''; }
 
-/* ===== WebRTC Mesh (Fixed) ===== */
+/* ===== WebRTC Mesh ===== */
 let localStream, pc, callDoc = null, activeCallRoom = null;
 const peers = {}; 
 
@@ -1335,12 +1437,8 @@ async function joinVoice() {
       
       for (const uid of users) {
         if (uid !== me.uid && !peers[uid]) {
-          // Fix Offer Collision: Lower UID initiates
-          if (me.uid < uid) {
-            await createPeerConnection(uid, roomKey, callRef, true);
-          } else {
-            await createPeerConnection(uid, roomKey, callRef, false);
-          }
+          if (me.uid < uid) await createPeerConnection(uid, roomKey, callRef, true);
+          else await createPeerConnection(uid, roomKey, callRef, false);
         }
       }
 
@@ -1387,7 +1485,6 @@ async function createPeerConnection(uid, roomKey, callRef, isInitiator) {
   pc.ontrack = e => {
     const vid = $( 'remote-' + uid );
     if (vid) {
-      // Create new stream to force UI refresh on track replacement
       vid.srcObject = new MediaStream([e.track]);
       vid.play().catch(e => console.log('Autoplay blocked', e));
     }
