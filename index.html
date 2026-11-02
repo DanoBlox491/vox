@@ -55,6 +55,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);height
 .auth-card h2{font-size:32px;font-weight:800;margin-bottom:24px;background:linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .auth-card.signup-card h2{background:linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
+/* Wi-Fi Notice Box */
+.wifi-notice{margin-top:30px;font-size:14px;color:var(--warning);background:rgba(245, 158, 11, 0.1);padding:14px 20px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:10px;border:2px solid rgba(245, 158, 11, 0.3);animation:fadeIn 1s ease-in-out 1s both;font-weight:600;box-shadow:0 4px 15px rgba(245, 158, 11, 0.15);}
+.version-stamp{margin-top:20px;font-size:12px;color:var(--mut);opacity:0.7;font-weight:600;letter-spacing:1px;}
+
 /* Buttons */
 button{font-family:inherit;cursor:pointer;border:0;border-radius:12px;padding:14px 24px;font-weight:700;font-size:15px;color:var(--txt);background:linear-gradient(135deg, var(--p3) 0%, var(--p4) 100%);transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);position:relative;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.3);width:100%;}
 button::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%);opacity:0;transition:opacity 0.3s;}
@@ -298,6 +302,13 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
         </button>
       </div>
     </div>
+    
+    <!-- Wi-Fi Notice & Version -->
+    <div class="wifi-notice">
+      📶 Please ensure you are connected to Wi-Fi to install the app and get the best experience.
+    </div>
+    <div class="version-stamp">Vox v1.0.0</div>
+
   </div>
 </div>
 
@@ -346,6 +357,8 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 <div id="toast"></div>
 
 <script>
+console.log(`%c Vox Chat v1.0.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
+
 const $ = id => document.getElementById(id);
 
 function esc(s) {
@@ -375,7 +388,7 @@ document.addEventListener('keydown', initAudio, { once: true });
 
 function playPing() {
   initAudio();
-  if (!audioCtx || audioCtx.state === 'suspended') return; // Browser blocked it
+  if (!audioCtx || audioCtx.state === 'suspended') return;
   const osc = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();
   osc.type = 'sine';
@@ -575,21 +588,16 @@ function handleIncoming(m) {
     unreadChannels[roomId] = (unreadChannels[roomId] || 0) + 1;
     recount(); renderRail(); renderSide();
     
-    // 1. Play the Ping Sound
     playPing();
-
-    // 2. In-app toast notification
     toast(`💬 ${m.sender || 'New message'}: ${m.text || 'Sent a file'}`);
 
-    // 3. OS Notification with Click to Route
     if ('Notification' in window && Notification.permission === 'granted') {
       const notif = new Notification(m.sender || 'New message', {
         body: m.text || 'Sent a file', 
         icon: safeUrl(m.senderPhoto),
-        tag: roomId // Groups multiple messages from the same room into one notification
+        tag: roomId
       });
 
-      // The magic that leads you to the message
       notif.onclick = () => {
         window.focus();
         if (m.serverId) openView('server', m.serverId, m.channel);
@@ -604,7 +612,7 @@ function handleIncoming(m) {
 function recount() {
   const badge = Object.values(unreadChannels).reduce((a,b) => a+b, 0);
   if (navigator.setAppBadge) navigator.setAppBadge(badge).catch(() => {});
-  document.title = badge > 0 ? `(${badge}) Vox` : 'Vox'; // Updates browser tab with red dot (number)
+  document.title = badge > 0 ? `(${badge}) Vox` : 'Vox';
 }
 function hasUnread(prefix) { return Object.keys(unreadChannels).some(k => k.startsWith(prefix) && unreadChannels[k] > 0); }
 function markVisited(id) { Object.keys(unreadChannels).forEach(k => { if (k.startsWith('server_' + id)) unreadChannels[k] = 0; }); recount(); }
