@@ -78,7 +78,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
 input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--blue-glow), 0 4px 20px rgba(0, 212, 255, 0.2);background:rgba(15, 20, 34, 1);}
 
 /* Utility */
-.hidden{display:none!important}
+  .hidden{display:none!important}
 .err{color:var(--danger);min-height:20px;font-size:13px;font-weight:600;margin-top:-8px;margin-bottom:12px;text-align:left;}
 .success{color:var(--success);font-size:13px;font-weight:600;margin-top:-8px;margin-bottom:12px;text-align:left;}
 .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--mut);font-size:14px;font-weight:600;}
@@ -131,6 +131,9 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 #msgs::-webkit-scrollbar-track{background:transparent}
 #msgs::-webkit-scrollbar-thumb{background:linear-gradient(180deg, var(--p3) 0%, var(--p4) 100%);border-radius:10px;}
 #msgs::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg, var(--p4) 0%, var(--blue) 100%);}
+.load-older-wrap{display:flex;justify-content:center;padding:4px 0 18px;}
+.load-older-btn{width:auto;padding:9px 16px;font-size:12px;background:var(--p3);border:1px solid var(--p4);box-shadow:none;color:var(--txt-dim);}
+.load-older-btn:disabled{opacity:.65;cursor:wait;}
 
 .msg{display:flex;gap:12px;margin-bottom:18px;animation:slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);padding:12px;border-radius:12px;transition:all 0.2s;border-left:3px solid transparent;position:relative;}
 .msg:hover{background:rgba(0, 212, 255, 0.03);border-left-color:var(--blue);box-shadow:0 4px 15px rgba(0, 212, 255, 0.1);}
@@ -154,8 +157,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 
 #menu{position:absolute;bottom:78px;left:24px;background:linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%);backdrop-filter:blur(20px);border:2px solid rgba(0, 212, 255, 0.3);border-radius:16px;padding:8px;box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 30px var(--blue-glow);z-index:10;animation:slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 @keyframes slideUp{from{opacity:0;transform:translateY(10px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
-
-/* Custom Full Emoji Menu */
+  /* Custom Full Emoji Menu */
 #emoji-menu { position: absolute; bottom: 78px; left: 82px; background: linear-gradient(135deg, rgba(21, 27, 46, 0.98) 0%, rgba(15, 20, 34, 0.98) 100%); backdrop-filter: blur(20px); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 16px; width: 340px; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 30px var(--blue-glow); z-index: 10; animation: slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); display: flex; flex-direction: column; overflow: hidden; }
 #emoji-search { width: 100%; margin: 0; border: none; border-bottom: 2px solid var(--p3); border-radius: 16px 16px 0 0; padding: 12px 16px; background: rgba(0,0,0,0.2); font-size: 14px; }
 #emoji-search:focus { box-shadow: none; background: rgba(0,0,0,0.4); }
@@ -235,7 +237,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 
 #missedBanner{background:linear-gradient(135deg, rgba(255, 46, 147, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);backdrop-filter:blur(10px);padding:16px 24px;text-align:center;font-weight:700;color:var(--txt);cursor:pointer;transition:all 0.3s;border-bottom:2px solid var(--pink);box-shadow:0 4px 20px rgba(255, 46, 147, 0.3);animation:slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 #missedBanner:hover{background:linear-gradient(135deg, rgba(255, 46, 147, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);box-shadow:0 6px 30px rgba(255, 46, 147, 0.4);}
-
+  
 @media(max-width:900px){
   #app{grid-template-columns:70px 1fr}
   #side2{position:fixed;left:-280px;width:280px;z-index:50;transition:left 0.3s;height:100%}
@@ -267,7 +269,6 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 </style>
 </head>
 <body>
-
 <!-- Get Started Page -->
 <div id="getStarted">
   <div class="animated-bg"></div>
@@ -314,19 +315,18 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
         <button class="pri" onclick="login()">Log In</button>
 
         <div class="divider">OR</div>
-
-        <button class="oauth-btn" onclick="loginWithGoogle()">
+                <button class="oauth-btn" onclick="loginWithGoogle()">
           <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Continue with Google
         </button>
       </div>
     </div>
-    
+
     <!-- Wi-Fi Notice & Version -->
     <div class="wifi-notice">
       📶 Please ensure you are connected to Wi-Fi to install the app and get the best experience.
     </div>
-    <div class="version-stamp">Vox v1.5.0</div>
+    <div class="version-stamp">Vox v1.5.1</div>
 
   </div>
 </div>
@@ -364,13 +364,13 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
       <input type="file" id="file" class="hidden" onchange="upload(this)">
     </div>
     <div id="menu" class="hidden"></div>
-    
+
     <!-- The New Full Emoji Menu -->
     <div id="emoji-menu" class="hidden">
       <input id="emoji-search" type="text" placeholder="Search emojis (e.g., smile, pizza)..." oninput="filterEmojis(this.value)">
       <div id="emoji-grid"></div>
     </div>
-    
+
     <div id="emoji-autocomplete" class="hidden"></div>
   </div>
 </div>
@@ -395,13 +395,13 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
   <div class="close-btn">✖</div>
   <img id="media-viewer-img" src="" class="hidden" onclick="event.stopPropagation()">
   <video id="media-viewer-video" src="" class="hidden" controls onclick="event.stopPropagation()"></video>
-</div>
+  </div>
 
 <!-- Toast -->
 <div id="toast"></div>
 
 <script>
-console.log(`%c Vox Chat v1.5.0 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
+console.log(`%c Vox Chat v1.5.1 initialized! `, 'background: #00d4ff; color: #000; font-weight: bold;');
 
 const $ = id => document.getElementById(id);
 
@@ -475,11 +475,11 @@ function playPing() {
 const MASTER_EMOJI_DICT = {"smile":"😊","grin":"😁","joy":"😂","heart":"❤️","fire":"🔥","star":"⭐","thumbsup":"👍","thumbsdown":"👎","clap":"👏","eyes":"👀","100":"💯","rocket":"🚀","crown":"👑","skull":"💀","wave":"👋","tada":"🎉","thinking":"🤔","cool":"😎","cry":"😢","angry":"😠","laugh":"🤣","love":"😍","wink":"😉","tongue":"😛","nervous":"😅","heart_eyes":"😍","smirk":"😏","neutral":"😐","confused":"😕","money":"🤑","sick":"🤢","robot":"🤖","alien":"👽","ghost":"👻","cat":"🐱","dog":"🐶","pizza":"🍕","beer":"🍺","coffee":"☕","cake":"🍰","rainbow":"🌈","sun":"☀️","moon":"🌙","zap":"⚡","boom":"💥","sparkles":"✨","check":"✅","x":"❌","warning":"⚠️","ban":"🚫","music":"🎵","bell":"🔔","gift":"🎁","trophy":"🏆","medal":"🏅","key":"🔑","lock":"🔒","unlock":"🔓","link":"🔗","phone":"📱","computer":"💻","gear":"⚙️","hammer":"🔨","wrench":"🔧","mag":"🔍","bulb":"💡","book":"📖","moneybag":"💰","gem":"💎","bomb":"💣","hourglass":"⏳","alarm":"⏰","calendar":"📅","chart":"📈","email":"📧","inbox":"📥","package":"📦","pen":"✏️","pin":"📌","clip":"📎","scissors":"✂️","bookmark":"🔖","folder":"📁","page":"📄","newspaper":"📰","green_heart":"💚","yellow_heart":"💛","blue_heart":"💙","purple_heart":"💜","broken_heart":"💔","heart_exclamation":"❣️","two_hearts":"💕","sparkling_heart":"💖","heartpulse":"💗","heartbeat":"💓","revolving_hearts":"💞","cupid":"💘"};
 
 let FULL_EMOJI_DICT = {...MASTER_EMOJI_DICT};
-let EMOJI_RE = null;
+  let EMOJI_RE = null;
 
 function buildEmojiRegex() {
   const keys = Object.keys(FULL_EMOJI_DICT).sort((a,b) => b.length - a.length);
-  if (keys.length > 0) EMOJI_RE = new RegExp(':' + keys.join('|') + ':', 'g');
+  if (keys.length > 0) EMOJI_RE = new RegExp(':(?:' + keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + '):', 'g');
 }
 buildEmojiRegex();
 
@@ -525,6 +525,19 @@ let me = null, profile = {}, view = {type:'home'}, channel = null, channels = []
     stop = k => { if (unsubs[k]) { try { unsubs[k](); } catch(e){} delete unsubs[k]; } },
     unreadChannels = {}, typingUnsub = null;
 
+let loadedMessages = new Map();
+let olderMessageCursor = null;
+let hasMoreHistory = false;
+let historyLoading = false;
+let messageListenerToken = 0;
+let navigationToken = 0;
+let notifierSubscriptions = new Map();
+let notifierLastSeen = new Map();
+let serverNotifierSubscriptions = new Map();
+let serverNotifierLastSeen = new Map();
+let loadedFriendMembershipKey = null;
+let serverNotifierRefreshToken = 0;
+
 const FIVE_DAYS = 5*24*60*60*1000;
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
@@ -542,7 +555,7 @@ async function checkUsername(username, msgId) {
   if (!username || username.length < 3) { msgEl.classList.add('hidden'); return; }
 
   usernameCheckTimeout = setTimeout(async () => {
-    try {
+        try {
       const snap = await db.collection('vox_users').where('username', '==', username.toLowerCase()).limit(1).get();
       if (snap.empty) {
         msgEl.textContent = '✓ Username available';
@@ -622,7 +635,7 @@ async function login() {
 
 async function loginWithGoogle() {
   try {
-    const provider = new firebase.auth.GoogleAuthProvider();
+        const provider = new firebase.auth.GoogleAuthProvider();
     const result = await auth.signInWithPopup(provider);
     const user = result.user;
 
@@ -673,27 +686,130 @@ let lastActivity = Date.now(); setInterval(() => { if (Date.now() - lastActivity
 ['mousedown','keydown','touchstart'].forEach(e => document.addEventListener(e, () => { lastActivity = Date.now(); if (me) updateMyPresence('online'); }));
 window.addEventListener('beforeunload', () => { if (me) updateMyPresence('offline'); });
 
-let lastMsgTime = Date.now();
+/* Notifications are scoped to rooms the signed-in user is allowed to use.
+   Never watch the whole vox_messages collection: that leaks DM activity. */
+function refreshScopedNotifiers() {
+  if (!me) return;
 
-function startNotifier() {
-  stop('notifier');
-  unsubs.notifier = db.collection('vox_messages').where('senderUid', '!=', me.uid).onSnapshot(s => {
-    s.docChanges().forEach(c => {
-      if (c.type === 'added') {
-        const m = { id: c.doc.id, ...c.doc.data() };
-        if (m.timestamp && m.timestamp.seconds * 1000 > lastMsgTime) handleIncoming(m);
-      }
-    });
-    lastMsgTime = Date.now();
-  }, dbErr);
+  const wanted = new Map();
+  const blocked = new Set(profile.blockedUsers || []);
+  const friendIds = [...new Set(profile.friends || [])];
+
+  friendIds.forEach(uid => {
+    const friend = userCache[uid];
+    if (!uid || uid === me.uid || blocked.has(uid)) return;
+    if (!friend || !(friend.friends || []).includes(me.uid)) return; // Mutual friends only.
+    const roomId = getRoomId(uid);
+    wanted.set(roomId, db.collection('vox_messages')
+      .where('dmId', '==', roomId)
+      .orderBy('timestamp', 'desc')
+      .limit(1));
+  });
+
+  (groups || []).forEach(group => {
+    if (!group || !group.id || !(group.members || []).includes(me.uid)) return;
+    const roomId = `group_${group.id}`;
+    wanted.set(roomId, db.collection('vox_messages')
+      .where('groupId', '==', group.id)
+      .orderBy('timestamp', 'desc')
+      .limit(1));
+  });
+    for (const [roomId, unsubscribe] of notifierSubscriptions.entries()) {
+    if (!wanted.has(roomId)) {
+      try { unsubscribe(); } catch (_) {}
+      notifierSubscriptions.delete(roomId);
+      notifierLastSeen.delete(roomId);
+    }
+  }
+
+  for (const [roomId, query] of wanted.entries()) {
+    attachLatestNotifier(notifierSubscriptions, notifierLastSeen, roomId, query);
+  }
 }
 
-function handleIncoming(m) {
-  if (profile.blockedUsers?.includes(m.senderUid)) return; // Ignore blocked users
+function attachLatestNotifier(subscriptionMap, lastSeenMap, roomId, query) {
+  if (subscriptionMap.has(roomId)) return;
+  let initialized = false;
+  const unsubscribe = query.onSnapshot(snapshot => {
+    if (!initialized) {
+      initialized = true;
+      if (!snapshot.empty) lastSeenMap.set(roomId, snapshot.docs[0].id);
+      return;
+    }
+    if (snapshot.empty) return;
+    const newestDoc = snapshot.docs[0];
+    const newest = {id: newestDoc.id, ...newestDoc.data()};
+    const previousId = lastSeenMap.get(roomId);
+    if (newest.id !== previousId) {
+      lastSeenMap.set(roomId, newest.id);
+      if (newest.senderUid !== me?.uid) handleIncoming(newest, roomId);
+    }
+  }, error => console.warn('Room notification listener failed:', roomId, error));
+  subscriptionMap.set(roomId, unsubscribe);
+}
 
-  const roomId = m.serverId ? `server_${m.serverId}_${m.channel}` : m.groupId ? `group_${m.groupId}` : getRoomId(m.senderUid);
-  const currentRoom = view.type === 'server' && channel ? `server_${view.id}_${channel.id}` : view.type === 'group' ? `group_${view.id}` : view.type === 'dm' ? getRoomId(view.id) : null;
-  
+async function refreshServerNotifiers() {
+  if (!me) return;
+  const refreshToken = ++serverNotifierRefreshToken;
+  const uidAtStart = me.uid;
+  const channelSnapshots = await Promise.all((servers || []).map(server =>
+    db.collection('vox_channels').where('serverId', '==', server.id).get().catch(error => {
+      console.warn('Could not refresh server channels for notifications:', error);
+      return null;
+    })
+  ));
+  if (!me || me.uid !== uidAtStart || refreshToken !== serverNotifierRefreshToken) return;
+
+  const wanted = new Map();
+  channelSnapshots.forEach(snapshot => {
+    if (!snapshot) return;
+    snapshot.docs.forEach(doc => {
+      const channelData = doc.data() || {};
+      if (channelData.type === 'voice') return;
+      const roomId = `server_${channelData.serverId}_${doc.id}`;
+      wanted.set(roomId, db.collection('vox_messages')
+        .where('serverId', '==', channelData.serverId)
+        .where('channel', '==', doc.id)
+        .orderBy('timestamp', 'desc')
+        .limit(1));
+    });
+  });
+
+  for (const [roomId, unsubscribe] of serverNotifierSubscriptions.entries()) {
+    if (!wanted.has(roomId)) {
+      try { unsubscribe(); } catch (_) {}
+      serverNotifierSubscriptions.delete(roomId);
+      serverNotifierLastSeen.delete(roomId);
+    }
+  }
+  for (const [roomId, query] of wanted.entries()) {
+    attachLatestNotifier(serverNotifierSubscriptions, serverNotifierLastSeen, roomId, query);
+  }
+}
+
+function stopScopedNotifiers() {
+  for (const unsubscribe of [...notifierSubscriptions.values(), ...serverNotifierSubscriptions.values()]) {
+    try { unsubscribe(); } catch (_) {}
+  }
+  notifierSubscriptions.clear();
+  notifierLastSeen.clear();
+  serverNotifierSubscriptions.clear();
+    serverNotifierLastSeen.clear();
+}
+
+function handleIncoming(m, scopedRoomId) {
+  if (!m || !m.senderUid || m.senderUid === me?.uid) return;
+  if (profile.blockedUsers?.includes(m.senderUid)) return;
+
+  const roomId = scopedRoomId || (m.groupId ? `group_${m.groupId}` : getRoomId(m.senderUid));
+  const currentRoom = view.type === 'server' && channel
+    ? `server_${view.id}_${channel.id}`
+    : view.type === 'group'
+      ? `group_${view.id}`
+      : view.type === 'dm'
+        ? getRoomId(view.id)
+        : null;
+
   const isTabHidden = document.hidden || !document.hasFocus();
   const isDifferentRoom = roomId !== currentRoom;
 
@@ -702,21 +818,17 @@ function handleIncoming(m) {
     recount(); renderRail(); renderSide();
   }
 
-  // Only ping if they are in a different room OR looking away
   if (isDifferentRoom || isTabHidden) {
     playPing();
-
     if (isTabHidden && 'Notification' in window && Notification.permission === 'granted') {
       const notif = new Notification(m.sender || 'New message', {
-        body: m.text || 'Sent a file', 
+        body: m.text || 'Sent a file',
         icon: safeUrl(m.senderPhoto),
         tag: roomId
       });
-
       notif.onclick = () => {
         window.focus();
-        if (m.serverId) openView('server', m.serverId, m.channel);
-        else if (m.groupId) openView('group', m.groupId);
+        if (roomId.startsWith('group_')) openView('group', roomId.slice(6));
         else if (m.senderUid) openView('dm', m.senderUid);
         notif.close();
       };
@@ -739,7 +851,29 @@ function getRoomId(uid) {
   return uid < me.uid ? `dm_${uid}_${me.uid}` : `dm_${me.uid}_${uid}`;
 }
 
-let autocompleteActive = false, currentSuggestions = [], autocompleteIndex = 0;
+function isMutualFriendCached(uid) {
+  const friend = userCache[uid];
+  return !!(me && uid && uid !== me.uid &&
+    (profile.friends || []).includes(uid) &&
+    !(profile.blockedUsers || []).includes(uid) &&
+    friend && (friend.friends || []).includes(me.uid) &&
+    !(friend.blockedUsers || []).includes(me.uid));
+}
+
+async function isMutualFriend(uid) {
+  if (!me || !uid || uid === me.uid || !(profile.friends || []).includes(uid) ||
+      (profile.blockedUsers || []).includes(uid)) return false;
+  let friend = userCache[uid];
+  if (!friend || !Array.isArray(friend.friends)) {
+    const snap = await db.collection('vox_users').doc(uid).get();
+    if (!snap.exists) return false;
+    friend = snap.data() || {};
+    userCache[uid] = friend;
+  }
+  return (friend.friends || []).includes(me.uid) &&
+    !(friend.blockedUsers || []).includes(me.uid);
+}
+  let autocompleteActive = false, currentSuggestions = [], autocompleteIndex = 0;
 let typingDebounce = null, typingRoomKey = '';
 function handleInput() {
   const v = $('text').value, cursor = $('text').selectionStart;
@@ -799,7 +933,8 @@ function handleKeyDown(e) {
 
 auth.onAuthStateChanged(async user => {
   if (!user) {
-    me = null; Object.keys(unsubs).forEach(stop); unreadChannels = {}; recount();
+    me = null; Object.keys(unsubs).forEach(stop); stopScopedNotifiers(); unreadChannels = {}; recount();
+    userCache = {}; profile = {}; groups = []; loadedMessages.clear(); loadedFriendMembershipKey = null;
     leaveVoice();
     $('app').classList.add('hidden'); $('getStarted').classList.remove('hidden'); return;
   }
@@ -818,7 +953,7 @@ auth.onAuthStateChanged(async user => {
       await ref.set({displayName: defaultUser, username: defaultUser.toLowerCase().replace(/\s+/g,'_'), email: user.email, photoURL: user.photoURL || '', bio: '', socials: {yt: '', discord: ''}, friends: [], friendRequests: [], blockedUsers: []});
     } else {
       const data = snap.data();
-      if (!data.username) {
+            if (!data.username) {
         let baseName = (data.displayName || user.displayName || 'voxer').toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
         if (!baseName) baseName = 'voxer';
         const uniqueUsername = `${baseName}_${user.uid.slice(0, 4)}`;
@@ -835,30 +970,35 @@ auth.onAuthStateChanged(async user => {
     userCache[user.uid] = profile;
     renderMe();
 
-    // Fetch new friend requests and blocked users lists
-    const missing = (profile.friends || []).filter(u => !userCache[u]);
-    const reqs = (profile.friendRequests || []).filter(u => !userCache[u]);
-    const allMissing = [...new Set([...missing, ...reqs])];
+    // Refresh friend profiles whenever the accepted-friend list changes.
+    // This prevents a cached pre-acceptance profile from hiding a new mutual friend.
+    const friendIds = [...new Set(profile.friends || [])];
+    const friendKey = friendIds.slice().sort().join('|');
+    const friendsChanged = friendKey !== loadedFriendMembershipKey;
+    loadedFriendMembershipKey = friendKey;
+    const friendProfilesToFetch = friendsChanged ? friendIds : friendIds.filter(uid => !userCache[uid]);
+    const requestProfilesToFetch = (profile.friendRequests || []).filter(uid => !userCache[uid]);
+    const allMissing = [...new Set([...friendProfilesToFetch, ...requestProfilesToFetch])];
 
     if (allMissing.length) {
-      await Promise.all(allMissing.map(async u => {
+      await Promise.all(allMissing.map(async uid => {
         try {
-          const d = await db.collection('vox_users').doc(u).get();
-          if (d.exists) userCache[u] = d.data();
-        } catch (e) { }
+          const friendSnapshot = await db.collection('vox_users').doc(uid).get();
+          if (friendSnapshot.exists) userCache[uid] = friendSnapshot.data();
+        } catch (_) { }
       }));
     }
 
     if (view.type === 'home' || view.type === 'dm') renderSide();
+    refreshScopedNotifiers();
   }, dbErr);
 
   stop('servers');
-  unsubs.servers = db.collection('vox_servers').onSnapshot(s => { servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
+  unsubs.servers = db.collection('vox_servers').onSnapshot(s => { servers = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); refreshServerNotifiers(); }, dbErr);
 
   stop('groups');
-  unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => { groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); }, dbErr);
+  unsubs.groups = db.collection('vox_groups').where('members', 'array-contains', user.uid).onSnapshot(s => { groups = s.docs.map(d => ({id: d.id, ...d.data()})); renderRail(); refreshScopedNotifiers(); }, dbErr);
 
-  startNotifier();
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
   openView('home');
 });
@@ -873,8 +1013,14 @@ function renderRail() {
 }
 
 async function openView(type, id, targetChannelId) {
+  const navigationRequest = ++navigationToken;
+  if (type === 'dm' && !(await isMutualFriend(id))) {
+    if (navigationRequest === navigationToken) toast('You can only open DMs with mutual friends.');
+    return;
+  }
+  if (navigationRequest !== navigationToken) return;
   view = {type, id}; channel = null; channels = [];
-  stop('chan'); stop('msgs'); if (typingUnsub) { typingUnsub(); typingUnsub = null; }
+  stop('chan'); stop('msgs'); messageListenerToken++; if (typingUnsub) { typingUnsub(); typingUnsub = null; }
   $('composer').classList.add('hidden'); $('typing-indicator').classList.add('hidden');
   $('msgs').innerHTML = '<div class="empty">No chat open yet. 🔥</div>';
   $('topTitle').textContent = type === 'home' ? 'Friends' : (type === 'dm' ? 'Direct Message' : '');
@@ -884,9 +1030,10 @@ async function openView(type, id, targetChannelId) {
     markVisited(id);
     unsubs.chan = db.collection('vox_channels').where('serverId', '==', id).onSnapshot(s => {
       channels = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-      
+      refreshServerNotifiers();
+
       if (view.type === 'server' && view.id === id) {
-        if (targetChannelId && channels.find(c => c.id === targetChannelId)) {
+                if (targetChannelId && channels.find(c => c.id === targetChannelId)) {
            if (!channel || channel.id !== targetChannelId) selectChannel(targetChannelId, true);
         } else if (!channel || !channels.find(c => c.id === channel.id)) {
            const first = channels.find(c => c.type === 'text');
@@ -917,12 +1064,12 @@ async function openView(type, id, targetChannelId) {
 function selectChannel(cid, auto) {
   const c = channels.find(x => x.id === cid); if (!c) return;
   if (c.type === 'voice') {
-    channel = c; stop('msgs'); if (typingUnsub) { typingUnsub(); typingUnsub = null; }
+    channel = c; stop('msgs'); messageListenerToken++; if (typingUnsub) { typingUnsub(); typingUnsub = null; }
     $('typing-indicator').classList.add('hidden');
     $('topTitle').textContent = '🔊 ' + c.name; 
-    
+
     $('topBtns').innerHTML = '<button class="pri" onclick="joinVoice()" style="width:auto;padding:8px 16px;font-size:14px;">📹 Join Call</button>';
-    
+
     $('composer').classList.add('hidden');
     $('msgs').innerHTML = `<div class="empty"><p>You are in the voice channel <b>${esc(c.name)}</b></p><br><button class="pri" onclick="joinVoice()">📹 Join Call</button></div>`;
     if (isMobile()) setDrawer(false);
@@ -948,9 +1095,9 @@ function renderSide() {
       <button class="pri" onclick="addFriendModal()">➕ Add</button>
       ${reqCount > 0 ? `<button class="pink" onclick="showRequestsModal()" style="position:relative;">🔔 Requests <span class="unread-dot" style="position:absolute;top:-5px;right:-5px;"></span></button>` : `<button onclick="showRequestsModal()">🔔 Requests</button>`}
     `;
-    
+
     (profile.friends || []).forEach(uid => {
-      if (profile.blockedUsers?.includes(uid)) return; // Don't show blocked friends
+      if (!isMutualFriendCached(uid)) return; // Only show mutual, unblocked friends
       const u = userCache[uid] || {displayName: 'Unknown'};
       const roomKey = getRoomId(uid), unread = unreadChannels[roomKey] || 0, dot = unread > 0 ? '<span class="unread-dot"></span>' : '';
       l.innerHTML += `<div class="item ${view.type === 'dm' && view.id === uid ? 'on' : ''}" onclick="openView('dm','${uid}')"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}"><span>${esc(u.displayName)}</span>${dot}</div>`;
@@ -966,28 +1113,137 @@ function renderSide() {
     });
   }
 }
-
-function listenMessages() {
-  stop('msgs'); $('msgs').innerHTML = ''; msgCache = {};
-  let q = db.collection('vox_messages').orderBy('timestamp', 'desc').limit(50);
+  function buildMessageQuery() {
+  let q = db.collection('vox_messages');
   if (view.type === 'server' && channel) q = q.where('serverId', '==', view.id).where('channel', '==', channel.id);
   else if (view.type === 'group') q = q.where('groupId', '==', view.id);
   else if (view.type === 'dm') q = q.where('dmId', '==', getRoomId(view.id));
-
-  unsubs.msgs = q.onSnapshot(s => {
-    const adds = [], mods = [];
-    s.docChanges().forEach(c => {
-      const m = {id: c.doc.id, ...c.doc.data()};
-      if (c.type === 'added') adds.push(m);
-      if (c.type === 'modified') mods.push(m);
-    });
-    adds.reverse().forEach(m => { msgCache[m.id] = m; appendMsg(m); });
-    mods.forEach(m => { msgCache[m.id] = m; updateMsg(m); });
-    checkMissedBanner();
-  }, dbErr);
+  else return null;
+  return q;
 }
 
-function appendMsg(m) {
+function messageTime(m) {
+  const t = m && m.timestamp;
+  if (t && typeof t.toMillis === 'function') return t.toMillis();
+  if (t && typeof t.seconds === 'number') return t.seconds * 1000 + (t.nanoseconds || 0) / 1e6;
+  return Number(m && m.clientTimestamp) || 0;
+}
+
+function listenMessages() {
+  stop('msgs');
+  hasScrolledUp = false;
+  $('missedBanner').classList.add('hidden');
+  const token = ++messageListenerToken;
+  const box = $('msgs');
+  box.innerHTML = '';
+  msgCache = {};
+  loadedMessages = new Map();
+  olderMessageCursor = null;
+  hasMoreHistory = false;
+  historyLoading = false;
+
+  const baseQuery = buildMessageQuery();
+  if (!baseQuery) return;
+
+  unsubs.msgs = baseQuery.orderBy('timestamp', 'desc').limit(50).onSnapshot(snapshot => {
+    if (token !== messageListenerToken) return;
+    const wasAtBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 80;
+
+    snapshot.docs.forEach(doc => {
+      const data = doc.data({serverTimestamps: 'estimate'}) || {};
+      loadedMessages.set(doc.id, {id: doc.id, ...data, _doc: doc});
+    });
+
+    if (!olderMessageCursor && snapshot.docs.length) {
+      olderMessageCursor = snapshot.docs[snapshot.docs.length - 1];
+      hasMoreHistory = snapshot.docs.length === 50;
+    }
+
+    // A removed change can mean the document simply fell outside limit(50).
+    // Verify existence before removing it from the locally retained history.
+    snapshot.docChanges().filter(change => change.type === 'removed').forEach(change => {
+      change.doc.ref.get().then(fresh => {
+        if (token !== messageListenerToken || fresh.exists) return;
+        loadedMessages.delete(change.doc.id);
+        delete msgCache[change.doc.id];
+        renderLoadedMessages(false);
+      }).catch(() => {});
+    });
+
+    renderLoadedMessages(wasAtBottom || box.childElementCount === 0);
+  }, error => {
+    if (token === messageListenerToken) dbErr(error);
+  });
+}
+
+function renderLoadedMessages(stickToBottom) {
+  const box = $('msgs');
+  const oldHeight = box.scrollHeight;
+  const oldTop = box.scrollTop;
+  const wasAtBottom = oldHeight - oldTop <= box.clientHeight + 80;
+  const shouldStick = stickToBottom || wasAtBottom;
+
+  box.innerHTML = '';
+  if (hasMoreHistory) {
+    const wrap = document.createElement('div');
+    wrap.className = 'load-older-wrap';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'load-older-btn';
+    button.textContent = historyLoading ? 'Loading older messages…' : '↑ Load older messages';
+    button.disabled = historyLoading;
+        button.addEventListener('click', loadOlderMessages);
+    wrap.appendChild(button);
+    box.appendChild(wrap);
+  }
+
+  const messages = [...loadedMessages.values()].sort((a, b) =>
+    messageTime(a) - messageTime(b) || String(a.id).localeCompare(String(b.id)));
+  msgCache = {};
+  messages.forEach(message => {
+    msgCache[message.id] = message;
+    appendMsg(message, false);
+  });
+
+  if (!messages.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No messages yet. Say hello! 👋';
+    box.appendChild(empty);
+  }
+
+  if (shouldStick) scrollToBottom();
+  else box.scrollTop = oldTop + (box.scrollHeight - oldHeight);
+  checkMissedBanner();
+}
+
+async function loadOlderMessages() {
+  if (historyLoading || !hasMoreHistory || !olderMessageCursor) return;
+  const token = messageListenerToken;
+  historyLoading = true;
+  renderLoadedMessages(false);
+  try {
+    const baseQuery = buildMessageQuery();
+    if (!baseQuery) return;
+    const snapshot = await baseQuery.orderBy('timestamp', 'desc').startAfter(olderMessageCursor).limit(50).get();
+    if (token !== messageListenerToken) return;
+    snapshot.docs.forEach(doc => {
+      const data = doc.data({serverTimestamps: 'estimate'}) || {};
+      loadedMessages.set(doc.id, {id: doc.id, ...data, _doc: doc});
+    });
+    if (snapshot.docs.length) olderMessageCursor = snapshot.docs[snapshot.docs.length - 1];
+    hasMoreHistory = snapshot.docs.length === 50;
+  } catch (error) {
+    if (token === messageListenerToken) dbErr(error);
+  } finally {
+    if (token === messageListenerToken) {
+      historyLoading = false;
+      renderLoadedMessages(false);
+    }
+  }
+}
+
+function appendMsg(m, allowAutoScroll = true) {
   if (profile.blockedUsers?.includes(m.senderUid)) return; // Ignore blocked
 
   const box = $('msgs'), wasBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 100;
@@ -1013,13 +1269,12 @@ function appendMsg(m) {
                </div>`;
     }
   }
-  
-  if (m.reactions) reactions = Object.entries(m.reactions).map(([e, arr]) => `<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${esc(e)}')">${esc(e)} ${arr.length}</span>`).join(' ');
 
-  const html = `<div class="msg" data-id="${m.id}"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${new Date((m.timestamp?.seconds || 0) * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span></div><div>${body}</div>${media}${reactions ? `<div style="margin-top:4px">${reactions}</div>` : ''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid === me.uid ? `<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>` : ''}</div></div>`;
+  if (m.reactions) reactions = Object.entries(m.reactions).map(([e, arr]) => `<span style="cursor:pointer" onclick="toggleReaction('${m.id}','${esc(e)}')">${esc(e)} ${arr.length}</span>`).join(' ');
+    const html = `<div class="msg" data-id="${m.id}"><img class="avatar" src="${safeUrl(u.photoURL)}" alt="${esc(u.displayName)}" onclick="viewProfile('${m.senderUid}')"><div class="body"><div><span class="n" onclick="viewProfile('${m.senderUid}')">${esc(u.displayName)}</span><span class="t">${new Date((m.timestamp?.seconds || 0) * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span></div><div>${body}</div>${media}${reactions ? `<div style="margin-top:4px">${reactions}</div>` : ''}</div><div class="acts"><button onclick="replyMsg('${m.id}')">↩️</button><button onclick="reactMenu('${m.id}')">😀</button>${m.senderUid === me.uid ? `<button onclick="editMsg('${m.id}')">✏️</button><button onclick="deleteMsg('${m.id}')">🗑️</button>` : ''}</div></div>`;
 
   box.insertAdjacentHTML('beforeend', html);
-  if (wasBottom) scrollToBottom();
+  if (allowAutoScroll && wasBottom) scrollToBottom();
 }
 
 function updateMsg(m) {
@@ -1062,7 +1317,11 @@ async function postMessage(data) {
   const payload = {senderUid: me.uid, sender: profile.displayName || 'Voxer', senderPhoto: profile.photoURL || '', timestamp: firebase.firestore.FieldValue.serverTimestamp(), ...data};
   if (view.type === 'server' && channel) { payload.serverId = view.id; payload.channel = channel.id; }
   else if (view.type === 'group') payload.groupId = view.id;
-  else if (view.type === 'dm') payload.dmId = getRoomId(view.id);
+  else if (view.type === 'dm') {
+    if (!(await isMutualFriend(view.id))) throw new Error('You can only message mutual friends.');
+    payload.dmId = getRoomId(view.id);
+    payload.dmMembers = [me.uid, view.id].sort();
+  }
   else return;
   await db.collection('vox_messages').add(payload);
   const key = getRoomKey();
@@ -1092,7 +1351,7 @@ async function catbox(file) {
 
 async function upload(inp) { const f = inp.files[0]; inp.value = ''; if (!f) return; sendFile(f); }
 document.addEventListener('paste', e => {
-  if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return;
+    if (!me || $('composer').classList.contains('hidden') || !$('modal').classList.contains('hidden')) return;
   const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
   if (!it) return;
   const f = it.getAsFile(); if (!f) return;
@@ -1156,6 +1415,7 @@ async function deleteMsg(id) {
   if (!confirm('Delete this message?')) return;
   try {
     await db.collection('vox_messages').doc(id).delete();
+    loadedMessages.delete(id); delete msgCache[id];
     const el = document.querySelector(`.msg[data-id="${id}"]`); if (el) el.remove();
   } catch (e) { dbErr(e); }
 }
@@ -1171,8 +1431,7 @@ async function createServer() {
     closeModal(); toast('Server created');
   } catch (e) { dbErr(e); }
 }
-
-function serverSettings(sid) {
+  function serverSettings(sid) {
   const s = servers.find(x => x.id === sid); if (!s) return;
   $('modal').innerHTML = `<div class="modal-inner"><h3>${esc(s.name)} Settings</h3>${s.owner === me.uid ? `<input id="webhookUrl" placeholder="Discord Webhook URL" value="${esc(s.webhookUrl || '')}"><div class="modal-actions"><button class="pri" onclick="saveWebhook('${sid}')">Save Webhook</button><button class="danger" onclick="deleteServer('${sid}')">Delete Server</button><button onclick="closeModal()">Close</button></div>` : '<p>You are not the owner.</p><button onclick="closeModal()">Close</button>'}</div>`;
   $('modal').classList.remove('hidden');
@@ -1245,18 +1504,18 @@ async function addFriend() {
   try {
     const target = await db.collection('vox_users').doc(uid).get();
     if (!target.exists) return toast('No user with that ID');
-    
+
     // Send Friend Request
     await db.collection('vox_users').doc(uid).update({ friendRequests: firebase.firestore.FieldValue.arrayUnion(me.uid) });
     userCache[uid] = target.data();
     closeModal(); toast('Friend request sent!');
   } catch (e) { dbErr(e); }
-}
+  }
 
 function showRequestsModal() {
   const reqs = (profile.friendRequests || []);
   let html = `<div class="modal-inner"><h3>Friend Requests</h3>`;
-  
+
   if (reqs.length === 0) {
     html += `<p style="text-align:center; color:var(--mut); padding:20px 0;">No pending requests.</p>`;
   } else {
@@ -1274,7 +1533,7 @@ function showRequestsModal() {
       </div>`;
     });
   }
-  
+
   html += `<div class="modal-actions"><button onclick="closeModal()">Close</button></div></div>`;
   $('modal').innerHTML = html;
   $('modal').classList.remove('hidden');
@@ -1289,6 +1548,9 @@ async function acceptFriend(uid) {
     await db.collection('vox_users').doc(uid).update({
       friends: firebase.firestore.FieldValue.arrayUnion(me.uid)
     });
+    const cached = userCache[uid] || {};
+    userCache[uid] = {...cached, friends: [...new Set([...(cached.friends || []), me.uid])]};
+    refreshScopedNotifiers();
     toast('Friend accepted!');
     closeModal(); renderSide();
   } catch (e) { dbErr(e); }
@@ -1318,7 +1580,7 @@ async function toggleBlock(uid) {
       });
       toast('User blocked');
     }
-    closeModal(); renderSide();
+    closeModal(); refreshScopedNotifiers(); renderSide();
     if (view.type === 'dm' && view.id === uid) openView('home');
   } catch (e) { dbErr(e); }
 }
@@ -1326,10 +1588,10 @@ async function toggleBlock(uid) {
 function viewProfile(uid) {
   const u = userCache[uid] || {displayName: 'Unknown'};
   const isSelf = uid === me.uid;
-  const isFriend = (profile.friends || []).includes(uid);
+  const isFriend = isMutualFriendCached(uid);
   const isBlocked = (profile.blockedUsers || []).includes(uid);
-  const hasRequestedMe = (profile.friendRequests || []).includes(uid);
-  
+    const hasRequestedMe = (profile.friendRequests || []).includes(uid);
+
   const yt = safeUrl(u.socials?.yt), dc = safeUrl(u.socials?.discord);
   let actions = '';
 
@@ -1364,7 +1626,10 @@ async function removeFriend(uid) {
   try {
     await db.collection('vox_users').doc(me.uid).update({friends: firebase.firestore.FieldValue.arrayRemove(uid)});
     await db.collection('vox_users').doc(uid).update({friends: firebase.firestore.FieldValue.arrayRemove(me.uid)});
+    if (userCache[uid]) userCache[uid].friends = (userCache[uid].friends || []).filter(id => id !== me.uid);
+    refreshScopedNotifiers();
     toast('Friend removed'); closeModal(); if (view.type === 'home' || view.type === 'dm') renderSide();
+    if (view.type === 'dm' && view.id === uid) openView('home');
   } catch (e) { dbErr(e); }
 }
 
@@ -1383,154 +1648,223 @@ async function saveProfile() {
 function closeModal() { $('modal').classList.add('hidden'); $('modal').innerHTML = ''; }
 
 /* ===== WebRTC Mesh ===== */
-let localStream, pc, callDoc = null, activeCallRoom = null;
-const peers = {}; 
+let localStream = null;
+let callDoc = null;
+let activeCallRoom = null;
+let activeScreenStream = null;
+const peers = Object.create(null);
+const peerStarting = new Set();
+
+// STUN helps many networks. For reliable calls across restrictive NATs,
+// configure a TURN server here (with credentials from your TURN provider).
+const VOX_ICE_SERVERS = [
+  {urls: 'stun:stun.l.google.com:19302'}
+  // Example TURN entry (replace with real credentials):
+  // {urls: 'turn:turn.example.com:3478', username: 'YOUR_USERNAME', credential: 'YOUR_PASSWORD'}
+];
 
 async function joinVoice() {
   const roomKey = getRoomKey();
-  if (!roomKey) return toast('No room selected');
-  if (activeCallRoom === roomKey) return toast('Already in this call');
-
+  if (!roomKey) return toast('Open a voice channel, group, or friend DM first.');
+  if (view.type === 'dm' && !(await isMutualFriend(view.id))) return toast('Voice calls are only available with mutual friends.');
+  if (activeCallRoom === roomKey) return toast('Already in this call.');
   if (activeCallRoom) await leaveVoice();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return toast('Voice requires HTTPS and browser media permissions.');
+  }
 
   activeCallRoom = roomKey;
   $('call-widget').classList.remove('hidden');
-  $('video-grid').innerHTML = ''; 
-  $('call-widget-title').textContent = `📹 Call: ${roomKey.split('_')[0] === 'dm' ? 'DM' : 'Room'}`;
+  $('video-grid').innerHTML = '';
+  $('call-widget-title').textContent = `📹 Call: ${roomKey.startsWith('dm_') ? 'DM' : 'Room'}`;
 
   try {
-    try { localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true}); }
-    catch (e) {
-      try { 
-        localStream = await navigator.mediaDevices.getUserMedia({audio: true}); 
-        toast('Camera not found. Joining with mic only.'); 
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+    } catch (bothError) {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+        toast('Camera unavailable. Joined with microphone only.');
         createDummyVideoTrack();
-      }
-      catch (e2) {
-        try { 
-          localStream = await navigator.mediaDevices.getUserMedia({video: true}); 
-          toast('Mic not found. Joining with camera only.'); 
-        }
-        catch (e3) { 
-          localStream = new MediaStream(); 
-          toast('No mic or camera. Joining in listen-only mode.'); 
+      } catch (audioError) {
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({video: true});
+          toast('Microphone unavailable. Joined with camera only.');
+        } catch (videoError) {
+          localStream = new MediaStream();
+          toast('Microphone and camera unavailable. Joining in listen-only mode.');
           createDummyVideoTrack();
         }
       }
     }
 
     addVideoToGrid('local-video', localStream, 'You (Me)');
-
     const callRef = db.collection('vox_calls').doc(roomKey);
     const snap = await callRef.get();
-    
     if (!snap.exists) {
-      await callRef.set({ active: true, users: [me.uid], createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      await callRef.set({active: true, users: [me.uid], createdAt: firebase.firestore.FieldValue.serverTimestamp()});
     } else {
-      await callRef.update({ users: firebase.firestore.FieldValue.arrayUnion(me.uid) });
+      await callRef.set({active: true, users: firebase.firestore.FieldValue.arrayUnion(me.uid)}, {merge: true});
     }
+    callDoc = callRef;
 
-    const unsub = callRef.onSnapshot(async s => {
-      if (!s.exists) { leaveVoice(); return; } 
-      const data = s.data();
-      const users = data.users || [];
-      
+    stop('call_' + roomKey);
+    unsubs['call_' + roomKey] = callRef.onSnapshot(async callSnapshot => {
+      if (!callSnapshot.exists) {
+        await leaveVoice();
+        return;
+      }
+      const users = callSnapshot.data().users || [];
       for (const uid of users) {
-        if (uid !== me.uid && !peers[uid]) {
-          if (me.uid < uid) await createPeerConnection(uid, roomKey, callRef, true);
-          else await createPeerConnection(uid, roomKey, callRef, false);
+        if (uid === me.uid || peers[uid] || peerStarting.has(uid)) continue;
+        peerStarting.add(uid);
+        try {
+          await createPeerConnection(uid, roomKey, callRef, me.uid < uid);
+        } catch (error) {
+          console.error('Peer setup failed:', uid, error);
+          toast('Could not connect to a caller. Check the browser console.');
+        } finally {
+          peerStarting.delete(uid);
         }
       }
 
-      Object.keys(peers).forEach(uid => {
-        if (!users.includes(uid)) {
-          peers[uid].pc.close();
-          if (peers[uid].signalUnsub) peers[uid].signalUnsub();
-          const el = $('vid-remote-' + uid);
-          if (el) el.remove();
-          delete peers[uid];
-        }
-      });
+      for (const uid of Object.keys(peers)) {
+        if (!users.includes(uid)) removePeer(uid);
+      }
+    }, error => {
+      console.error('Call listener failed:', error);
+      toast('Call connection was interrupted.');
     });
-
-    if (!unsubs['call_' + roomKey]) unsubs['call_' + roomKey] = unsub;
-    callDoc = callRef;
-
-  } catch (e) {
-    toast('Could not join call: ' + e.message);
-    leaveVoice();
+  } catch (error) {
+    console.error('Could not join voice:', error);
+    toast('Could not join call: ' + (error.message || 'unknown error'));
+    await leaveVoice();
   }
 }
 
 function createDummyVideoTrack() {
+  if (!localStream) return;
   const canvas = document.createElement('canvas');
-  canvas.width = 640; canvas.height = 480;
+  canvas.width = 640;
+  canvas.height = 480;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#151b2e'; ctx.fillRect(0, 0, 640, 480);
-  ctx.fillStyle = '#00d4ff'; ctx.font = '30px Inter'; ctx.fillText('No Camera', 220, 240);
-  const dummyTrack = canvas.captureStream(10).getVideoTracks()[0];
-  localStream.addTrack(dummyTrack);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '30px Inter';
+  ctx.fillText('No Camera', 220, 240);
+  const dummyTrack = canvas.captureStream(5).getVideoTracks()[0];
+  if (dummyTrack) localStream.addTrack(dummyTrack);
 }
 
 async function createPeerConnection(uid, roomKey, callRef, isInitiator) {
-  const pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
-  
-  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-
+  const connection = new RTCPeerConnection({iceServers: VOX_ICE_SERVERS});
   const remoteStream = new MediaStream();
-  addVideoToGrid('remote-' + uid, remoteStream, userCache[uid]?.displayName || 'User');
-  
-  peers[uid] = { pc };
+  const pendingCandidates = [];
+  let remoteDescriptionSet = false;
 
-  pc.ontrack = e => {
-    const vid = $( 'remote-' + uid );
-    if (vid) {
-      vid.srcObject = new MediaStream([e.track]);
-      vid.play().catch(e => console.log('Autoplay blocked', e));
+  peers[uid] = {pc: connection, remoteStream, signalUnsub: null};
+  if (localStream) localStream.getTracks().forEach(track => connection.addTrack(track, localStream));
+  addVideoToGrid('remote-' + uid, remoteStream, userCache[uid]?.displayName || 'User');
+
+  connection.ontrack = event => {
+    const incoming = event.track;
+    if (!remoteStream.getTracks().some(track => track.id === incoming.id)) remoteStream.addTrack(incoming);
+    const video = $('remote-' + uid);
+    if (video && video.srcObject !== remoteStream) video.srcObject = remoteStream;
+    if (video) video.play().catch(error => console.debug('Remote autoplay needs user interaction:', error));
+  };
+
+  connection.onicecandidate = event => {
+    if (!event.candidate || !activeCallRoom || activeCallRoom !== roomKey) return;
+    callRef.collection('signals').add({
+      to: uid,
+      from: me.uid,
+      candidate: event.candidate.toJSON(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(error => console.error('Could not send ICE candidate:', error));
+  };
+
+  connection.onconnectionstatechange = () => {
+    if (connection.connectionState === 'failed') {
+      console.warn('WebRTC connection failed for', uid, '- a TURN server may be required.');
+      toast('Could not establish the call. This network may need a TURN server.');
     }
   };
 
-  pc.onicecandidate = e => {
-    if (e.candidate) callRef.collection('signals').add({ to: uid, from: me.uid, candidate: e.candidate.toJSON() });
+  const applyPendingCandidates = async () => {
+    while (pendingCandidates.length && connection.remoteDescription) {
+      const candidate = pendingCandidates.shift();
+      try { await connection.addIceCandidate(new RTCIceCandidate(candidate)); }
+      catch (error) { console.warn('Could not apply queued ICE candidate:', error); }
+    }
   };
 
   if (isInitiator) {
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    await callRef.collection('signals').add({ to: uid, from: me.uid, offer: { type: offer.type, sdp: offer.sdp } });
+    const offer = await connection.createOffer();
+    await connection.setLocalDescription(offer);
+    await callRef.collection('signals').add({
+      to: uid,
+      from: me.uid,
+      offer: {type: offer.type, sdp: offer.sdp},
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
   }
 
-  const signalUnsub = callRef.collection('signals').where('to', '==', me.uid).onSnapshot(s => {
-    s.docChanges().forEach(async change => {
-      if (change.type === 'added') {
-        const data = change.doc.data();
-        if (data.from === uid) {
-          if (data.offer && !isInitiator) {
-             await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-             const answer = await pc.createAnswer();
-             await pc.setLocalDescription(answer);
-             await callRef.collection('signals').add({ to: uid, from: me.uid, answer: { type: answer.type, sdp: answer.sdp } });
+  const signalUnsub = callRef.collection('signals').where('to', '==', me.uid).onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type !== 'added') return;
+      const data = change.doc.data() || {};
+      if (data.from !== uid) return;
+
+      (async () => {
+        try {
+          if (data.offer && !isInitiator && !connection.remoteDescription) {
+            await connection.setRemoteDescription(new RTCSessionDescription(data.offer));
+            remoteDescriptionSet = true;
+            await applyPendingCandidates();
+            const answer = await connection.createAnswer();
+            await connection.setLocalDescription(answer);
+            await callRef.collection('signals').add({
+              to: uid,
+              from: me.uid,
+              answer: {type: answer.type, sdp: answer.sdp},
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } else if (data.answer && isInitiator && !connection.remoteDescription) {
+            await connection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            remoteDescriptionSet = true;
+            await applyPendingCandidates();
+          } else if (data.candidate) {
+            if (!remoteDescriptionSet && !connection.remoteDescription) pendingCandidates.push(data.candidate);
+            else await connection.addIceCandidate(new RTCIceCandidate(data.candidate));
           }
-          if (data.answer && isInitiator) {
-            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-          }
-          if (data.candidate) {
-            await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => console.error(e));
-          }
-          change.doc.ref.delete(); 
+          await change.doc.ref.delete();
+        } catch (error) {
+          console.error('Signaling message failed:', error);
+          // Keep failed candidate/description messages for diagnosis/retry rather than silently deleting them.
         }
-      }
+      })();
     });
-  });
-  
+  }, error => console.error('Signal listener failed:', error));
+
   peers[uid].signalUnsub = signalUnsub;
+}
+
+function removePeer(uid) {
+  const peer = peers[uid];
+  if (!peer) return;
+  try { if (peer.signalUnsub) peer.signalUnsub(); } catch (_) {}
+  try { peer.pc.close(); } catch (_) {}
+  const container = $('vid-remote-' + uid);
+  if (container) container.remove();
+  delete peers[uid];
 }
 
 function addVideoToGrid(id, stream, name) {
   const container = document.createElement('div');
   container.className = 'video-container';
   container.id = 'vid-' + id;
-  
+
   const vid = document.createElement('video');
   vid.id = id;
   vid.autoplay = true;
@@ -1550,25 +1884,32 @@ function addVideoToGrid(id, stream, name) {
 }
 
 async function leaveVoice() {
-  if (localStream) localStream.getTracks().forEach(t => t.stop());
-  
-  Object.values(peers).forEach(p => {
-    p.pc.close();
-    if (p.signalUnsub) p.signalUnsub();
+  const roomAtLeave = activeCallRoom;
+  const currentCall = callDoc;
+  if (activeScreenStream) activeScreenStream.getTracks().forEach(track => { try { track.stop(); } catch (_) {} });
+  activeScreenStream = null;
+
+  if (localStream) localStream.getTracks().forEach(track => {
+    try { track.stop(); } catch (_) {}
   });
-  for (let k in peers) delete peers[k];
+  Object.keys(peers).forEach(removePeer);
+  peerStarting.clear();
 
-  if (callDoc) {
-    try { await callDoc.update({ users: firebase.firestore.FieldValue.arrayRemove(me.uid) }); } catch(e){}
-    callDoc = null; 
-  }
-
-  if (activeCallRoom) {
-    stop('call_' + activeCallRoom);
-    activeCallRoom = null;
-  }
-
+  if (roomAtLeave) stop('call_' + roomAtLeave);
+  activeCallRoom = null;
+  callDoc = null;
   localStream = null;
+
+  if (currentCall && me) {
+    try {
+      await currentCall.update({
+        users: firebase.firestore.FieldValue.arrayRemove(me.uid),
+        active: true
+      });
+    } catch (error) {
+      console.warn('Could not update call membership while leaving:', error);
+          }
+  }
   $('call-widget').classList.add('hidden');
   $('video-grid').innerHTML = '';
 }
@@ -1577,6 +1918,7 @@ async function toggleScreen() {
   if (!localStream) return toast('Wait for mic/camera to load');
   try {
     const screen = await navigator.mediaDevices.getDisplayMedia({video: true});
+    activeScreenStream = screen;
     const screenTrack = screen.getVideoTracks()[0];
 
     Object.values(peers).forEach(p => {
@@ -1589,6 +1931,8 @@ async function toggleScreen() {
     if (localVid) localVid.srcObject = screen;
 
     screenTrack.onended = () => { 
+      activeScreenStream = null;
+      if (!localStream) return;
       const camTrack = localStream.getVideoTracks()[0];
       Object.values(peers).forEach(p => {
         const sender = p.pc.getSenders().find(s => s.track?.kind === 'video');
