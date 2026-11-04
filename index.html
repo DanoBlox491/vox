@@ -1960,5 +1960,69 @@ function toggleFullscreen(vidId) {
   }
 }
 </script>
+  <script>
+// ===== VOX PWA INSTALLATION =====
+
+let deferredInstallPrompt = null;
+
+const installBtn = document.getElementById('installAppBtn');
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration =
+        await navigator.serviceWorker.register('/sw.js', {
+          scope: '/'
+        });
+
+      console.log('VOX Service Worker registered:', registration.scope);
+    } catch (error) {
+      console.error('VOX Service Worker registration failed:', error);
+    }
+  });
+}
+
+// Listen for browser installation prompt
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+
+  deferredInstallPrompt = event;
+
+  if (installBtn) {
+    installBtn.classList.remove('hidden');
+  }
+});
+
+// Install button
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) {
+      alert('Use your browser menu and select Install App or Add to Home Screen.');
+      return;
+    }
+
+    deferredInstallPrompt.prompt();
+
+    const choice = await deferredInstallPrompt.userChoice;
+
+    console.log('VOX installation:', choice.outcome);
+
+    deferredInstallPrompt = null;
+    installBtn.classList.add('hidden');
+  });
+}
+
+// Detect successful installation
+window.addEventListener('appinstalled', () => {
+  console.log('VOX successfully installed!');
+
+  if (installBtn) {
+    installBtn.classList.add('hidden');
+  }
+});
+
+// ===== END VOX PWA INSTALLATION =====
+</script>
 </body>
 </html>
