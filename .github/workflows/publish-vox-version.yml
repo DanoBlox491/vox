@@ -1,0 +1,38 @@
+name: Publish VOX update version
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "vox-version.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Publish current website commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '{"commit":"%s"}\n' "$SOURCE_COMMIT" > vox-version.json
+          git add vox-version.json
+          if git diff --cached --quiet; then
+            echo "Version marker is already current."
+            exit 0
+          fi
+          git commit -m "chore: publish VOX website version [skip ci]"
+          git push origin HEAD:main
