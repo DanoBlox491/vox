@@ -2086,8 +2086,7 @@ window.addEventListener('appinstalled', () => {
 
   async function readPublishedVersion() {
     const response = await fetch(VERSION_URL + '?_=' + Date.now(), {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' }
+      cache: 'no-store'
     });
     if (!response.ok) throw new Error('Version check returned HTTP ' + response.status);
     const data = await response.json();
