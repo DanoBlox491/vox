@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0e1a">
+<title>Download VOX</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect x='8' y='8' width='496' height='496' rx='112' fill='%23141f2f'/%3E%3Crect x='48' y='48' width='416' height='416' rx='88' fill='%23f8fcff'/%3E%3Cpath d='M142 154 L246 354 Q256 374 272 354 L374 154' fill='none' stroke='%2320c9e8' stroke-width='58' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#0a0e1a;--panel:#11192a;--panel2:#172238;--line:rgba(120,160,210,.18);--text:#eef5ff;--muted:#9baac2;--cyan:#00d4ff;--pink:#ff2e93;--purple:#a855f7;--green:#34d399}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 12%,rgba(0,212,255,.14),transparent 35%),radial-gradient(ellipse at 86% 24%,rgba(168,85,247,.16),transparent 32%),var(--bg);font-family:Inter,Arial,sans-serif;color:var(--text)}
+a{color:inherit}
+.shell{width:min(1060px,calc(100% - 36px));margin:0 auto;padding:26px 0 64px}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:70px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;font-weight:900;letter-spacing:2px;font-size:20px}
+.logo{width:42px;height:42px;border-radius:13px;background:#f8fcff;display:grid;place-items:center;box-shadow:0 0 28px rgba(0,212,255,.28)}
+.logo svg{width:31px;height:31px}
+.back{color:var(--muted);text-decoration:none;font-size:13px;font-weight:700;padding:10px 14px;border:1px solid var(--line);border-radius:10px}
+.back:hover{color:var(--text);border-color:var(--cyan)}
+.hero{text-align:center;max-width:760px;margin:0 auto 44px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid rgba(0,212,255,.25);border-radius:99px;color:#8ceeff;background:rgba(0,212,255,.07);font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase}
+h1{margin:20px 0 14px;font-size:clamp(42px,8vw,76px);line-height:1;font-weight:900;letter-spacing:-3px;background:linear-gradient(110deg,#72edff 4%,#00d4ff 38%,#d06dff 78%,#ff65ac);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{margin:0 auto;color:var(--muted);font-size:16px;line-height:1.8;max-width:620px}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:stretch}
+.card{border:1px solid var(--line);border-radius:22px;padding:28px;background:linear-gradient(145deg,rgba(23,34,56,.92),rgba(13,20,34,.94));box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.card.primary{border-color:rgba(0,212,255,.32);box-shadow:0 20px 70px rgba(0,0,0,.3),0 0 55px rgba(0,212,255,.07)}
+.card-head{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.platform-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:rgba(0,212,255,.1);font-size:24px}
+h2{margin:0;font-size:20px;font-weight:850}
+.kicker{color:var(--muted);font-size:12px;margin-top:5px}
+.status{min-height:74px;color:var(--muted);line-height:1.7;font-size:13px;padding:15px 16px;border:1px solid var(--line);border-radius:13px;background:rgba(3,9,18,.3);margin-bottom:17px}
+.status strong{color:var(--text)}
+.download-btn,.open-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px 18px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:850;border:0;cursor:pointer}
+.download-btn{background:linear-gradient(110deg,#00d4ff,#0099cc);color:#041018;box-shadow:0 8px 28px rgba(0,212,255,.2)}
+.download-btn[hidden]{display:none}
+.open-btn{background:#222d43;color:#eaf4ff;border:1px solid var(--line)}
+.sub-link{display:block;text-align:center;margin-top:15px;color:#89dfff;font-size:12px;font-weight:700;text-decoration:none}
+.sub-link:hover{text-decoration:underline}
+.steps{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:13px}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:10px;color:var(--muted);font-size:13px;line-height:1.65}
+.num{width:26px;height:26px;display:grid;place-items:center;border-radius:9px;background:rgba(168,85,247,.16);color:#d6aaff;font-weight:850;font-size:12px}
+.note{margin-top:22px;border-left:3px solid var(--purple);padding:12px 14px;color:var(--muted);font-size:12px;line-height:1.7;background:rgba(168,85,247,.06);border-radius:0 10px 10px 0}
+.footer{text-align:center;margin-top:38px;color:#66758e;font-size:11px;line-height:1.8}
+.footer a{color:#8adfff;text-decoration:none}
+.hidden{display:none!important}
+@media(max-width:760px){.nav{margin-bottom:48px}.grid{grid-template-columns:1fr}.card{padding:22px}.shell{width:min(100% - 28px,600px)}h1{letter-spacing:-2px}.lead{font-size:14px}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <nav class="nav" aria-label="Main navigation">
+    <a class="brand" href="/" aria-label="VOX home">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 512 512"><path d="M142 154 L246 354 Q256 374 272 354 L374 154" fill="none" stroke="#20c9e8" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>VOX</span>
+    </a>
+    <a class="back" href="/">← Back to chat</a>
+  </nav>
+
+  <section class="hero">
+    <div class="eyebrow">⬇ Official VOX downloads</div>
+    <h1>Get VOX on your device.</h1>
+    <p class="lead">Keep your conversations close. Choose the Windows desktop installer when it is available, or install VOX as an app directly from your browser.</p>
+  </section>
+
+  <section class="grid" aria-label="Download options">
+    <article class="card primary">
+      <div class="card-head">
+        <div class="platform-icon" aria-hidden="true">🖥️</div>
+        <div><h2>VOX for Windows</h2><div class="kicker" id="releaseName">Checking the latest desktop release…</div></div>
+      </div>
+      <div class="status" id="releaseStatus" role="status" aria-live="polite">Checking the official VOX release page for a Windows installer.</div>
+      <a id="desktopDownload" class="download-btn" href="#" hidden>⬇ Download for Windows</a>
+      <a class="sub-link" href="https://github.com/DanoBlox491/vox/releases" target="_blank" rel="noopener noreferrer">View all official releases ↗</a>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="platform-icon" aria-hidden="true">🌐</div>
+        <div><h2>Install from your browser</h2><div class="kicker">Use VOX like a desktop app</div></div>
+      </div>
+      <div class="status">You can install the VOX web app from a supported browser without downloading a separate installer.</div>
+      <a class="open-btn" href="/">Open VOX Web App ↗</a>
+      <ol class="steps">
+        <li><span class="num">1</span><span>Open VOX in Chrome or Edge.</span></li>
+        <li><span class="num">2</span><span>Use the <strong>Install VOX</strong> button if it appears, or open the browser menu.</span></li>
+        <li><span class="num">3</span><span>Choose <strong>Install app</strong> or <strong>Apps → Install this site as an app</strong>.</span></li>
+      </ol>
+      <div class="note">The browser may show the install option only when the site meets its install requirements.</div>
+    </article>
+  </section>
+
+  <footer class="footer">Only download VOX from this site or the <a href="https://github.com/DanoBlox491/vox/releases" target="_blank" rel="noopener noreferrer">official GitHub releases</a>.<br>VOX · Official download page</footer>
+</main>
+<script>
+(async function checkDesktopRelease(){
+  const status = document.getElementById('releaseStatus');
+  const name = document.getElementById('releaseName');
+  const button = document.getElementById('desktopDownload');
+  try {
+    const response = await fetch('https://api.github.com/repos/DanoBlox491/vox/releases/latest', {
+      headers: { Accept: 'application/vnd.github+json' },
+      cache: 'no-store'
+    });
+    if (response.status === 404) {
+      name.textContent = 'Desktop installer not published yet';
+      status.innerHTML = '<strong>Coming soon.</strong> There is no official Windows installer attached to a GitHub release yet. The download button will appear here when one is published.';
+      return;
+    }
+    if (!response.ok) throw new Error('Release lookup returned HTTP ' + response.status);
+    const release = await response.json();
+    const assets = Array.isArray(release.assets) ? release.assets : [];
+    const installer = assets.find(a => /\.exe$/i.test(a.name)) ||
+      assets.find(a => /\.msi$/i.test(a.name)) ||
+      assets.find(a => /\.zip$/i.test(a.name));
+    name.textContent = release.name || release.tag_name || 'Latest VOX desktop release';
+    if (!installer) {
+      status.innerHTML = '<strong>Release found, installer missing.</strong> This release does not contain a Windows .exe, .msi, or .zip file yet. Check back after the installer is attached.';
+      return;
+    }
+    status.innerHTML = '<strong>Ready to download.</strong> ' + installer.name + ' · ' +
+      (installer.size ? (installer.size / 1048576).toFixed(1) + ' MB' : 'Windows installer');
+    button.href = installer.browser_download_url;
+    button.setAttribute('download', installer.name);
+    button.hidden = false;
+  } catch (error) {
+    name.textContent = 'Could not check releases';
+    status.textContent = 'The release list could not be checked right now. You can still visit the official GitHub releases page using the link below.';
+    console.warn('VOX desktop release check:', error);
+  }
+})();
+</script>
+</body>
+</html>
