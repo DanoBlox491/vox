@@ -2071,7 +2071,8 @@ window.addEventListener('appinstalled', () => {
 (() => {
   const VERSION_URL = 'https://raw.githubusercontent.com/DanoBlox491/vox/main/vox-version.json';
   const STORAGE_KEY = 'vox:last-seen-commit';
-  const CHECK_INTERVAL_MS = 120000;
+  // Check frequently so an already-open VOX window notices new releases live.
+  const CHECK_INTERVAL_MS = 15000;
   const overlay = document.getElementById('vox-update-overlay');
   const card = document.getElementById('vox-update-card');
   const loading = document.getElementById('vox-update-loading');
@@ -2131,8 +2132,15 @@ window.addEventListener('appinstalled', () => {
     window.setTimeout(() => window.location.replace(nextUrl.toString()), 1500);
   });
 
+  // Check immediately, then poll while VOX is open. Also recheck when the
+  // window becomes active again or connectivity returns.
   checkForUpdate();
   window.setInterval(checkForUpdate, CHECK_INTERVAL_MS);
+  window.addEventListener('focus', checkForUpdate);
+  window.addEventListener('online', checkForUpdate);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkForUpdate();
+  });
 })();
 /* ===== END VOX AUTO UPDATE SYSTEM ===== */
 </script>
