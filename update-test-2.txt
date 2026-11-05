@@ -1,0 +1,2 @@
+VOX live-update verification marker.
+This harmless file exists only to trigger a new published version for testing the open-window update prompt.
