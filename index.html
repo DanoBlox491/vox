@@ -2070,6 +2070,7 @@ window.addEventListener('appinstalled', () => {
 /* ===== VOX AUTO UPDATE SYSTEM ===== */
 (() => {
   const VERSION_URL = 'https://raw.githubusercontent.com/DanoBlox491/vox/main/vox-version.json';
+  const STORAGE_KEY = 'vox:last-seen-commit';
   const CHECK_INTERVAL_MS = 120000;
   const overlay = document.getElementById('vox-update-overlay');
   const card = document.getElementById('vox-update-card');
@@ -2078,6 +2079,7 @@ window.addEventListener('appinstalled', () => {
   if (!overlay || !updateButton || !loading) return;
 
   let baselineCommit = null;
+  let publishedCommit = null;
   let updateAvailable = false;
   let checking = false;
 
@@ -2098,10 +2100,12 @@ window.addEventListener('appinstalled', () => {
     if (checking || updateAvailable) return;
     checking = true;
     try {
-      const publishedCommit = await readPublishedVersion();
-      if (!baselineCommit) {
-        baselineCommit = publishedCommit;
-      } else if (publishedCommit !== baselineCommit) {
+      publishedCommit = await readPublishedVersion();
+      baselineCommit = localStorage.getItem(STORAGE_KEY);
+
+      // Show once on existing installs that have never recorded a version.
+      // Afterwards, compare against the last version the user accepted.
+      if (!baselineCommit || publishedCommit !== baselineCommit) {
         updateAvailable = true;
         overlay.classList.add('vox-visible');
       }
@@ -2113,12 +2117,18 @@ window.addEventListener('appinstalled', () => {
   }
 
   updateButton.addEventListener('click', () => {
-    if (!updateAvailable) return;
+    if (!updateAvailable || !publishedCommit) return;
     card.style.display = 'none';
     loading.classList.add('vox-visible');
+
+    // Remember this version so the prompt stays dismissed after the reload.
+    try { localStorage.setItem(STORAGE_KEY, publishedCommit); } catch (error) {
+      console.debug('VOX could not save the accepted version:', error);
+    }
+
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set('vox_refresh', String(Date.now()));
-    window.setTimeout(() => window.location.replace(nextUrl.toString()), 15000);
+    window.setTimeout(() => window.location.replace(nextUrl.toString()), 1500);
   });
 
   checkForUpdate();
