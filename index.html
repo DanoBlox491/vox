@@ -2037,5 +2037,95 @@ window.addEventListener('appinstalled', () => {
 
 // ===== END VOX PWA INSTALLATION =====
 </script>
+
+<style id="vox-auto-update-styles">
+#vox-update-overlay{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(4,8,18,.88);backdrop-filter:blur(16px);font-family:Inter,Arial,sans-serif}
+#vox-update-overlay.vox-visible{display:flex}
+.vox-update-card{width:min(440px,100%);padding:34px 30px;text-align:center;border:1px solid rgba(0,212,255,.55);border-radius:24px;background:linear-gradient(145deg,#151d31,#0b1120);box-shadow:0 0 55px rgba(0,212,255,.2),0 24px 80px rgba(0,0,0,.55)}
+.vox-update-mark{width:64px;height:64px;margin:0 auto 18px;border-radius:20px;display:grid;place-items:center;font-size:30px;font-weight:900;color:#06121c;background:linear-gradient(135deg,#00d4ff,#a855f7);box-shadow:0 0 30px rgba(0,212,255,.3)}
+.vox-update-card h2{margin:0 0 10px;color:#f2f7ff;font-size:25px;font-weight:800}
+.vox-update-card p{margin:0 0 24px;color:#aebbd0;font-size:14px;line-height:1.6}
+#vox-update-now{width:100%;padding:15px 20px;border:0;border-radius:12px;background:linear-gradient(135deg,#00d4ff,#0099cc);color:#041018;font-size:15px;font-weight:900;letter-spacing:.5px;cursor:pointer}
+#vox-update-loading{display:none;flex-direction:column;align-items:center;gap:18px;color:#eef7ff}
+#vox-update-loading.vox-visible{display:flex}
+.vox-update-spinner{width:58px;height:58px;border:5px solid rgba(0,212,255,.18);border-top-color:#00d4ff;border-radius:50%;animation:voxUpdateSpin .8s linear infinite}
+@keyframes voxUpdateSpin{to{transform:rotate(360deg)}}
+#vox-update-loading strong{font-size:20px}
+#vox-update-loading span{color:#aebbd0;font-size:13px}
+</style>
+<div id="vox-update-overlay" role="dialog" aria-modal="true" aria-labelledby="vox-update-title">
+  <div class="vox-update-card" id="vox-update-card">
+    <div class="vox-update-mark">V</div>
+    <h2 id="vox-update-title">VOX has an update!</h2>
+    <p>A newer version of VOX is ready. Update now to load the latest improvements.</p>
+    <button id="vox-update-now" type="button">UPDATE NOW</button>
+  </div>
+  <div id="vox-update-loading">
+    <div class="vox-update-spinner"></div>
+    <strong>Updating VOX...</strong>
+    <span>Loading the latest version. Please wait.</span>
+  </div>
+</div>
+<script id="vox-auto-update-system">
+/* ===== VOX AUTO UPDATE SYSTEM ===== */
+(() => {
+  const VERSION_URL = 'https://raw.githubusercontent.com/DanoBlox491/vox/main/vox-version.json';
+  const CHECK_INTERVAL_MS = 120000;
+  const overlay = document.getElementById('vox-update-overlay');
+  const card = document.getElementById('vox-update-card');
+  const loading = document.getElementById('vox-update-loading');
+  const updateButton = document.getElementById('vox-update-now');
+  if (!overlay || !updateButton || !loading) return;
+
+  let baselineCommit = null;
+  let updateAvailable = false;
+  let checking = false;
+
+  async function readPublishedVersion() {
+    const response = await fetch(VERSION_URL + '?_=' + Date.now(), {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    if (!response.ok) throw new Error('Version check returned HTTP ' + response.status);
+    const data = await response.json();
+    if (!data || typeof data.commit !== 'string' || !data.commit) {
+      throw new Error('Invalid VOX version response');
+    }
+    return data.commit;
+  }
+
+  async function checkForUpdate() {
+    if (checking || updateAvailable) return;
+    checking = true;
+    try {
+      const publishedCommit = await readPublishedVersion();
+      if (!baselineCommit) {
+        baselineCommit = publishedCommit;
+      } else if (publishedCommit !== baselineCommit) {
+        updateAvailable = true;
+        overlay.classList.add('vox-visible');
+      }
+    } catch (error) {
+      console.debug('VOX update check will retry:', error);
+    } finally {
+      checking = false;
+    }
+  }
+
+  updateButton.addEventListener('click', () => {
+    if (!updateAvailable) return;
+    card.style.display = 'none';
+    loading.classList.add('vox-visible');
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('vox_refresh', String(Date.now()));
+    window.setTimeout(() => window.location.replace(nextUrl.toString()), 15000);
+  });
+
+  checkForUpdate();
+  window.setInterval(checkForUpdate, CHECK_INTERVAL_MS);
+})();
+/* ===== END VOX AUTO UPDATE SYSTEM ===== */
+</script>
+
 </body>
 </html>
