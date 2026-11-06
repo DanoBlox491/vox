@@ -1,11 +1,12 @@
 const { app, BrowserWindow, shell, session, desktopCapturer, ipcMain, dialog, Menu } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
+const os = require("node:os");
 
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, "app-config.json"), "utf8"));
 const appUrl = new URL(config.appUrl);
 const authDomain = config.firebaseAuthDomain || "vox-chat-979fd.firebaseapp.com";
-const defaults = { hardwareAcceleration: true, lowLatency: false, disableAnimations: false, microphoneEnabled: true, cameraEnabled: true };
+const defaults = { hardwareAcceleration: true, lowLatency: false, cpuBoost: false, disableAnimations: false, microphoneEnabled: true, cameraEnabled: true };
 const settingsFile = path.join(app.getPath("userData"), "settings.json");
 function readSettings() {
   try { return { ...defaults, ...JSON.parse(fs.readFileSync(settingsFile, "utf8")) }; }
@@ -27,6 +28,19 @@ function saveSettings(patch) {
   fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2), "utf8");
   return settings;
 }
+function applyCpuBoost() {
+  // Raise VOX-owned Electron processes to HIGH priority (never REALTIME).
+  // This changes scheduler priority; it does not overclock the CPU or change its power limit.
+  const priority = settings.cpuBoost ? os.constants.priority.PRIORITY_HIGH : os.constants.priority.PRIORITY_NORMAL;
+  const failures = [];
+  for (const metric of app.getAppMetrics()) {
+    try { os.setPriority(metric.pid, priority); }
+    catch (error) { failures.push({ pid: metric.pid, message: error.message }); }
+  }
+  if (failures.length) console.warn("VOX CPU priority could not be changed for every process:", failures);
+  return failures.length === 0;
+}
+
 function isTrusted(url) {
   try { return new URL(url).origin === appUrl.origin && new URL(url).protocol === "https:"; }
   catch { return false; }
@@ -85,13 +99,21 @@ async function createMainWindow() {
 ipcMain.handle("vox:settings:get", () => settings);
 ipcMain.handle("vox:settings:update", (_event, patch) => {
   const before = settings;
-  const next = saveSettings(patch);
+  const safePatch = {};
+  if (patch && typeof patch === "object" && !Array.isArray(patch)) {
+    for (const key of Object.keys(defaults)) if (typeof patch[key] === "boolean") safePatch[key] = patch[key];
+  }
+  const next = saveSettings(safePatch);
   const hardwareChanged = before.hardwareAcceleration !== next.hardwareAcceleration;
   const latencyChanged = before.lowLatency !== next.lowLatency;
   if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send("vox:settings:sync", next);
+  if (Object.prototype.hasOwnProperty.call(safePatch, "cpuBoost")) {
+    const applied = applyCpuBoost();
+    if (!applied) console.warn("VOX CPU boost preference saved, but one or more process priorities could not be changed.");
+  }
   // Apply device preference changes to an already-open VOX page as well as future permission requests.
   if (mainWindow && !mainWindow.isDestroyed()) {
-    for (const [key, value] of Object.entries(safe)) {
+    for (const [key, value] of Object.entries(safePatch)) {
       if (key === "microphoneEnabled" || key === "cameraEnabled") {
         const script = "if (typeof window.setVoxPreference === 'function') window.setVoxPreference(" + JSON.stringify(key) + "," + JSON.stringify(value) + ");";
         mainWindow.webContents.executeJavaScript(script).catch((error) => console.warn("Could not sync VOX device preference", error));
@@ -104,6 +126,10 @@ ipcMain.handle("vox:restart", () => { app.relaunch(); app.exit(0); });
 
 app.whenReady().then(async () => {
   createMenu();
+  applyCpuBoost();
+  app.on("browser-window-created", (_event, win) => {
+    win.webContents.once("did-finish-load", () => applyCpuBoost());
+  });
   session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback, details) => {
     if (permission === "media") {
       const types = Array.isArray(details?.mediaTypes) ? details.mediaTypes : [];
