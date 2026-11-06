@@ -1,9 +1,10 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator, Alert, AppState, FlatList, Image, KeyboardAvoidingView,
-  Platform, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet,
-  Text, TextInput, View, useWindowDimensions
+  Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet,
+  Switch, Text, TextInput, View, useWindowDimensions
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import {
   collection, doc, getDoc, onSnapshot, query, serverTimestamp, setDoc, where
@@ -28,6 +29,18 @@ type MainTab = "friends" | "groups" | "servers";
 
 function initials(value: string): string {
   return value.trim().slice(0, 1).toUpperCase() || "V";
+}
+
+function SettingRow({ title, description, value, onValueChange }: { title: string; description: string; value: boolean; onValueChange: (value: boolean) => void }): React.JSX.Element {
+  return (
+    <View style={styles.settingRow}>
+      <View style={styles.settingCopy}>
+        <Text style={styles.settingRowTitle}>{title}</Text>
+        <Text style={styles.settingRowDescription}>{description}</Text>
+      </View>
+      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: "#34445B", true: "#087D9B" }} thumbColor={value ? CYAN : "#D4DCE8"} />
+    </View>
+  );
 }
 
 function Avatar({ uri, label, size = 44 }: { uri?: string; label: string; size?: number }) {
@@ -176,6 +189,23 @@ function AuthScreen(): React.JSX.Element {
           <Text style={styles.footerText}>One VOX account across your devices.</Text>
         </View>
       </ScrollView>
+      <Modal visible={settingsVisible} transparent animationType={performancePrefs.disableAnimations ? "none" : "fade"} onRequestClose={() => setSettingsVisible(false)}>
+        <View style={styles.settingsBackdrop}>
+          <View style={styles.settingsCard}>
+            <Text style={styles.settingsTitle}>VOX Settings</Text>
+            <Text style={styles.settingsDescription}>Performance and device preferences · saved on this device</Text>
+            <SettingRow title="Low Latency Profile" description="Uses a lighter message-list rendering profile." value={performancePrefs.lowLatency} onValueChange={(value) => updatePerformancePref("lowLatency", value)} />
+            <SettingRow title="Disable Animation Effects" description="Disables the settings dialog transition. Chat messages currently use no entrance animation." value={performancePrefs.disableAnimations} onValueChange={(value) => updatePerformancePref("disableAnimations", value)} />
+            <SettingRow title="Microphone enabled for calls" description="Saved preference for native calling when it is implemented." value={performancePrefs.microphoneEnabled} onValueChange={(value) => updatePerformancePref("microphoneEnabled", value)} />
+            <SettingRow title="Camera enabled for calls" description="Saved preference for native calling when it is implemented." value={performancePrefs.cameraEnabled} onValueChange={(value) => updatePerformancePref("cameraEnabled", value)} />
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingInfoTitle}>Hardware acceleration</Text>
+              <Text style={styles.settingInfoText}>Managed by Android/iOS and the app runtime. VOX cannot safely toggle the device GPU setting from this screen.</Text>
+            </View>
+            <Pressable onPress={() => setSettingsVisible(false)} style={styles.settingsDone}><Text style={styles.settingsDoneText}>Done</Text></Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -241,6 +271,33 @@ export default function App(): React.JSX.Element {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [listError, setListError] = useState("");
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [performancePrefs, setPerformancePrefs] = useState({
+    lowLatency: false,
+    disableAnimations: false,
+    microphoneEnabled: true,
+    cameraEnabled: true
+  });
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem("vox:performance-preferences").then((raw) => {
+      if (!active || !raw) return;
+      try {
+        const saved = JSON.parse(raw);
+        setPerformancePrefs((current) => ({ ...current, ...saved }));
+      } catch { /* Ignore invalid local preferences. */ }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const updatePerformancePref = useCallback((key: keyof typeof performancePrefs, value: boolean) => {
+    setPerformancePrefs((current) => {
+      const next = { ...current, [key]: value };
+      AsyncStorage.setItem("vox:performance-preferences", JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     return onAuthStateChanged(auth, (user) => {
@@ -521,9 +578,14 @@ export default function App(): React.JSX.Element {
                   <Text style={styles.sidebarCaption}>MOBILE</Text>
                 </View>
               </View>
-              <Pressable onPress={logout} style={styles.logoutButton}>
-                <Text style={styles.logoutText}>Sign out</Text>
-              </Pressable>
+              <View style={styles.headerActions}>
+                <Pressable onPress={() => setSettingsVisible(true)} style={styles.settingsButton}>
+                  <Text style={styles.settingsButtonText}>⚙ Settings</Text>
+                </Pressable>
+                <Pressable onPress={logout} style={styles.logoutButton}>
+                  <Text style={styles.logoutText}>Sign out</Text>
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.accountBar}>
@@ -675,10 +737,10 @@ export default function App(): React.JSX.Element {
                   data={messages}
                   inverted
                   keyExtractor={(item) => item.id}
-                  initialNumToRender={12}
-                  maxToRenderPerBatch={8}
-                  updateCellsBatchingPeriod={50}
-                  windowSize={7}
+                  initialNumToRender={performancePrefs.lowLatency ? 8 : 12}
+                  maxToRenderPerBatch={performancePrefs.lowLatency ? 6 : 8}
+                  updateCellsBatchingPeriod={performancePrefs.lowLatency ? 35 : 50}
+                  windowSize={performancePrefs.lowLatency ? 5 : 7}
                   removeClippedSubviews={Platform.OS === "android"}
                   keyboardShouldPersistTaps="handled"
                   renderItem={renderMessage}
@@ -756,7 +818,23 @@ const styles = StyleSheet.create({
   smallBrandText: { color: "#087D9B", fontWeight: "900", fontSize: 25 },
   sidebarBrand: { color: TEXT, fontSize: 19, letterSpacing: 3, fontWeight: "900" },
   sidebarCaption: { color: MUTED, fontSize: 8, letterSpacing: 2, fontWeight: "900" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 7 },
+  settingsButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: "#30506B", backgroundColor: PANEL },
+  settingsButtonText: { color: CYAN, fontSize: 11, fontWeight: "800" },
   logoutButton: { paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: LINE },
+  settingsBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.72)", justifyContent: "center", padding: 18 },
+  settingsCard: { width: "100%", maxWidth: 520, alignSelf: "center", backgroundColor: PANEL, borderWidth: 1, borderColor: LINE, borderRadius: 20, padding: 18 },
+  settingsTitle: { color: TEXT, fontSize: 21, fontWeight: "900" },
+  settingsDescription: { color: MUTED, fontSize: 11, marginTop: 5, marginBottom: 10, lineHeight: 17 },
+  settingRow: { minHeight: 68, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, borderBottomWidth: 1, borderBottomColor: LINE, paddingVertical: 10 },
+  settingCopy: { flex: 1, minWidth: 0 },
+  settingRowTitle: { color: TEXT, fontSize: 13, fontWeight: "800" },
+  settingRowDescription: { color: MUTED, fontSize: 10, lineHeight: 15, marginTop: 4 },
+  settingInfo: { paddingVertical: 12, gap: 5 },
+  settingInfoTitle: { color: TEXT, fontSize: 12, fontWeight: "800" },
+  settingInfoText: { color: MUTED, fontSize: 10, lineHeight: 15 },
+  settingsDone: { minHeight: 44, borderRadius: 12, backgroundColor: CYAN, alignItems: "center", justifyContent: "center", marginTop: 8 },
+  settingsDoneText: { color: BG, fontSize: 13, fontWeight: "900" },
   logoutText: { color: MUTED, fontSize: 11, fontWeight: "800" },
   accountBar: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8, marginBottom: 16, padding: 12, borderRadius: 15, backgroundColor: PANEL },
   accountCopy: { flex: 1 },
