@@ -1,53 +1,63 @@
 # VOX Mobile
 
-Native Android and iOS client for VOX. This is a separate project from the GitHub Pages website and the Windows Electron app.
+A separate native React Native app for Android phones, iPhone, and tablets. It lives in its own `mobile/` directory and does not replace the existing website or Windows desktop app.
 
-## Current foundation
+## Technology
 
-- Expo SDK 58 / React Native 0.88.
-- Adaptive phone and tablet layout.
-- Existing VOX Firebase project: `vox-chat-979fd`.
-- Firebase Authentication with persistent native storage.
-- Existing Firestore collections and field names:
-  - `vox_users`
-  - `vox_servers`
-  - `vox_channels`
-  - `vox_groups`
-  - `vox_messages`
-- Live Firestore listeners for the signed-in profile, servers, groups, and the active conversation.
-- Email/password sign-in, username sign-in, and email/password account creation.
+- Expo SDK 58 and React Native 0.88
+- TypeScript
+- Firebase JavaScript SDK 13
+- Existing Firebase project: `vox-chat-979fd`
+- Persistent sign-in using AsyncStorage
+- Native React Native UI, not a WebView wrapper
+- Expo development client for native-module support
+
+## Implemented foundation
+
+- Email/password sign-in and account creation
+- Sign-in using an existing VOX username or email
+- Persistent sign-in between app launches
+- Existing VOX profile documents in `vox_users`
+- Mutual-friend list with friend/block checks
+- Existing servers, groups, and server channels
+- Real-time text messages using `vox_messages`
+- Existing DM room IDs and message document fields
+- Adaptive phone navigation and two-pane tablet layout
+- Online/away/offline presence in `vox_presence`
+
+## Still to build
+
+- Native voice/video calling with WebRTC
+- Native push notifications
+- Google and Apple native sign-in
+- Native media/file uploads and richer message rendering
+- Friend requests, profile editing, and server/group creation controls
+
+The voice-channel screen is currently a placeholder and does not start a call yet.
 
 ## Requirements
 
-- Node.js 22.13 or newer.
-- npm.
-- For local Android builds: Android Studio and an Android SDK.
-- For local iOS builds: macOS with Xcode. An EAS cloud build can build iOS from other operating systems.
+Use Node.js 22.13+ and npm.
 
-## Install and run
+## Run locally on Windows
 
-From this directory:
+1. Open CMD in the `mobile` directory.
+2. Copy `.env.example` to `.env`.
+3. Run `npm install`.
+4. Run `npx expo install --fix`.
+5. Run `npm run typecheck`.
+6. Run `npm start` and open the project with a matching VOX development build.
 
-```sh
-npm install
-npx expo install --fix
-npm run doctor
-npm start
-```
-
-The project uses a development client. Expo SDK 58 and native modules should be run with a matching development build, not an older Expo Go client.
+SDK 58 requires Node.js 22.13 or newer. Use a development build for real-device work and the upcoming WebRTC/push modules.
 
 ## Development builds
-
-Install and sign in to EAS CLI:
 
 ```sh
 npm install --global eas-cli
 eas login
-eas build:configure
 ```
 
-Build a development client:
+Build development clients:
 
 ```sh
 eas build --profile development --platform android
@@ -60,22 +70,16 @@ For an Android preview APK:
 eas build --profile preview --platform android
 ```
 
-## Firebase setup and compatibility
+EAS cloud builds can create iOS binaries without a local Mac, but Apple signing and distribution requirements still apply.
 
-The mobile client intentionally uses the same Firebase project and public Firebase web-app configuration as the existing VOX website. It writes and reads the existing VOX document shapes; it does not create a new backend or migrate user data.
+## Firebase compatibility
 
-The Firebase web API key in `src/firebase.ts` is an app identifier, not an Admin SDK credential. Do not add service-account JSON, Admin SDK private keys, or other server secrets to this mobile app. Firestore and Storage Security Rules must continue to enforce access.
+The app connects to the same Firebase project and collections as VOX Web. It does not create a new Firebase project or migrate user data. Existing Firestore security rules continue to apply.
 
-Google sign-in needs Android/iOS OAuth client configuration for the new native bundle identifiers. It is not enabled in this first scaffold yet; email/password and username-based sign-in are implemented first.
+The public Firebase client configuration is supplied with `EXPO_PUBLIC_` environment variables. The `.env` file is ignored by Git. Never put service-account credentials or Admin SDK private keys in a mobile app.
 
-## Milestones
+Google sign-in needs native Android/iOS OAuth client configuration for the new bundle identifiers. It is not enabled yet; email/password and username-based sign-in are implemented first.
 
-1. **Foundation (this commit):** native sign-in, adaptive shell, live friend/group/server lists, and active-room text messaging.
-2. **Messaging parity:** friend requests, unread counts, typing, message reactions/edits/deletes, image and file uploads.
-3. **Calls:** native WebRTC audio/video using the existing `vox_calls` documents and `signals` subcollection. A custom Expo development build is required for native WebRTC modules.
-4. **Notifications:** native push notifications and deep links into the correct room.
-5. **Release:** Android and iOS store builds, privacy disclosures, and device testing.
+## Calls and notifications
 
-## Important
-
-The current native screen is an initial working foundation, not yet feature-parity with VOX Web. Voice/video, Google sign-in, attachments, and push notifications are tracked above and should not be advertised as complete until tested on real devices.
+See [CALLS-AND-NOTIFICATIONS.md](./CALLS-AND-NOTIFICATIONS.md). The mobile call implementation will preserve VOX's existing `vox_calls` signalling room shape and add TURN relay support before claiming reliable calls across mobile networks.

@@ -1,6 +1,7 @@
-import type { Timestamp } from 'firebase/firestore';
+import type { User } from "firebase/auth";
+import type { Timestamp } from "firebase/firestore";
 
-export interface VoxProfile {
+export type VoxProfile = {
   displayName?: string;
   username?: string;
   email?: string;
@@ -10,57 +11,29 @@ export interface VoxProfile {
   friendRequests?: string[];
   blockedUsers?: string[];
   socials?: { yt?: string; discord?: string };
-}
+};
 
-export interface VoxFriend extends VoxProfile {
-  uid: string;
-}
+export type FriendProfile = VoxProfile & { id: string };
+export type VoxServer = { id: string; name: string; owner?: string };
+export type VoxGroup = { id: string; name: string; members?: string[]; createdBy?: string };
+export type VoxChannel = { id: string; name: string; type: "text" | "voice" | string; serverId: string };
 
-export interface VoxServer {
-  id: string;
-  name?: string;
-  owner?: string;
-}
+export type ChatTarget =
+  | { kind: "dm"; id: string; title: string; subtitle: string }
+  | { kind: "group"; id: string; title: string; subtitle: string }
+  | { kind: "channel"; id: string; title: string; subtitle: string; serverId: string }
+  | { kind: "voice"; id: string; title: string; subtitle: string; serverId: string };
 
-export interface VoxGroup {
-  id: string;
-  name?: string;
-  members?: string[];
-  createdBy?: string;
-}
-
-export interface VoxChannel {
-  id: string;
-  name?: string;
-  serverId?: string;
-  type?: 'text' | 'voice' | string;
-}
-
-export interface VoxMessage {
+export type VoxMessage = {
   id: string;
   senderUid?: string;
   sender?: string;
   senderPhoto?: string;
   text?: string;
-  timestamp?: Timestamp | null;
   mediaUrl?: string;
   mediaType?: string;
-  reactions?: Record<string, string[]>;
-  dmId?: string;
-  dmMembers?: string[];
-  groupId?: string;
-  serverId?: string;
-  channel?: string;
-}
+  timestamp?: Timestamp;
+  clientTimestamp?: number;
+};
 
-export type ChatTarget =
-  | { kind: 'dm'; id: string; title: string; roomKey: string }
-  | { kind: 'group'; id: string; title: string; roomKey: string }
-  | {
-      kind: 'channel';
-      id: string;
-      serverId: string;
-      title: string;
-      channelType: string;
-      roomKey: string;
-    };
+export type AuthUser = User;
