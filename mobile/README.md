@@ -46,6 +46,8 @@ Use Node.js 22.13+ (or a currently supported even-numbered LTS release) and npm.
 4. Run npx expo start.
 5. Scan the QR code with an Expo Go build that supports SDK 58. If your installed Expo Go has not updated to SDK 58, use an EAS development build.
 
+For a native development build (needed for the upcoming WebRTC and push-notification modules), first install the development client: npx expo install expo-dev-client.
+
 For an Android development build:
 - Install EAS CLI: npm install --global eas-cli
 - Sign in: eas login
