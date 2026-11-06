@@ -12,22 +12,47 @@
   },
   "devDependencies": {
     "electron": "^36.0.0",
-    "electron-builder": "^26.0.12",
-    "electron-updater": "^6.6.2"
+    "electron-builder": "^26.0.12"
   },
   "build": {
     "appId": "isroot.vox.desktop",
     "productName": "VOX",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "preload.js", "settings.html", "settings.js", "app-config.json", "package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "settings.html",
+      "settings.js",
+      "app-config.json",
+      "package.json"
+    ],
     "asar": true,
     "compression": "maximum",
-    "publish": [{ "provider": "github", "owner": "DanoBlox491", "repo": "vox", "releaseType": "release" }],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "DanoBlox491",
+        "repo": "vox",
+        "releaseType": "release"
+      }
+    ],
     "win": {
-      "target": ["nsis", "portable"],
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "artifactName": "VOX-${version}-${arch}.${ext}",
       "signAndEditExecutable": false
     },
-    "nsis": { "oneClick": true, "perMachine": false, "allowToChangeInstallationDirectory": false }
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
   }
 }
