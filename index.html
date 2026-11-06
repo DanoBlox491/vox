@@ -140,7 +140,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 .load-older-btn{width:auto;padding:9px 16px;font-size:12px;background:var(--p3);border:1px solid var(--p4);box-shadow:none;color:var(--txt-dim);}
 .load-older-btn:disabled{opacity:.65;cursor:wait;}
 
-.msg{display:flex;gap:12px;margin-bottom:18px;animation:slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);padding:12px;border-radius:12px;transition:all 0.2s;border-left:3px solid transparent;position:relative;}
+.msg{display:flex;gap:12px;margin-bottom:18px;padding:12px;border-radius:12px;border-left:3px solid transparent;position:relative;contain:layout style;}
 .msg:hover{background:rgba(0, 212, 255, 0.03);border-left-color:var(--blue);box-shadow:0 4px 15px rgba(0, 212, 255, 0.1);}
 @keyframes slideIn{from{opacity:0;transform:translateY(10px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 .msg .avatar{width:40px;height:40px}
@@ -1760,7 +1760,39 @@ async function joinVoice() {
   if (activeCallRoom === roomKey) return toast('Already in this call.');
   if (activeCallRoom) await leaveVoice();
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        return toast('Voice requires HTTPS and browser media permissions.');
+    return toast('Calls require HTTPS and browser microphone/camera permissions.');
+  }
+
+  // Ask for microphone and camera separately so users can allow one and deny the other.
+  const requestedTracks = [];
+  let microphoneGranted = false;
+  let cameraGranted = false;
+
+  try {
+    const audioStream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+    requestedTracks.push(...audioStream.getAudioTracks());
+    microphoneGranted = requestedTracks.some(track => track.kind === 'audio');
+  } catch (error) {
+    console.info('VOX microphone permission was not granted:', error);
+  }
+
+  try {
+    const videoStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
+    requestedTracks.push(...videoStream.getVideoTracks());
+    cameraGranted = requestedTracks.some(track => track.kind === 'video');
+  } catch (error) {
+    console.info('VOX camera permission was not granted:', error);
+  }
+
+  localStream = new MediaStream(requestedTracks);
+  if (!cameraGranted) createDummyVideoTrack();
+
+  if (!microphoneGranted && !cameraGranted) {
+    toast('Mic and camera are off. You joined in listen-only mode.');
+  } else if (!microphoneGranted) {
+    toast('Microphone is off. You joined with camera only.');
+  } else if (!cameraGranted) {
+    toast('Camera is off. You joined with microphone only.');
   }
 
   activeCallRoom = roomKey;
@@ -1769,25 +1801,6 @@ async function joinVoice() {
   $('call-widget-title').textContent = `📹 Call: ${roomKey.startsWith('dm_') ? 'DM' : 'Room'}`;
 
   try {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
-    } catch (bothError) {
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({audio: true});
-        toast('Camera unavailable. Joined with microphone only.');
-        createDummyVideoTrack();
-      } catch (audioError) {
-        try {
-          localStream = await navigator.mediaDevices.getUserMedia({video: true});
-          toast('Microphone unavailable. Joined with camera only.');
-        } catch (videoError) {
-          localStream = new MediaStream();
-          toast('Microphone and camera unavailable. Joining in listen-only mode.');
-          createDummyVideoTrack();
-        }
-      }
-    }
-
     addVideoToGrid('local-video', localStream, 'You (Me)');
     const callRef = db.collection('vox_calls').doc(roomKey);
     const snap = await callRef.get();
@@ -2000,37 +2013,78 @@ async function leaveVoice() {
       console.warn('Could not update call membership while leaving:', error);
           }
   }
+  const shareButton = $('call-controls')?.querySelector('button');
+  if (shareButton) shareButton.textContent = 'Share Screen';
   $('call-widget').classList.add('hidden');
   $('video-grid').innerHTML = '';
 }
 
-async function toggleScreen() {
-  if (!localStream) return toast('Wait for mic/camera to load');
-  try {
-    const screen = await navigator.mediaDevices.getDisplayMedia({video: true});
-    activeScreenStream = screen;
-    const screenTrack = screen.getVideoTracks()[0];
+async function restoreCameraAfterScreenShare() {
+  const cameraTrack = localStream?.getVideoTracks()[0] || null;
+  await Promise.allSettled(Object.values(peers).map(async peer => {
+    const sender = peer.pc.getSenders().find(item => item.track?.kind === 'video');
+    if (sender) await sender.replaceTrack(cameraTrack);
+  }));
+  const localVid = $('local-video');
+  if (localVid && localStream) localVid.srcObject = localStream;
+  const button = $('call-controls')?.querySelector('button');
+  if (button) button.textContent = 'Share Screen';
+}
 
-    Object.values(peers).forEach(p => {
-      const sender = p.pc.getSenders().find(s => s.track?.kind === 'video');
-      if (sender) sender.replaceTrack(screenTrack);
-      else p.pc.addTrack(screenTrack, screen);
+async function toggleScreen() {
+  if (!localStream || !activeCallRoom) return toast('Join a call before sharing your screen.');
+  if (activeScreenStream) {
+    activeScreenStream.getTracks().forEach(track => {
+      try { track.stop(); } catch (_) {}
     });
+    activeScreenStream = null;
+    await restoreCameraAfterScreenShare();
+    return;
+  }
+
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    return toast('Screen sharing is not supported by this browser/device. Try desktop Chrome or Edge.');
+  }
+
+  try {
+    const screen = await navigator.mediaDevices.getDisplayMedia({
+      video: {frameRate: {ideal: 15, max: 30}},
+      audio: false
+    });
+    const screenTrack = screen.getVideoTracks()[0];
+    if (!screenTrack) {
+      screen.getTracks().forEach(track => track.stop());
+      return toast('No screen was selected for sharing.');
+    }
+
+    activeScreenStream = screen;
+    screenTrack.contentHint = 'detail';
+
+    await Promise.allSettled(Object.values(peers).map(async peer => {
+      const sender = peer.pc.getSenders().find(item => item.track?.kind === 'video');
+      if (sender) {
+        await sender.replaceTrack(screenTrack);
+      } else {
+        // The local preview track normally creates this sender during call setup.
+        peer.pc.addTrack(screenTrack, screen);
+      }
+    }));
 
     const localVid = $('local-video');
     if (localVid) localVid.srcObject = screen;
+    const button = $('call-controls')?.querySelector('button');
+    if (button) button.textContent = 'Stop Sharing';
 
-    screenTrack.onended = () => { 
+    screenTrack.onended = async () => {
       activeScreenStream = null;
-      if (!localStream) return;
-      const camTrack = localStream.getVideoTracks()[0];
-      Object.values(peers).forEach(p => {
-        const sender = p.pc.getSenders().find(s => s.track?.kind === 'video');
-        if (sender && camTrack) sender.replaceTrack(camTrack);
-      });
-      if (localVid && camTrack) localVid.srcObject = localStream;
+      await restoreCameraAfterScreenShare();
     };
-  } catch (e) { toast('Screen share failed'); }
+    toast('Screen sharing started. Use Stop Sharing or the browser sharing bar to end it.');
+  } catch (error) {
+    console.warn('VOX screen share was cancelled or failed:', error);
+    if (error?.name === 'NotAllowedError') toast('Screen sharing was cancelled or permission was denied.');
+    else toast('Could not start screen sharing on this device/browser.');
+  }
 }
 
 function toggleFullscreen(vidId) {
