@@ -725,6 +725,7 @@ export default function App(): React.JSX.Element {
                   maxToRenderPerBatch={performancePrefs.lowLatency ? 6 : 8}
                   updateCellsBatchingPeriod={performancePrefs.lowLatency ? 35 : 50}
                   windowSize={performancePrefs.lowLatency ? 5 : 7}
+                  maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
                   removeClippedSubviews={Platform.OS === "android"}
                   keyboardShouldPersistTaps="handled"
                   renderItem={renderMessage}
