@@ -9,7 +9,11 @@
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.voxchat.mobile"
+      "bundleIdentifier": "com.voxchat.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "VOX uses your camera when you choose to join a video call.",
+        "NSMicrophoneUsageDescription": "VOX uses your microphone when you choose to join a voice or video call."
+      }
     },
     "android": {
       "package": "com.voxchat.mobile",
@@ -17,7 +21,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0E1A"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-dev-client"
