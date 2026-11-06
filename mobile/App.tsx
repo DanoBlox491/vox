@@ -189,23 +189,7 @@ function AuthScreen(): React.JSX.Element {
           <Text style={styles.footerText}>One VOX account across your devices.</Text>
         </View>
       </ScrollView>
-      <Modal visible={settingsVisible} transparent animationType={performancePrefs.disableAnimations ? "none" : "fade"} onRequestClose={() => setSettingsVisible(false)}>
-        <View style={styles.settingsBackdrop}>
-          <View style={styles.settingsCard}>
-            <Text style={styles.settingsTitle}>VOX Settings</Text>
-            <Text style={styles.settingsDescription}>Performance and device preferences · saved on this device</Text>
-            <SettingRow title="Low Latency Profile" description="Uses a lighter message-list rendering profile." value={performancePrefs.lowLatency} onValueChange={(value) => updatePerformancePref("lowLatency", value)} />
-            <SettingRow title="Disable Animation Effects" description="Disables the settings dialog transition. Chat messages currently use no entrance animation." value={performancePrefs.disableAnimations} onValueChange={(value) => updatePerformancePref("disableAnimations", value)} />
-            <SettingRow title="Microphone enabled for calls" description="Saved preference for native calling when it is implemented." value={performancePrefs.microphoneEnabled} onValueChange={(value) => updatePerformancePref("microphoneEnabled", value)} />
-            <SettingRow title="Camera enabled for calls" description="Saved preference for native calling when it is implemented." value={performancePrefs.cameraEnabled} onValueChange={(value) => updatePerformancePref("cameraEnabled", value)} />
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingInfoTitle}>Hardware acceleration</Text>
-              <Text style={styles.settingInfoText}>Managed by Android/iOS and the app runtime. VOX cannot safely toggle the device GPU setting from this screen.</Text>
-            </View>
-            <Pressable onPress={() => setSettingsVisible(false)} style={styles.settingsDone}><Text style={styles.settingsDoneText}>Done</Text></Pressable>
-          </View>
-        </View>
-      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -781,6 +765,23 @@ export default function App(): React.JSX.Element {
           </View>
         ) : null}
       </View>
+      <Modal visible={settingsVisible} transparent animationType={performancePrefs.disableAnimations ? "none" : "fade"} onRequestClose={() => setSettingsVisible(false)}>
+        <View style={styles.settingsBackdrop}>
+          <View style={styles.settingsCard}>
+            <Text style={styles.settingsTitle}>VOX Settings</Text>
+            <Text style={styles.settingsDescription}>Performance and device preferences · saved on this device</Text>
+            <SettingRow title="Low Latency Profile" description="Uses a lighter message-list rendering profile." value={performancePrefs.lowLatency} onValueChange={(value) => updatePerformancePref("lowLatency", value)} />
+            <SettingRow title="Disable Animation Effects" description="Disables the settings dialog transition. Chat messages currently use no entrance animation." value={performancePrefs.disableAnimations} onValueChange={(value) => updatePerformancePref("disableAnimations", value)} />
+            <SettingRow title="Microphone enabled for calls" description="Saved preference for native calling when it is implemented." value={performancePrefs.microphoneEnabled} onValueChange={(value) => updatePerformancePref("microphoneEnabled", value)} />
+            <SettingRow title="Camera enabled for calls" description="Saved preference for native calling when it is implemented." value={performancePrefs.cameraEnabled} onValueChange={(value) => updatePerformancePref("cameraEnabled", value)} />
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingInfoTitle}>Hardware acceleration</Text>
+              <Text style={styles.settingInfoText}>Managed by Android/iOS and the app runtime. VOX cannot safely toggle the device GPU setting from this screen.</Text>
+            </View>
+            <Pressable onPress={() => setSettingsVisible(false)} style={styles.settingsDone}><Text style={styles.settingsDoneText}>Done</Text></Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
