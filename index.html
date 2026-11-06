@@ -271,6 +271,72 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 
 .spinner{width:50px;height:50px;border:5px solid var(--p3);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:40px auto;}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== Responsive phone layout ===== */
+@media(max-width:600px){
+  html,body{width:100%;max-width:100%;overflow:hidden}
+  #getStarted{
+    overflow-x:hidden;
+    overflow-y:auto;
+    justify-content:flex-start;
+    align-items:stretch;
+    padding:18px 0 calc(18px + env(safe-area-inset-bottom));
+  }
+  .get-started-content{width:100%;margin:auto;padding:18px 14px}
+  .gs-logo-container{gap:12px;margin-bottom:24px}
+  .gs-logo{width:70px;height:70px}
+  .gs-title{font-size:clamp(34px,11vw,44px);letter-spacing:2px}
+  .gs-subtitle{font-size:12px;letter-spacing:1px}
+  .auth-container{grid-template-columns:minmax(0,1fr);gap:14px;margin-top:24px}
+  .auth-card{min-width:0;padding:20px;border-radius:18px}
+  .auth-card h2{font-size:22px;margin-bottom:16px}
+  .wifi-notice{max-width:100%;font-size:12px;padding:10px 12px;line-height:1.5}
+  #installAppBtn{max-width:100%!important}
+  #app{width:100%;max-width:100%;min-width:0;height:100dvh;grid-template-columns:70px minmax(0,1fr);overflow:hidden}
+  #rail{width:70px;min-width:70px;padding:10px 0 calc(10px + env(safe-area-inset-bottom));gap:8px}
+  #side2{left:-280px;width:min(280px,calc(100vw - 70px));max-width:calc(100vw - 70px);height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+  #side2.open{left:70px;width:min(280px,calc(100vw - 70px))}
+  #main{min-width:0;width:100%;height:100dvh;overflow:hidden}
+  #top{width:100%;min-width:0;flex-wrap:wrap;gap:8px;padding:11px 10px;align-items:center}
+  #topTitle{flex:1 1 auto;min-width:0;font-size:14px;overflow-wrap:anywhere}
+  #topBtns{order:3;flex:1 1 100%;width:100%;min-width:0;justify-content:flex-start;gap:6px}
+  #topBtns button{width:auto;max-width:100%;padding:7px 10px;font-size:11px;white-space:normal}
+  #downloadVoxBtn{flex:0 0 auto;max-width:48%;padding:8px 9px;gap:5px;font-size:10px;white-space:normal;text-align:center}
+  #downloadVoxBtn span:last-child{overflow-wrap:anywhere}
+  #msgs{width:100%;min-width:0;padding:12px 10px;overflow-x:hidden;overflow-y:auto}
+  .msg{min-width:0;max-width:100%;gap:9px;padding:9px 7px;margin-bottom:10px}
+  .msg .body{min-width:0;overflow-wrap:anywhere}
+  .msg img.m,.msg video{max-width:100%;height:auto}
+  .filecard{width:100%;max-width:100%;min-width:0}
+  #composer{
+    width:100%;min-width:0;gap:6px;
+    padding:9px 8px calc(9px + env(safe-area-inset-bottom));
+  }
+  #composer input#text{
+    flex:1 1 0;width:0;min-width:0;
+    padding:12px 10px;font-size:16px;
+  }
+  #composer button{width:auto;flex:0 0 auto;padding:10px 11px;white-space:nowrap;font-size:13px}
+  #plus,#emoji-btn{width:42px;height:44px;flex:0 0 42px;padding:0;font-size:20px}
+  #menu{left:8px;right:8px;bottom:calc(68px + env(safe-area-inset-bottom));max-width:calc(100% - 16px)}
+  #emoji-menu{left:8px;right:8px;bottom:calc(68px + env(safe-area-inset-bottom));width:auto;max-width:calc(100% - 16px)}
+  #emoji-autocomplete{left:8px;right:8px;bottom:calc(68px + env(safe-area-inset-bottom));max-width:calc(100% - 16px)}
+  #call-widget{width:calc(100% - 24px);left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));max-height:60dvh;overflow:auto}
+  .modal{overflow-y:auto;align-items:start;padding:12px}
+  .modal-inner{width:100%;max-width:500px;margin:auto;padding:20px}
+}
+@media(max-width:380px){
+  #app{grid-template-columns:60px minmax(0,1fr)}
+  #rail{width:60px;min-width:60px}
+  .ico{width:42px;height:42px;font-size:17px}
+  #side2{left:-260px;width:min(260px,calc(100vw - 60px));max-width:calc(100vw - 60px)}
+  #side2.open{left:60px;width:min(260px,calc(100vw - 60px))}
+  #downloadVoxBtn{max-width:46%;font-size:9px;padding:7px 6px}
+  #composer{gap:4px;padding-left:6px;padding-right:6px}
+  #plus,#emoji-btn{width:38px;height:42px;flex-basis:38px}
+  #composer button{padding-left:8px;padding-right:8px}
+}
+
 </style>
 </head>
 <body>
