@@ -1,4 +1,4 @@
-const keys=["hardwareAcceleration","lowLatency","disableAnimations","microphoneEnabled","cameraEnabled"];
+const keys=["hardwareAcceleration","lowLatency","cpuBoost","disableAnimations","microphoneEnabled","cameraEnabled"];
 const controls=Object.fromEntries(keys.map(key=>[key,document.getElementById(key)]));
 const notice=document.getElementById("restartNotice"),status=document.getElementById("status");
 let current={};
