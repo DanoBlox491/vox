@@ -33,7 +33,9 @@ h2{margin:0;font-size:20px;font-weight:850}
 .status{min-height:74px;color:var(--muted);line-height:1.7;font-size:13px;padding:15px 16px;border:1px solid var(--line);border-radius:13px;background:rgba(3,9,18,.3);margin-bottom:17px}
 .status strong{color:var(--text)}
 .download-btn,.open-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px 18px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:850;border:0;cursor:pointer}
+.download-actions{display:grid;gap:10px}
 .download-btn{background:linear-gradient(110deg,#00d4ff,#0099cc);color:#041018;box-shadow:0 8px 28px rgba(0,212,255,.2)}
+.download-btn.portable{background:linear-gradient(110deg,#b875ff,#7c3aed);color:#fff;box-shadow:0 8px 28px rgba(168,85,247,.2)}
 .download-btn[hidden]{display:none}
 .open-btn{background:#222d43;color:#eaf4ff;border:1px solid var(--line)}
 .sub-link{display:block;text-align:center;margin-top:15px;color:#89dfff;font-size:12px;font-weight:700;text-decoration:none}
@@ -70,8 +72,11 @@ h2{margin:0;font-size:20px;font-weight:850}
         <div class="platform-icon" aria-hidden="true">🖥️</div>
         <div><h2>VOX for Windows</h2><div class="kicker" id="releaseName">Checking the latest desktop release…</div></div>
       </div>
-      <div class="status" id="releaseStatus" role="status" aria-live="polite">Checking the official VOX release page for a Windows installer.</div>
-      <a id="desktopDownload" class="download-btn" href="#" hidden>⬇ Download for Windows</a>
+      <div class="status" id="releaseStatus" role="status" aria-live="polite">Checking the official VOX release page for setup and portable downloads.</div>
+      <div class="download-actions">
+        <a id="desktopDownload" class="download-btn" href="#" hidden>⬇ Download Setup (.exe)</a>
+        <a id="portableDownload" class="download-btn portable" href="#" hidden>⚡ Download Portable (.exe)</a>
+      </div>
       <a class="sub-link" href="https://github.com/DanoBlox491/vox/releases" target="_blank" rel="noopener noreferrer">View all official releases ↗</a>
     </article>
 
@@ -97,33 +102,50 @@ h2{margin:0;font-size:20px;font-weight:850}
 (async function checkDesktopRelease(){
   const status = document.getElementById('releaseStatus');
   const name = document.getElementById('releaseName');
-  const button = document.getElementById('desktopDownload');
+  const setupButton = document.getElementById('desktopDownload');
+  const portableButton = document.getElementById('portableDownload');
+
+  function attachDownload(button, asset) {
+    if (!asset || !asset.browser_download_url) return false;
+    button.href = asset.browser_download_url;
+    button.setAttribute('download', asset.name);
+    button.hidden = false;
+    return true;
+  }
+
   try {
     const response = await fetch('https://api.github.com/repos/DanoBlox491/vox/releases/latest', {
       headers: { Accept: 'application/vnd.github+json' },
       cache: 'no-store'
     });
     if (response.status === 404) {
-      name.textContent = 'Desktop installer not published yet';
-      status.innerHTML = '<strong>Coming soon.</strong> There is no official Windows installer attached to a GitHub release yet. The download button will appear here when one is published.';
+      name.textContent = 'Windows downloads not published yet';
+      status.textContent = 'No official Windows downloads are attached to a GitHub release yet. The buttons will appear as soon as the setup and portable files are published.';
       return;
     }
     if (!response.ok) throw new Error('Release lookup returned HTTP ' + response.status);
+
     const release = await response.json();
     const assets = Array.isArray(release.assets) ? release.assets : [];
-    const installer = assets.find(a => /\.exe$/i.test(a.name)) ||
-      assets.find(a => /\.msi$/i.test(a.name)) ||
-      assets.find(a => /\.zip$/i.test(a.name));
+    const windowsAssets = assets.filter(asset => /\.exe$/i.test(asset.name) || /\.msi$/i.test(asset.name));
+    const setup = windowsAssets.find(asset => /setup/i.test(asset.name) && !/portable/i.test(asset.name)) ||
+      windowsAssets.find(asset => !/portable/i.test(asset.name) && /\.msi$/i.test(asset.name)) ||
+      windowsAssets.find(asset => !/portable/i.test(asset.name));
+    const portable = windowsAssets.find(asset => /portable/i.test(asset.name) && /\.exe$/i.test(asset.name));
+
     name.textContent = release.name || release.tag_name || 'Latest VOX desktop release';
-    if (!installer) {
-      status.innerHTML = '<strong>Release found, installer missing.</strong> This release does not contain a Windows .exe, .msi, or .zip file yet. Check back after the installer is attached.';
-      return;
+    const hasSetup = attachDownload(setupButton, setup);
+    const hasPortable = attachDownload(portableButton, portable);
+
+    if (hasSetup && hasPortable) {
+      status.textContent = 'Both Windows downloads are ready. Setup installs VOX with shortcuts; Portable runs without a normal installation.';
+    } else if (hasSetup) {
+      status.textContent = 'Setup download is ready. The portable button will appear after a portable .exe is attached to this release.';
+    } else if (hasPortable) {
+      status.textContent = 'Portable download is ready. The setup button will appear after the installer is attached to this release.';
+    } else {
+      status.textContent = 'Release found, but no Windows .exe or .msi is attached yet. Upload the setup and portable files to this release.';
     }
-    status.innerHTML = '<strong>Ready to download.</strong> ' + installer.name + ' · ' +
-      (installer.size ? (installer.size / 1048576).toFixed(1) + ' MB' : 'Windows installer');
-    button.href = installer.browser_download_url;
-    button.setAttribute('download', installer.name);
-    button.hidden = false;
   } catch (error) {
     name.textContent = 'Could not check releases';
     status.textContent = 'The release list could not be checked right now. You can still visit the official GitHub releases page using the link below.';
