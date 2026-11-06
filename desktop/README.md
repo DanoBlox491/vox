@@ -28,11 +28,11 @@ npm run dist:portable
 
 The portable executable is generated in `dist/`. Build and test on the target Windows machine with both GPU settings; driver support differs. The app is not performance-benchmarked against Discord, so no claim of beating Discord is made.
 
-
 ## Desktop app updates
 
-- The installed NSIS version checks GitHub Releases at startup and every 6 hours. Users can also choose **VOX → Check for Updates…** or use **Settings → Desktop App Updates → Check now**.
+- The installed NSIS version checks GitHub Releases at startup and every **5 minutes**. Users can also choose **VOX → Check for Updates…** or use **Settings → Desktop App Updates → Check now**.
 - Available updates download in the background. When ready, VOX asks whether to restart and install. If the user chooses Later, the update installs when VOX exits.
+- Five-minute polling is a practical near-real-time compromise, not a push notification: updates are normally detected within about 5 minutes while VOX is running. Frequent checks make more GitHub requests, so monitor for rate-limit errors as the user base grows.
 - Updates are published by the tagged-release workflow. Bump `desktop/package.json`'s version, commit the change, create and push a matching tag (for example `v1.0.2`), and the workflow builds the Windows installer and portable executable and publishes the release assets plus updater metadata.
 - The auto-updater is supported for the installed NSIS build. Portable EXE users get a Releases link and must download/replace the portable build manually; portable executables are not silently self-replaced.
 - Important bootstrap step: users on older desktop builds that did not include this updater must install the new updater-enabled installer once. They cannot receive an automatic update popup from code they do not yet have. After that one-time install, future tagged desktop releases can update automatically.
