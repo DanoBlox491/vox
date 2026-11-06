@@ -89,6 +89,15 @@ ipcMain.handle("vox:settings:update", (_event, patch) => {
   const hardwareChanged = before.hardwareAcceleration !== next.hardwareAcceleration;
   const latencyChanged = before.lowLatency !== next.lowLatency;
   if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send("vox:settings:sync", next);
+  // Apply device preference changes to an already-open VOX page as well as future permission requests.
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    for (const [key, value] of Object.entries(safe)) {
+      if (key === "microphoneEnabled" || key === "cameraEnabled") {
+        const script = "if (typeof window.setVoxPreference === 'function') window.setVoxPreference(" + JSON.stringify(key) + "," + JSON.stringify(value) + ");";
+        mainWindow.webContents.executeJavaScript(script).catch((error) => console.warn("Could not sync VOX device preference", error));
+      }
+    }
+  }
   return { settings: next, restartRequired: hardwareChanged || latencyChanged };
 });
 ipcMain.handle("vox:restart", () => { app.relaunch(); app.exit(0); });
