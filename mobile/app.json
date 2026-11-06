@@ -2,22 +2,26 @@
   "expo": {
     "name": "VOX Mobile",
     "slug": "vox-mobile",
-    "scheme": "vox",
-    "version": "1.0.0",
+    "scheme": "voxmobile",
+    "version": "0.1.0",
     "orientation": "default",
     "userInterfaceStyle": "dark",
-    "icon": "./assets/icon.png",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.voxchat.mobile"
+      "bundleIdentifier": "com.voxchat.mobile",
+      "supportsTablet": true
     },
     "android": {
       "package": "com.voxchat.mobile",
-      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0E1A"
       }
+    },
+    "plugins": [
+      "expo-dev-client"
+    ],
+    "extra": {
+      "voxBackend": "existing-firebase-project"
     }
   }
 }

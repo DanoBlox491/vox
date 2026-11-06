@@ -1,64 +1,81 @@
 # VOX Mobile
 
-A separate native React Native app for Android phones, iPhone, and tablets. It lives in its own mobile/ directory and does not replace or rewrite the existing website or Windows desktop app.
+Native Android and iOS client for VOX. This is a separate project from the GitHub Pages website and the Windows Electron app.
 
-## Technology
+## Current foundation
 
-- Expo SDK 58 and React Native 0.88
-- TypeScript
-- Firebase JavaScript SDK 12+
-- Existing Firebase project: vox-chat-979fd
-- Persistent Firebase Authentication using AsyncStorage
-- Native React Native UI; this is not a WebView wrapper
-
-## Implemented in this first foundation
-
-- Email/password sign-in and account creation
-- Sign-in using an existing VOX username or email
-- Persistent sign-in between app launches
-- Existing VOX profile documents in vox_users
-- Mutual-friend list with the same friend/block checks used by VOX Web
-- Existing servers, groups, and server channels
-- Real-time text messages using vox_messages
-- Existing DM room IDs and message document fields
-- Adaptive layout: phone navigation and a two-pane tablet layout
-- Online/away/offline presence in vox_presence
-
-## Still to build
-
-- Native voice/video calling with WebRTC
-- Native push notifications
-- Google and Apple native sign-in
-- Native media/file uploads and richer message rendering
-- Friend requests, profile editing, and server/group creation controls
-
-The Call button is currently a placeholder and does not start a call yet.
+- Expo SDK 58 / React Native 0.88.
+- Adaptive phone and tablet layout.
+- Existing VOX Firebase project: `vox-chat-979fd`.
+- Firebase Authentication with persistent native storage.
+- Existing Firestore collections and field names:
+  - `vox_users`
+  - `vox_servers`
+  - `vox_channels`
+  - `vox_groups`
+  - `vox_messages`
+- Live Firestore listeners for the signed-in profile, servers, groups, and the active conversation.
+- Email/password sign-in, username sign-in, and email/password account creation.
 
 ## Requirements
 
-Use Node.js 22.13+ (or a currently supported even-numbered LTS release) and npm.
+- Node.js 22.13 or newer.
+- npm.
+- For local Android builds: Android Studio and an Android SDK.
+- For local iOS builds: macOS with Xcode. An EAS cloud build can build iOS from other operating systems.
 
-## Run locally on Windows
+## Install and run
 
-1. Open CMD in the mobile directory.
-2. Copy .env.example to .env.
-3. Run npm install.
-4. Run npx expo start.
-5. Scan the QR code with an Expo Go build that supports SDK 58. If your installed Expo Go has not updated to SDK 58, use an EAS development build.
+From this directory:
 
-For a native development build (needed for the upcoming WebRTC and push-notification modules), first install the development client: npx expo install expo-dev-client.
+```sh
+npm install
+npx expo install --fix
+npm run doctor
+npm start
+```
 
-For an Android development build:
-- Install EAS CLI: npm install --global eas-cli
-- Sign in: eas login
-- Build: eas build --profile development --platform android
+The project uses a development client. Expo SDK 58 and native modules should be run with a matching development build, not an older Expo Go client.
 
-For an iOS development build, run eas build --profile development --platform ios. EAS cloud builds can create iOS binaries without a local Mac, but Apple signing and distribution requirements still apply.
+## Development builds
 
-## Firebase compatibility
+Install and sign in to EAS CLI:
 
-The app connects to the same Firebase project and collections as VOX Web. It does not create a new Firebase project or change existing documents. Existing Firestore security rules continue to apply.
+```sh
+npm install --global eas-cli
+eas login
+eas build:configure
+```
 
-The public Firebase client configuration is supplied with EXPO_PUBLIC_ environment variables. The .env file is ignored by Git. Never put service-account credentials or Admin SDK private keys in a mobile app.
+Build a development client:
 
-This first pass uses Firebase JS SDK for Authentication and Firestore. Expo documents support for these Firebase services in React Native. Native calling and background push notifications require a development build and additional native configuration.
+```sh
+eas build --profile development --platform android
+eas build --profile development --platform ios
+```
+
+For an Android preview APK:
+
+```sh
+eas build --profile preview --platform android
+```
+
+## Firebase setup and compatibility
+
+The mobile client intentionally uses the same Firebase project and public Firebase web-app configuration as the existing VOX website. It writes and reads the existing VOX document shapes; it does not create a new backend or migrate user data.
+
+The Firebase web API key in `src/firebase.ts` is an app identifier, not an Admin SDK credential. Do not add service-account JSON, Admin SDK private keys, or other server secrets to this mobile app. Firestore and Storage Security Rules must continue to enforce access.
+
+Google sign-in needs Android/iOS OAuth client configuration for the new native bundle identifiers. It is not enabled in this first scaffold yet; email/password and username-based sign-in are implemented first.
+
+## Milestones
+
+1. **Foundation (this commit):** native sign-in, adaptive shell, live friend/group/server lists, and active-room text messaging.
+2. **Messaging parity:** friend requests, unread counts, typing, message reactions/edits/deletes, image and file uploads.
+3. **Calls:** native WebRTC audio/video using the existing `vox_calls` documents and `signals` subcollection. A custom Expo development build is required for native WebRTC modules.
+4. **Notifications:** native push notifications and deep links into the correct room.
+5. **Release:** Android and iOS store builds, privacy disclosures, and device testing.
+
+## Important
+
+The current native screen is an initial working foundation, not yet feature-parity with VOX Web. Voice/video, Google sign-in, attachments, and push notifications are tracked above and should not be advertised as complete until tested on real devices.
