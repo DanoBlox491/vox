@@ -1,13 +1,18 @@
-
 {
-  "name": "Vox Chat",
-  "short_name": "Vox",
+  "id": "/",
+  "name": "VOX Chat",
+  "short_name": "VOX",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0b0d14",
-  "theme_color": "#0b0d14",
-  "description": "Start chatting with your buddies smoothly.",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "description": "Chat, call, and stay connected with your friends on VOX.",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -20,6 +25,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
