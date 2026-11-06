@@ -642,6 +642,11 @@ export default function App(): React.JSX.Element {
                   data={messages}
                   inverted
                   keyExtractor={(item) => item.id}
+                  initialNumToRender={12}
+                  maxToRenderPerBatch={8}
+                  updateCellsBatchingPeriod={50}
+                  windowSize={7}
+                  removeClippedSubviews={Platform.OS === "android"}
                   keyboardShouldPersistTaps="handled"
                   renderItem={({ item }) => {
                     const mine = item.senderUid === authUser.uid;
