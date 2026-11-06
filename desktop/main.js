@@ -59,6 +59,7 @@ let mainWindow;
 let settingsWindow;
 let updateState = { status: "idle", message: "Updates have not been checked yet.", version: app.getVersion() };
 const releasesUrl = "https://github.com/DanoBlox491/vox/releases/latest";
+const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check every 5 minutes so friends see releases quickly.
 function publishUpdateStatus(status, message, version) {
   updateState = { status, message, version: version || app.getVersion() };
   for (const win of [mainWindow, settingsWindow]) if (win && !win.isDestroyed()) win.webContents.send("vox:updates:status", updateState);
@@ -202,7 +203,7 @@ app.whenReady().then(async () => {
   });
   await createMainWindow();
   checkForDesktopUpdates();
-  setInterval(() => checkForDesktopUpdates(), 6 * 60 * 60 * 1000).unref();
+  setInterval(() => checkForDesktopUpdates(), UPDATE_CHECK_INTERVAL_MS).unref();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createMainWindow(); });
 });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
