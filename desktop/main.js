@@ -2,6 +2,7 @@ const { app, BrowserWindow, shell, session, desktopCapturer, ipcMain, dialog, Me
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { autoUpdater } = require("electron-updater");
 
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, "app-config.json"), "utf8"));
 const appUrl = new URL(config.appUrl);
@@ -56,6 +57,42 @@ function isFirebaseAuth(url) {
 }
 let mainWindow;
 let settingsWindow;
+let updateState = { status: "idle", message: "Updates have not been checked yet.", version: app.getVersion() };
+const releasesUrl = "https://github.com/DanoBlox491/vox/releases/latest";
+function publishUpdateStatus(status, message, version) {
+  updateState = { status, message, version: version || app.getVersion() };
+  for (const win of [mainWindow, settingsWindow]) if (win && !win.isDestroyed()) win.webContents.send("vox:updates:status", updateState);
+}
+async function checkForDesktopUpdates() {
+  if (!app.isPackaged) {
+    publishUpdateStatus("development", "Update checks are available in the installed desktop build.");
+    return updateState;
+  }
+  if (process.env.PORTABLE_EXECUTABLE_FILE) {
+    publishUpdateStatus("portable", "Portable edition: download the latest portable build from VOX Releases.");
+    return updateState;
+  }
+  try {
+    publishUpdateStatus("checking", "Checking GitHub Releases for a newer VOX version…");
+    await autoUpdater.checkForUpdates();
+    return updateState;
+  } catch (error) {
+    publishUpdateStatus("error", "Could not check for updates: " + error.message);
+    return updateState;
+  }
+}
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.on("checking-for-update", () => publishUpdateStatus("checking", "Checking for VOX updates…"));
+autoUpdater.on("update-available", (info) => publishUpdateStatus("available", "VOX " + info.version + " is available. Downloading in the background…", info.version));
+autoUpdater.on("update-not-available", (info) => publishUpdateStatus("current", "VOX is up to date.", info.version));
+autoUpdater.on("download-progress", (progress) => publishUpdateStatus("downloading", "Downloading update: " + Math.round(progress.percent) + "%"));
+autoUpdater.on("update-downloaded", async (info) => {
+  publishUpdateStatus("downloaded", "VOX " + info.version + " is ready to install.", info.version);
+  const result = await dialog.showMessageBox(mainWindow, { type: "info", title: "VOX update ready", message: "VOX " + info.version + " has been downloaded.", detail: "Restart VOX to install the update. You can also install it when you quit.", buttons: ["Restart and install", "Later"], defaultId: 0, cancelId: 1 });
+  if (result.response === 0) autoUpdater.quitAndInstall();
+});
+autoUpdater.on("error", (error) => publishUpdateStatus("error", "VOX update error: " + error.message));
 function openSettings() {
   if (settingsWindow && !settingsWindow.isDestroyed()) return settingsWindow.focus();
   settingsWindow = new BrowserWindow({
@@ -70,6 +107,7 @@ function createMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: "VOX", submenu: [
       { label: "Settings…", accelerator: "Ctrl+,", click: openSettings },
+      { label: "Check for Updates…", click: () => checkForDesktopUpdates() },
       { type: "separator" }, { role: "reload" }, { role: "toggleDevTools" }, { type: "separator" }, { role: "quit" }
     ] },
     { label: "View", submenu: [{ role: "zoomIn" }, { role: "zoomOut" }, { role: "resetZoom" }, { type: "separator" }, { role: "togglefullscreen" }] }
@@ -102,6 +140,9 @@ async function createMainWindow() {
   mainWindow.on("closed", () => { mainWindow = null; });
 }
 ipcMain.handle("vox:settings:get", () => settings);
+ipcMain.handle("vox:updates:check", () => checkForDesktopUpdates());
+ipcMain.handle("vox:updates:info", () => updateState);
+ipcMain.handle("vox:updates:open-releases", () => shell.openExternal(releasesUrl));
 ipcMain.handle("vox:gpu:status", async () => {
   let info = null;
   try { info = await app.getGPUInfo("basic"); } catch (error) { info = { error: error.message }; }
@@ -160,6 +201,8 @@ app.whenReady().then(async () => {
     } catch (error) { console.error("Screen share source selection failed", error); callback({}); }
   });
   await createMainWindow();
+  checkForDesktopUpdates();
+  setInterval(() => checkForDesktopUpdates(), 6 * 60 * 60 * 1000).unref();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createMainWindow(); });
 });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
