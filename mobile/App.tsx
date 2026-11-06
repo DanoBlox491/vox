@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator, Alert, AppState, FlatList, Image, KeyboardAvoidingView,
   Platform, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet,
@@ -196,6 +196,32 @@ function formatMessageTime(message: VoxMessage): string {
   return new Date(millis).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+const MessageRow = memo(function MessageRow({
+  item,
+  currentUid
+}: {
+  item: VoxMessage;
+  currentUid: string;
+}): React.JSX.Element {
+  const mine = item.senderUid === currentUid;
+  return (
+    <View style={[styles.messageLine, mine ? styles.myMessageLine : styles.otherMessageLine]}>
+      {!mine ? <Text style={styles.senderName}>{item.sender || "VOXer"}</Text> : null}
+      <View style={[styles.messageBubble, mine ? styles.myBubble : styles.otherBubble]}>
+        {item.text ? <Text style={styles.messageText}>{item.text}</Text> : null}
+        {item.mediaUrl ? (
+          item.mediaType?.startsWith("image/") ? (
+            <Image source={{ uri: item.mediaUrl }} style={styles.sharedImage} resizeMode="cover" />
+          ) : (
+            <Text style={styles.mediaLabel}>Shared attachment: {item.mediaType || "file"}</Text>
+          )
+        ) : null}
+        <Text style={styles.messageTime}>{formatMessageTime(item)}</Text>
+      </View>
+    </View>
+  );
+});
+
 export default function App(): React.JSX.Element {
   const { width } = useWindowDimensions();
   const isTablet = width >= 820;
@@ -233,6 +259,13 @@ export default function App(): React.JSX.Element {
   }, []);
 
   const uid = authUser?.uid;
+
+  const renderMessage = useCallback(
+    ({ item }: { item: VoxMessage }) => (
+      <MessageRow item={item} currentUid={authUser?.uid || ""} />
+    ),
+    [authUser?.uid]
+  );
 
   useEffect(() => {
     if (!uid) {
@@ -648,25 +681,7 @@ export default function App(): React.JSX.Element {
                   windowSize={7}
                   removeClippedSubviews={Platform.OS === "android"}
                   keyboardShouldPersistTaps="handled"
-                  renderItem={({ item }) => {
-                    const mine = item.senderUid === authUser.uid;
-                    return (
-                      <View style={[styles.messageLine, mine ? styles.myMessageLine : styles.otherMessageLine]}>
-                        {!mine ? <Text style={styles.senderName}>{item.sender || "VOXer"}</Text> : null}
-                        <View style={[styles.messageBubble, mine ? styles.myBubble : styles.otherBubble]}>
-                          {item.text ? <Text style={styles.messageText}>{item.text}</Text> : null}
-                          {item.mediaUrl ? (
-                            item.mediaType?.startsWith("image/") ? (
-                              <Image source={{ uri: item.mediaUrl }} style={styles.sharedImage} resizeMode="cover" />
-                            ) : (
-                              <Text style={styles.mediaLabel}>Shared attachment: {item.mediaType || "file"}</Text>
-                            )
-                          ) : null}
-                          <Text style={styles.messageTime}>{formatMessageTime(item)}</Text>
-                        </View>
-                      </View>
-                    );
-                  }}
+                  renderItem={renderMessage}
                   ListEmptyComponent={
                     <View style={styles.emptyMessages}>
                       <Text style={styles.emptyMessagesTitle}>This is the beginning</Text>
