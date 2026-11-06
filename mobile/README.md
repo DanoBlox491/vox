@@ -23,11 +23,13 @@ A separate native React Native app for Android phones, iPhone, and tablets. It l
 - Real-time text messages using `vox_messages`
 - Existing DM room IDs and message document fields
 - Adaptive phone navigation and two-pane tablet layout
+- Tuned message-list rendering for smoother scrolling on Android devices
+- Camera and microphone permission declarations for future native calling
 - Online/away/offline presence in `vox_presence`
 
 ## Still to build
 
-- Native voice/video calling with WebRTC
+- Native voice/video calling and screen sharing with WebRTC (not implemented yet)
 - Native push notifications
 - Google and Apple native sign-in
 - Native media/file uploads and richer message rendering
