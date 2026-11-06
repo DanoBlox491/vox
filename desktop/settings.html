@@ -6,6 +6,7 @@
 <h1>VOX Settings</h1><p class="sub">Desktop performance and device permissions. Preferences stay on this PC.</p>
 <section class="group">
 <div class="row"><div class="copy"><b>Hardware Acceleration</b><small>Use the GPU for rendering. Turning it off switches to software rendering. Restart required.</small></div><input id="hardwareAcceleration" type="checkbox"></div>
+<div class="row"><div class="copy"><b>CPU Boost</b><small>Raises VOX process scheduling priority to High. Does not overclock the CPU; may reduce responsiveness of other apps.</small></div><input id="cpuBoost" type="checkbox"></div>
 <div class="row"><div class="copy"><b>Low Latency Profile</b><small>Reduces background renderer throttling and visual overhead. May use more CPU and battery.</small></div><input id="lowLatency" type="checkbox"></div>
 <div class="row"><div class="copy"><b>Disable Animation Effects</b><small>Turns off interface transitions and animations.</small></div><input id="disableAnimations" type="checkbox"></div>
 </section>
@@ -16,5 +17,5 @@
 <div id="restartNotice" class="notice">Restart VOX to apply hardware acceleration or low latency changes. Your preferences are already saved.</div>
 <div id="status" role="status" aria-live="polite"></div>
 <div class="actions"><button class="secondary" id="close">Close</button><button class="primary" id="restart">Restart VOX</button></div>
-<p class="foot">Windows privacy controls remain authoritative. Screen sharing is selected when you start a share from VOX. GPU acceleration can vary by graphics driver.</p>
+<p class="foot">Windows privacy controls remain authoritative. Screen sharing is selected when you start a share from VOX. GPU acceleration can vary by graphics driver. CPU Boost changes Windows process priority only; it does not change CPU clock speed.</p>
 <script src="settings.js"></script></body></html>
