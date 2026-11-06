@@ -10,3 +10,10 @@ document.getElementById("refreshGpu").addEventListener("click",refreshGpu);
 document.getElementById("close").addEventListener("click",()=>window.close());
 document.getElementById("restart").addEventListener("click",()=>window.voxDesktop.restart());
 window.voxDesktop.onSettingsSync(render);load();
+
+const updateStatus=document.getElementById("updateStatus");
+function renderUpdate(value){if(updateStatus&&value)updateStatus.textContent=value.message+(value.version?" (v"+value.version+")":"");}
+window.voxDesktop.getUpdateInfo().then(renderUpdate).catch(error=>renderUpdate({message:error.message}));
+window.voxDesktop.onUpdateStatus(renderUpdate);
+document.getElementById("checkUpdates").addEventListener("click",async()=>{updateStatus.textContent="Checking…";renderUpdate(await window.voxDesktop.checkForUpdates());});
+document.getElementById("openReleases").addEventListener("click",()=>window.voxDesktop.openReleases());
