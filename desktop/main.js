@@ -6,7 +6,7 @@ const os = require("node:os");
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, "app-config.json"), "utf8"));
 const appUrl = new URL(config.appUrl);
 const authDomain = config.firebaseAuthDomain || "vox-chat-979fd.firebaseapp.com";
-const defaults = { hardwareAcceleration: true, lowLatency: false, cpuBoost: false, disableAnimations: false, microphoneEnabled: true, cameraEnabled: true };
+const defaults = { hardwareAcceleration: true, gpuBoost: true, lowLatency: false, cpuBoost: false, disableAnimations: false, microphoneEnabled: true, cameraEnabled: true };
 const settingsFile = path.join(app.getPath("userData"), "settings.json");
 function readSettings() {
   try { return { ...defaults, ...JSON.parse(fs.readFileSync(settingsFile, "utf8")) }; }
@@ -14,8 +14,13 @@ function readSettings() {
 }
 let settings = readSettings();
 
-// Electron requires this before app.whenReady() and before creating any BrowserWindow.
+// GPU switches must be selected before app.whenReady() and before creating any BrowserWindow.
+// GPU Boost enables Chromium GPU rasterization and accelerated video decoding; it does not overclock the GPU.
 if (!settings.hardwareAcceleration) app.disableHardwareAcceleration();
+else if (settings.gpuBoost) {
+  app.commandLine.appendSwitch("enable-gpu-rasterization");
+  app.commandLine.appendSwitch("enable-accelerated-video-decode");
+}
 if (settings.lowLatency) {
   app.commandLine.appendSwitch("disable-renderer-backgrounding");
   app.commandLine.appendSwitch("disable-background-timer-throttling");
@@ -97,6 +102,11 @@ async function createMainWindow() {
   mainWindow.on("closed", () => { mainWindow = null; });
 }
 ipcMain.handle("vox:settings:get", () => settings);
+ipcMain.handle("vox:gpu:status", async () => {
+  let info = null;
+  try { info = await app.getGPUInfo("basic"); } catch (error) { info = { error: error.message }; }
+  return { features: app.getGPUFeatureStatus(), info };
+});
 ipcMain.handle("vox:settings:update", (_event, patch) => {
   const before = settings;
   const safePatch = {};
@@ -105,6 +115,7 @@ ipcMain.handle("vox:settings:update", (_event, patch) => {
   }
   const next = saveSettings(safePatch);
   const hardwareChanged = before.hardwareAcceleration !== next.hardwareAcceleration;
+  const gpuBoostChanged = before.gpuBoost !== next.gpuBoost;
   const latencyChanged = before.lowLatency !== next.lowLatency;
   if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send("vox:settings:sync", next);
   if (Object.prototype.hasOwnProperty.call(safePatch, "cpuBoost")) {
@@ -120,7 +131,7 @@ ipcMain.handle("vox:settings:update", (_event, patch) => {
       }
     }
   }
-  return { settings: next, restartRequired: hardwareChanged || latencyChanged };
+  return { settings: next, restartRequired: hardwareChanged || gpuBoostChanged || latencyChanged };
 });
 ipcMain.handle("vox:restart", () => { app.relaunch(); app.exit(0); });
 
