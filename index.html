@@ -80,6 +80,17 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
 
 /* Utility */
   .hidden{display:none!important}
+.vox-settings-shortcut{width:34px;height:34px;padding:0;border:1px solid var(--p4);border-radius:10px;background:rgba(0,212,255,.08);box-shadow:none;font-size:17px;flex:0 0 auto}
+.vox-settings-shortcut:hover{transform:none;background:var(--p3)}
+.vox-setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-bottom:1px solid var(--p3)}
+.vox-setting-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
+.vox-setting-copy b{font-size:14px;color:var(--txt)}
+.vox-setting-copy small{font-size:11px;color:var(--mut);line-height:1.45}
+.vox-setting-row input{width:20px;height:20px;margin:0;accent-color:var(--blue);flex:0 0 auto}
+.vox-setting-note{font-size:11px;color:var(--mut);line-height:1.5;margin-top:12px}
+#call-controls .vox-call-toggle[aria-pressed="false"]{background:#713344;color:#fff}
+html.vox-low-latency *,html.vox-low-latency *::before,html.vox-low-latency *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important;backdrop-filter:none!important;box-shadow:none!important}
+html.vox-no-animations *,html.vox-no-animations *::before,html.vox-no-animations *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 .err{color:var(--danger);min-height:20px;font-size:13px;font-weight:600;margin-top:-8px;margin-bottom:12px;text-align:left;}
 .success{color:var(--success);font-size:13px;font-weight:600;margin-top:-8px;margin-bottom:12px;text-align:left;}
 .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--mut);font-size:14px;font-weight:600;}
@@ -432,7 +443,7 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
     <div id="me" onclick="editProfileModal()">
       <img class="avatar" src="" alt="Me">
       <b>Loading...</b>
-      <span>⚙️</span>
+      <button type="button" class="vox-settings-shortcut" title="VOX Settings" aria-label="VOX Settings" onclick="event.stopPropagation();voxSettingsModal()">⚙️</button>
     </div>
   </div>
   <div id="main">
@@ -473,6 +484,8 @@ input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--b
   </div>
   <div id="video-grid"></div>
   <div id="call-controls">
+    <button class="vox-call-toggle" id="voxMicToggle" onclick="toggleCallTrack(&quot;audio&quot;)" aria-pressed="true">Mic On</button>
+    <button class="vox-call-toggle" id="voxCameraToggle" onclick="toggleCallTrack(&quot;video&quot;)" aria-pressed="true">Camera On</button>
     <button class="pri" onclick="toggleScreen()" style="background:linear-gradient(135deg, var(--purple) 0%, #7e22ce 100%);color:#fff;box-shadow:0 4px 15px var(--purple-glow);">Share Screen</button>
   </div>
 </div>
@@ -1723,6 +1736,25 @@ async function removeFriend(uid) {
   } catch (e) { dbErr(e); }
 }
 
+const VOX_PREFS_KEY = 'vox:performance-preferences';
+const voxPrefs = {lowLatency:false,disableAnimations:false,microphoneEnabled:true,cameraEnabled:true};
+try { const savedVoxPrefs = JSON.parse(localStorage.getItem(VOX_PREFS_KEY) || '{}'); Object.assign(voxPrefs, savedVoxPrefs && typeof savedVoxPrefs === 'object' ? savedVoxPrefs : {}); } catch (_) {}
+applyVoxPreferences();
+function saveVoxPreferences(){try{localStorage.setItem(VOX_PREFS_KEY,JSON.stringify(voxPrefs));}catch(_){} applyVoxPreferences();}
+function applyVoxPreferences(){document.documentElement.classList.toggle('vox-low-latency',!!voxPrefs.lowLatency);document.documentElement.classList.toggle('vox-no-animations',!!voxPrefs.disableAnimations);}
+function setVoxPreference(key,value){if(!(key in voxPrefs))return;voxPrefs[key]=!!value;saveVoxPreferences();if(key==='microphoneEnabled'||key==='cameraEnabled'){const kind=key==='microphoneEnabled'?'audio':'video';if(localStream)localStream.getTracks().filter(track=>track.kind===kind).forEach(track=>{track.enabled=!!value;});updateCallToggleLabels();}}
+function voxSettingsModal(){
+  $('modal').innerHTML = '<div class="modal-inner"><h3>⚙️ VOX Performance & Device Settings</h3>' +
+    '<div class="vox-setting-row"><div class="vox-setting-copy"><b>Low Latency Profile</b><small>Reduces visual effects and prioritises a responsive chat interface.</small></div><input type="checkbox" '+(voxPrefs.lowLatency?'checked':'')+' onchange="setVoxPreference(\'lowLatency\',this.checked)"></div>' +
+    '<div class="vox-setting-row"><div class="vox-setting-copy"><b>Disable Animation Effects</b><small>Turns off interface animations and transitions.</small></div><input type="checkbox" '+(voxPrefs.disableAnimations?'checked':'')+' onchange="setVoxPreference(\'disableAnimations\',this.checked)"></div>' +
+    '<div class="vox-setting-row"><div class="vox-setting-copy"><b>Microphone enabled for calls</b><small>Saved preference. Permission is requested only when joining a call.</small></div><input type="checkbox" '+(voxPrefs.microphoneEnabled?'checked':'')+' onchange="setVoxPreference(\'microphoneEnabled\',this.checked)"></div>' +
+    '<div class="vox-setting-row"><div class="vox-setting-copy"><b>Camera enabled for calls</b><small>Saved preference. Permission is requested only when joining a call.</small></div><input type="checkbox" '+(voxPrefs.cameraEnabled?'checked':'')+' onchange="setVoxPreference(\'cameraEnabled\',this.checked)"></div>' +
+    '<div class="vox-setting-row"><div class="vox-setting-copy"><b>Hardware acceleration</b><small>Controlled by your browser; websites cannot switch its GPU setting.</small></div><span style="color:var(--mut);font-size:12px">Browser managed</span></div>' +
+    '<p class="vox-setting-note">Saved on this device. Camera and microphone access is not requested until you join a call.</p><div class="modal-actions"><button class="pri" onclick="closeModal()">Done</button></div></div>';
+  $('modal').classList.remove('hidden');
+}
+function updateCallToggleLabels(){const mic=$('voxMicToggle'),camera=$('voxCameraToggle');const a=localStream?.getAudioTracks()[0],v=localStream?.getVideoTracks()[0];if(mic){const on=a?a.enabled:!!voxPrefs.microphoneEnabled;mic.textContent=on?'Mic On':'Mic Off';mic.setAttribute('aria-pressed',String(on));}if(camera){const on=v?v.enabled:!!voxPrefs.cameraEnabled;camera.textContent=on?'Camera On':'Camera Off';camera.setAttribute('aria-pressed',String(on));}}
+function toggleCallTrack(kind){const track=localStream?.getTracks().find(item=>item.kind===kind);if(!track)return toast(kind==='audio'?'Microphone is unavailable in this call.':'Camera is unavailable in this call.');track.enabled=!track.enabled;voxPrefs[kind==='audio'?'microphoneEnabled':'cameraEnabled']=track.enabled;saveVoxPreferences();updateCallToggleLabels();}
 function editProfileModal() {
   $('modal').innerHTML = `<div class="modal-inner"><h3>Edit Profile</h3><input id="editName" placeholder="Display name" value="${esc(profile.displayName || '')}"><input id="editPhoto" placeholder="Photo URL" value="${esc(profile.photoURL || '')}"><textarea id="editBio" placeholder="Bio" rows="3">${esc(profile.bio || '')}</textarea><input id="editYt" placeholder="YouTube link" value="${esc(profile.socials?.yt || '')}"><input id="editDiscord" placeholder="Discord link" value="${esc(profile.socials?.discord || '')}"><div class="modal-actions"><button class="pri" onclick="saveProfile()">Save</button><button class="danger" onclick="auth.signOut();closeModal()">Logout</button><button onclick="closeModal()">Cancel</button></div></div>`;
   $('modal').classList.remove('hidden');
@@ -1768,20 +1800,19 @@ async function joinVoice() {
   let microphoneGranted = false;
   let cameraGranted = false;
 
-  try {
-    const audioStream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
-    requestedTracks.push(...audioStream.getAudioTracks());
-    microphoneGranted = requestedTracks.some(track => track.kind === 'audio');
-  } catch (error) {
-    console.info('VOX microphone permission was not granted:', error);
+  if (voxPrefs.microphoneEnabled) {
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+      requestedTracks.push(...audioStream.getAudioTracks());
+      microphoneGranted = requestedTracks.some(track => track.kind === 'audio');
+    } catch (error) { console.info('VOX microphone permission was not granted:', error); }
   }
-
-  try {
-    const videoStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
-    requestedTracks.push(...videoStream.getVideoTracks());
-    cameraGranted = requestedTracks.some(track => track.kind === 'video');
-  } catch (error) {
-    console.info('VOX camera permission was not granted:', error);
+  if (voxPrefs.cameraEnabled) {
+    try {
+      const videoStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
+      requestedTracks.push(...videoStream.getVideoTracks());
+      cameraGranted = requestedTracks.some(track => track.kind === 'video');
+    } catch (error) { console.info('VOX camera permission was not granted:', error); }
   }
 
   localStream = new MediaStream(requestedTracks);
@@ -1798,6 +1829,7 @@ async function joinVoice() {
   activeCallRoom = roomKey;
   $('call-widget').classList.remove('hidden');
   $('video-grid').innerHTML = '';
+  updateCallToggleLabels();
   $('call-widget-title').textContent = `📹 Call: ${roomKey.startsWith('dm_') ? 'DM' : 'Room'}`;
 
   try {
