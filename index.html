@@ -1826,14 +1826,14 @@ async function joinVoice() {
       const audioStream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
       requestedTracks.push(...audioStream.getAudioTracks());
       microphoneGranted = requestedTracks.some(track => track.kind === 'audio');
-    } catch (error) { console.info('VOX microphone permission was not granted:', error); }
+    } catch (error) { voxPrefs.microphoneEnabled = false; saveVoxPreferences(); console.info('VOX microphone permission was not granted:', error); }
   }
   if (voxPrefs.cameraEnabled) {
     try {
       const videoStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
       requestedTracks.push(...videoStream.getVideoTracks());
       cameraGranted = requestedTracks.some(track => track.kind === 'video');
-    } catch (error) { console.info('VOX camera permission was not granted:', error); }
+    } catch (error) { voxPrefs.cameraEnabled = false; saveVoxPreferences(); console.info('VOX camera permission was not granted:', error); }
   }
 
   localStream = new MediaStream(requestedTracks);
