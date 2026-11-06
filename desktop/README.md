@@ -7,6 +7,7 @@ This is the Electron desktop shell for the existing hosted VOX app. It keeps the
 Open **VOX → Settings…** or press **Ctrl+,**.
 
 - **Hardware Acceleration:** ON by default. OFF invokes Electron's `app.disableHardwareAcceleration()` before startup. Restart required.
+- **GPU Acceleration Boost:** ON by default. Adds Chromium `enable-gpu-rasterization` and `enable-accelerated-video-decode` switches before startup. This is a real GPU rendering/decode preference, not a GPU overclock; the driver may disable unsupported features. Requires Hardware Acceleration ON and a restart. The Settings page also displays Electron GPU feature status.
 - **CPU Boost:** raises VOX Electron process scheduling priority to Windows HIGH (never REALTIME). This is not CPU overclocking and cannot force higher clock speeds; it may affect responsiveness of other apps.
 - **Low Latency Profile:** reduces background renderer throttling. It cannot reduce internet ping or Firebase/network latency and may increase CPU/battery use.
 - **Disable Animation Effects:** injects reduced-motion CSS into the app window.
