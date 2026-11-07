@@ -2,10 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApp, getApps, initializeApp, type FirebaseOptions } from "firebase/app";
 import {
   getAuth,
-  getReactNativePersistence,
   initializeAuth,
   type Auth
 } from "firebase/auth";
+// Firebase publishes this export in its React Native conditional entry. Metro
+// resolves that entry for Expo; TypeScript currently resolves the browser types.
+// @ts-expect-error React Native-only conditional export selected by Metro.
+import { getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig: FirebaseOptions = {
