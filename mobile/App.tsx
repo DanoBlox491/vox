@@ -368,6 +368,7 @@ export default function App(): React.JSX.Element {
       return;
     }
 
+    const currentUid = uid;
     const blocked = new Set(profile.blockedUsers || []);
     const friendIds = friendKey ? friendKey.split("|").filter((id) => !blocked.has(id)) : [];
     let active = true;
@@ -381,7 +382,7 @@ export default function App(): React.JSX.Element {
           const friend = friendSnapshot.data() as VoxProfile;
           if (
             !(friend.friends || []).includes(uid) ||
-            (friend.blockedUsers || []).includes(uid)
+            (friend.blockedUsers || []).includes(currentUid)
           ) return null;
 
           return { id: friendId, ...friend } as FriendProfile;
@@ -444,10 +445,11 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     if (!uid) return;
 
+    const currentUid = uid;
     const writePresence = (state: string) => {
       const status = state === "active" ? "online" : "away";
       void setDoc(
-        doc(db, "vox_presence", uid),
+        doc(db, "vox_presence", currentUid),
         { status, lastChanged: serverTimestamp() },
         { merge: true }
       ).catch(() => undefined);
@@ -536,7 +538,7 @@ export default function App(): React.JSX.Element {
   if (!authReady || (authUser && !profileReady)) {
     return (
       <SafeAreaView style={styles.loadingScreen}>
-        <StatusBar barStyle="light-content" backgroundColor={BG} />
+        <StatusBar barStyle="light-content" />
         <Text style={styles.loadingBrand}>VOX</Text>
         <ActivityIndicator color={CYAN} size="large" />
         <Text style={styles.mutedText}>Connecting to your VOX account…</Text>
