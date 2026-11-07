@@ -369,6 +369,7 @@ export default function App(): React.JSX.Element {
     }
 
     const currentUid = uid;
+    if (!currentUid) return;
     const blocked = new Set(profile.blockedUsers || []);
     const friendIds = friendKey ? friendKey.split("|").filter((id) => !blocked.has(id)) : [];
     let active = true;
@@ -446,7 +447,7 @@ export default function App(): React.JSX.Element {
     if (!uid) return;
 
     const currentUid = uid;
-    const writePresence = (state: string) => {
+    const writePresence = (state: typeof AppState.currentState) => {
       const status = state === "active" ? "online" : "away";
       void setDoc(
         doc(db, "vox_presence", currentUid),
@@ -552,7 +553,7 @@ export default function App(): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={BG} />
+      <StatusBar barStyle="light-content" />
       <View style={[styles.appShell, isTablet && styles.tabletShell]}>
         {showSidebar ? (
           <View style={[styles.sidebar, isTablet && styles.tabletSidebar]}>
