@@ -20,9 +20,6 @@
         "CAMERA",
         "RECORD_AUDIO"
       ]
-    },
-    "plugins": [
-      "expo-dev-client"
-    ]
+    }
   }
 }
