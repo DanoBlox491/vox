@@ -6,7 +6,6 @@
     "version": "1.0.0",
     "orientation": "default",
     "userInterfaceStyle": "dark",
-    "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.voxchat.mobile",
@@ -17,10 +16,6 @@
     },
     "android": {
       "package": "com.voxchat.mobile",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0E1A"
-      },
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO"
