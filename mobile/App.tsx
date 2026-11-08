@@ -382,7 +382,7 @@ export default function App(): React.JSX.Element {
 
           const friend = friendSnapshot.data() as VoxProfile;
           if (
-            !(friend.friends || []).includes(uid) ||
+            !(friend.friends || []).includes(currentUid) ||
             (friend.blockedUsers || []).includes(currentUid)
           ) return null;
 
