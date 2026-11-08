@@ -39,7 +39,7 @@ The voice-channel screen is currently a placeholder and does not start a call ye
 
 ## Requirements
 
-Use Node.js 22.13+ and npm.
+Use Node.js 22.13+ on the 22.x line, or 24.3+ on the 24.x line, and npm. Avoid odd-numbered Node.js releases; Expo SDK 58 does not support them.
 
 ## Run locally on Windows
 
