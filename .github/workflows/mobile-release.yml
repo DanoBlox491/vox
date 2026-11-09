@@ -1,0 +1,145 @@
+name: VOX Android Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "vox-mobile-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vox-android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate VOX Mobile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.12"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Type-check React Native app
+        run: npm run typecheck
+
+      - name: Check Expo package compatibility
+        run: npx expo install --check
+
+      - name: Run Expo Doctor
+        run: npx expo-doctor
+
+      - name: Validate Expo configuration
+        run: npx expo config --type public
+
+  build-android-release:
+    name: Build and verify Android release APK
+    needs: validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.12"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install JavaScript dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Configure VOX Firebase client
+        run: cp .env.example .env
+
+      - name: Generate clean Android native project
+        run: CI=1 npx expo prebuild --clean --platform android
+
+      - name: Configure signed test-release variant
+        working-directory: mobile/android
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("app/build.gradle")
+          source = path.read_text()
+          marker = "buildTypes {"
+          start = source.find(marker)
+          if start < 0:
+              raise SystemExit("Could not find buildTypes in app/build.gradle")
+
+          release_marker = "release {"
+          release_start = source.find(release_marker, start)
+          if release_start < 0:
+              raise SystemExit("Could not find release build type in app/build.gradle")
+
+          brace_start = source.find("{", release_start)
+          depth = 0
+          release_end = None
+          for index in range(brace_start, len(source)):
+              if source[index] == "{":
+                  depth += 1
+              elif source[index] == "}":
+                  depth -= 1
+                  if depth == 0:
+                      release_end = index
+                      break
+
+          if release_end is None:
+              raise SystemExit("Could not parse release build type block")
+
+          block = source[release_start:release_end + 1]
+          if "signingConfig" not in block:
+              if "signingConfigs.debug" not in source:
+                  raise SystemExit("Debug signing config is missing; refusing to create an unsigned APK")
+              insertion = source.rfind("\n", release_start, brace_start) + 1
+              indent = " " * 6
+              source = source[:brace_start + 1] + f"\n{indent}signingConfig signingConfigs.debug" + source[brace_start + 1:]
+              path.write_text(source)
+          print("Release APK will use the runner's debug keystore for installable test distribution.")
+          PY
+
+      - name: Build release APK
+        working-directory: mobile/android
+        run: ./gradlew --no-daemon :app:assembleRelease
+
+      - name: Verify release APK and embedded JavaScript bundle
+        working-directory: mobile/android
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          unzip -Z1 "$APK" | grep -Fx "assets/index.android.bundle"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+
+      - name: Upload VOX Android release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vox-mobile-release-apk
+          path: mobile/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
