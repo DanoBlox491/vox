@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0a0e1a">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="VOX is a chat app for messaging, sharing files and connecting with friends.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -348,6 +349,93 @@ html.vox-no-animations *,html.vox-no-animations *::before,html.vox-no-animations
   #composer button{padding-left:8px;padding-right:8px}
 }
 
+
+/* ===== VOX clarity refresh: calm, consistent, and readable ===== */
+:root{
+  --bg:#0b1220;--p1:#101a2b;--p2:#142033;--p3:#203047;--p4:#2b3d55;
+  --blue:#55b8e8;--blue-glow:rgba(85,184,232,.16);
+  --pink:#bd91c8;--pink-glow:rgba(189,145,200,.14);
+  --purple:#8d9ed4;--purple-glow:rgba(141,158,212,.14);
+  --txt:#edf3f8;--txt-dim:#c0ccd8;--mut:#8999ad;
+}
+body{background:var(--bg);color:var(--txt)}
+.animated-bg{background:linear-gradient(145deg,#0b1220 0%,#111d30 55%,#101827 100%);background-size:100% 100%;animation:none}
+.floating-shapes{display:none}
+.get-started-content{max-width:980px;padding:32px 24px}
+.gs-logo-container{gap:14px;margin-bottom:30px;animation:none}
+.gs-logo{filter:none;animation:none}
+.gs-title{background:none;-webkit-text-fill-color:var(--txt);color:var(--txt);filter:none;animation:none;letter-spacing:2px}
+.gs-subtitle{font-size:16px;font-weight:500;color:var(--txt-dim);letter-spacing:.2px;margin-top:2px}
+.gs-intro{max-width:520px;margin:4px auto 0;color:var(--mut);font-size:14px;line-height:1.65}
+.auth-container{gap:18px;margin-top:32px;animation:none}
+.auth-card{background:#111d2e;backdrop-filter:none;border:1px solid #2a3b51;border-radius:16px;padding:30px;box-shadow:0 12px 32px rgba(0,0,0,.22);transition:border-color .2s,background .2s}
+.auth-card:hover{transform:none;box-shadow:0 12px 32px rgba(0,0,0,.22);border-color:#49617b}
+.auth-card.signup-card,.auth-card.signup-card:hover{border-color:#2a3b51;box-shadow:0 12px 32px rgba(0,0,0,.22)}
+.auth-card h2,.auth-card.signup-card h2{font-size:23px;font-weight:700;margin-bottom:22px;background:none;-webkit-text-fill-color:var(--txt);color:var(--txt)}
+.auth-footnote{margin:18px auto 0;max-width:620px;text-align:center;color:var(--mut);font-size:12px;line-height:1.6}
+button{background:#263950;box-shadow:none;border:1px solid #344b64;transition:background .18s,border-color .18s,color .18s}
+button::before{display:none}
+button:hover{transform:none;box-shadow:none;background:#304760;border-color:#49647f}
+button:active{transform:none;box-shadow:none}
+button.pri{background:#287eaa;color:#fff;box-shadow:none;font-size:14px;padding:12px 18px}
+button.pri:hover{background:#3294c4;box-shadow:none}
+button.pink{background:#526c91;color:#fff;box-shadow:none;font-size:14px;padding:12px 18px}
+button.pink:hover{background:#607fa8;box-shadow:none}
+button.oauth-btn{background:#fff;color:#1d2938;border:1px solid #d9e0e8;box-shadow:none}
+button.oauth-btn:hover{background:#f2f5f8;border-color:#c5d0dc}
+input,textarea{background:#0d1726;border:1px solid #30445c;backdrop-filter:none;border-radius:10px;box-shadow:none}
+input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(85,184,232,.14);background:#0d1726}
+.wifi-notice{background:rgba(85,184,232,.07);color:var(--txt-dim);border:1px solid rgba(85,184,232,.2);box-shadow:none;animation:none;font-weight:500}
+.version-stamp{letter-spacing:.3px;font-weight:500}
+#rail{background:#0e1828;backdrop-filter:none;border-right:1px solid #25364b;box-shadow:none}
+#side2{background:#111d2e;backdrop-filter:none;border-right:1px solid #25364b;box-shadow:none}
+#side2 header{background:#111d2e;border-bottom:1px solid #2a3b51}
+.ico{background:#1c2b40;box-shadow:none;border:1px solid #2c4058;transition:background .18s,border-color .18s}
+.ico:hover,.ico.on{background:#287eaa;color:#fff;box-shadow:none;transform:none;border:1px solid #4b9fc8}
+.ico.grp{background:#1e493f}
+.ico.grp:hover,.ico.grp.on{background:#26745e;box-shadow:none;border:1px solid #3c9b7e}
+.item{transition:background .18s,color .18s;border:1px solid transparent}
+.item:hover{background:#1b2b40;color:var(--txt);box-shadow:none;transform:none}
+.item.on{background:#20354d;color:#fff;border-left:3px solid var(--blue);box-shadow:none}
+.unread-dot{background:#d47aa4;box-shadow:none;animation:none}
+.avatar{border:1px solid #3a5068;transition:border-color .18s}
+.avatar:hover{box-shadow:none;transform:none;border-color:var(--blue)}
+#me{background:#17263a;border-top:1px solid #2a3b51;box-shadow:none}
+#me:hover{background:#1d3048;box-shadow:none}
+#main{background:#142033}
+#top{background:#142033;border-bottom:1px solid #2a3b51;box-shadow:none;backdrop-filter:none}
+#msgs::-webkit-scrollbar-thumb{background:#34465d}
+#msgs::-webkit-scrollbar-thumb:hover{background:#4a627e}
+.msg{border-radius:10px}
+.msg:hover{background:rgba(255,255,255,.025);border-left-color:#45617b;box-shadow:none}
+.msg .n{background:none;-webkit-text-fill-color:var(--blue);color:var(--blue)}
+.msg .n:hover{filter:none;transform:none}
+.msg img.m,.msg video{box-shadow:none;border:1px solid #344b64}
+.msg img.m:hover,.msg video:hover{transform:none;box-shadow:none;border-color:#49647f}
+#call-widget{background:#111d2e;backdrop-filter:none;border:1px solid #344b64;box-shadow:0 12px 32px rgba(0,0,0,.35);animation:none}
+.modal{background:rgba(4,10,18,.78);backdrop-filter:blur(5px);animation:none}
+.modal-inner{background:#142033;border:1px solid #344b64;box-shadow:0 18px 48px rgba(0,0,0,.4);animation:none}
+.modal h3{background:none;-webkit-text-fill-color:var(--txt);color:var(--txt)}
+#toast{background:#17263a;box-shadow:0 8px 28px rgba(0,0,0,.35);border:1px solid #3a526c;transition:transform .2s}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#missedBanner{background:#2a2437;border-bottom:1px solid #72517d;box-shadow:none;animation:none}
+#missedBanner:hover{background:#352b45;box-shadow:none}
+#composer{background:#111d2e;border-top:1px solid #2a3b51}
+#composer .send-icon-btn{width:42px;height:42px;min-width:42px;flex:0 0 42px;padding:0;border:1px solid #3c91b8;border-radius:11px;background:#287eaa;color:#fff;box-shadow:none;display:grid;place-items:center}
+#composer .send-icon-btn:hover{background:#3294c4;border-color:#5bb4dc;transform:none;box-shadow:none}
+#composer .send-icon-btn:disabled{opacity:.55;cursor:not-allowed}
+#composer .send-icon-btn::before{display:none}
+#composer .send-icon-btn svg{width:19px;height:19px;display:block}
+@media(max-width:600px){
+  .get-started-content{padding:18px 14px}
+  .gs-logo-container{gap:10px;margin-bottom:22px}
+  .gs-intro{font-size:13px}
+  .auth-container{margin-top:22px}
+  .auth-card{padding:22px;border-radius:14px}
+  .auth-card h2,.auth-card.signup-card h2{font-size:21px}
+  #composer .send-icon-btn{width:40px;height:40px;min-width:40px;flex-basis:40px}
+}
+
 </style>
 </head>
 <body>
@@ -385,13 +473,14 @@ html.vox-no-animations *,html.vox-no-animations *::before,html.vox-no-animations
         <path d="M343 118 L374 118" stroke="#53efff" stroke-width="18" stroke-linecap="round"/>
       </svg>
       <div class="gs-title">VOX</div>
-      <div class="gs-subtitle">START CHATTING SMOOTHLY</div>
+      <div class="gs-subtitle">A simpler place to chat and connect</div>
+      <p class="gs-intro">Message friends, share files and join conversations in one place.</p>
     </div>
 
     <div class="auth-container">
       <!-- Sign In (Sign Up) Card -->
       <div class="auth-card signup-card">
-        <h2>Sign Up</h2>
+        <h2>Create your account</h2>
         <input id="sEmail" type="email" placeholder="Email" autocomplete="email">
         <input id="sUsername" type="text" placeholder="Username" autocomplete="username" oninput="checkUsername(this.value, 'sUsernameMsg')">
         <div id="sUsernameMsg" class="success hidden"></div>
@@ -403,11 +492,11 @@ html.vox-no-animations *,html.vox-no-animations *::before,html.vox-no-animations
 
       <!-- Log In Card -->
       <div class="auth-card">
-        <h2>Log In</h2>
+        <h2>Welcome back</h2>
         <input id="lUsername" type="text" placeholder="Username or Email" autocomplete="username">
         <input id="lPass" type="password" placeholder="Password" autocomplete="current-password">
         <div class="err" id="lErr"></div>
-        <button class="pri" onclick="login()">Log In</button>
+        <button class="pri" onclick="login()">Sign in</button>
 
         <div class="divider">OR</div>
                 <button class="oauth-btn" onclick="loginWithGoogle()">
@@ -416,10 +505,11 @@ html.vox-no-animations *,html.vox-no-animations *::before,html.vox-no-animations
         </button>
       </div>
     </div>
+    <p class="auth-footnote">Choose a VOX account or use Google sign-in to continue.</p>
 
     <!-- Wi-Fi Notice & Version -->
     <div class="wifi-notice">
-  📶 Connect to the internet to use VOX and Firebase.
+  Connect to the internet to use VOX.
 </div>
 
 <button id="installAppBtn" class="pri hidden"
@@ -461,7 +551,7 @@ html.vox-no-animations *,html.vox-no-animations *::before,html.vox-no-animations
       <button id="plus" onclick="toggleMenu(event)">+</button>
       <input id="text" type="text" placeholder="Type a message..." autocomplete="off" onkeydown="handleKeyDown(event)" oninput="handleInput()">
       <button id="emoji-btn" onclick="toggleEmojiMenu(event)">😀</button>
-      <button class="pri" onclick="send()">Send</button>
+      <button id="sendBtn" class="send-icon-btn" type="button" onclick="send()" aria-label="Send message" title="Send message"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12 20 4l-5.5 16-3.2-6.8L4 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="m11.3 13.2 4.1-4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
       <input type="file" id="file" class="hidden" onchange="upload(this)">
     </div>
     <div id="menu" class="hidden"></div>
