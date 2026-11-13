@@ -28,7 +28,7 @@
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);height:100vh;height:100dvh;overflow:hidden;position:relative;}
 
 /* Get Started Page ye*/
-#getStarted{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;overflow:hidden;}
+#getStarted{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .animated-bg{position:absolute;inset:0;background:linear-gradient(135deg, #0a0e1a 0%, #1a0e2e 25%, #0e1a2e 50%, #1a0e2e 75%, #0a0e1a 100%);background-size:400% 400%;animation:gradientShift 15s ease infinite;}
 @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .floating-shapes{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
@@ -39,7 +39,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);height
 .shape:nth-child(4){width:350px;height:350px;background:radial-gradient(circle, var(--blue) 0%, transparent 70%);bottom:20%;left:15%;animation-duration:20s;animation-delay:1s;}
 @keyframes float{0%, 100%{transform:translate(0, 0) scale(1)}25%{transform:translate(30px, -30px) scale(1.1)}50%{transform:translate(-20px, 20px) scale(0.9)}75%{transform:translate(40px, 10px) scale(1.05)}}
 
-.get-started-content{position:relative;z-index:3;text-align:center;width:100%;max-width:1200px;padding:40px;}
+.get-started-content{position:relative;z-index:3;text-align:center;width:100%;max-width:1200px;padding:40px;flex-shrink:0;margin-block:auto;}
 .gs-logo-container{display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:50px;animation:logoEntrance 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);}
 @keyframes logoEntrance{from{opacity:0;transform:translateY(-50px) scale(0.8)}to{opacity:1;transform:translateY(0) scale(1)}}
 .gs-logo{width:120px;height:120px;filter:drop-shadow(0 0 40px var(--blue)) drop-shadow(0 0 80px var(--pink));animation:logoFloat 4s ease-in-out infinite;}
@@ -261,7 +261,19 @@ html.vox-no-animations *,html.vox-no-animations *::before,html.vox-no-animations
   .auth-container{grid-template-columns:1fr;gap:30px}
   .gs-title{font-size:48px}
   .gs-subtitle{font-size:16px}
-  .auth-card{padding:30px}
+  .auth-card{padding:30px;min-width:0;max-width:100%}
+}
+
+/* VOX tablet welcome-page scrolling fix (601-900px) */
+@media(min-width:601px) and (max-width:900px){
+  #getStarted{align-items:stretch;justify-content:flex-start;}
+  #getStarted .get-started-content{width:100%;max-width:760px;margin-inline:auto;margin-block:auto;padding:28px 24px;}
+}
+
+/* Short screens: avoid vertical clipping of the welcome page */
+@media(max-height:700px){
+  #getStarted{justify-content:flex-start;}
+  #getStarted .get-started-content{margin-block:20px;}
 }
 @media(max-width:600px){
   #rail{width:70px;padding:12px 0}
